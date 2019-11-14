@@ -1,0 +1,204 @@
+openapi: 3.0.0
+info:
+  version: '0.0.1'
+  title: 'trips Api'
+  description: 'a service to provide unique trip identifiers'
+  contact:
+    name: seth gerou
+    email: seth.gerou@noaa.gov
+    url: nwfsc.noaa.gov
+paths:
+  /trips:
+    get:
+      parameters:
+        - name: vesselId
+          in: query
+          description: all trips for a given vessel
+          schema:
+            type: string
+        - name: captain
+          in: query
+          description: all trips for a given captain
+          schema:
+            type: string
+        - name: port
+          in: query
+          description: trips starting or ending in specified port
+          schema:
+            type: string
+        - name: fishery
+          in: query
+          description: trips in a given fishery
+          schema:
+            type: string
+      summary: get all trips
+      responses:
+        '200':
+          description: successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  trip:
+                    $ref: '#/components/schemas/Trip'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+      tags:
+        - Trips
+    post:
+      summary: create a new trip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Trip'
+      responses:
+        '200':
+          description: successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tripID: 
+                    type: integer
+                  trip:
+                    type: object
+        '400':
+          $ref: '#/components/responses/InvalidRequestError'
+      tags:
+        - Trips
+  /trips/{tripNum}:
+    get:
+      description: get an individual trip by trip num
+      parameters:
+        - name: tripNum
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        '200':
+          description: returned a valid trip
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  vesselId:
+                    type: string
+                  vesselName:
+                    type: string
+                  startPort:
+                    type: string
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+      tags:
+        - Trip
+    put:
+      description: update an individual trip
+      parameters:
+        - name: tripNum
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Trip'
+      responses:
+        '200':
+          description: successfully edited an existing trip
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        '400':
+          $ref: '#/components/responses/InvalidRequestError'
+      tags:
+        - Trip
+
+# Added by API Auto Mocking Plugin
+servers:
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/seth.gerou/Trips/0.0.1
+tags:
+  - name: Trips
+    description: all trips
+  - name: Trip
+    description: an individual trip
+components:
+  schemas:
+    Trip:
+      type: object
+      required: 
+        - vesselId
+      properties:
+        tripId:
+          type: number
+        vesselId:
+          type: string
+        vesselName:
+          type: string
+        departurePort:
+          type: string
+        returnPort:
+          type: string
+        departureDate:
+          type: string
+        returnDate:
+          type: string
+        fisheries:
+          type: array
+          items:
+            type: string
+        permits:
+          type: array
+          items:
+            type: string
+        captain:
+          type: string
+        createdBy:
+          type: string
+        createdDate:
+          type: string
+        updatedBy:
+          type: string
+        updatedDate:
+          type: string
+  responses:
+    NotFoundError:
+      description: No data found
+      content:
+        application/json:
+          schema:
+            type: 'object'
+            properties:
+              status:
+                type: integer
+                format: int64
+              message:
+                type: string
+          example:
+            status: 404
+            message: 'Not Found'
+    InvalidRequestError:
+      description: Invalid Request
+      content:
+        application/json:
+          schema:
+            type: 'object'
+            properties:
+              status:
+                type: integer
+                format: int64
+              message:
+                type: string
+          example:
+            status: 400
+            message: 'Invalid Request'
