@@ -7,7 +7,7 @@ const masterDev = couchDB.db.use('master-dev')
 
 const getTrips = (req, res) => {
     console.log(req.query);
-    masterDev.view('LookupDocs', 'beaufort-lookup').then((body) => {
+    masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "descending": true}).then((body) => {
         res.json(body)
       });
     // res.json(['trip 1', 'trip 2', 'trip 3']);
@@ -15,16 +15,29 @@ const getTrips = (req, res) => {
 
 const newTrip = (req, res) => {
     // get next tripId
-    // apply tripId to req.body
-    // insert into db
-    // return success message + doc with _id + _rev
-    console.log(req.body);
-    res.json(req.body);
+    masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "descending": true, "limit": 1}).then((body) => {
+        const maxId = body.rows[0].key
+        // apply tripId to req.body
+        const newTrip = req.body
+        newTrip.tripId = maxId + 1
+        console.log(newTrip)
+        // insert into db
+        masterDev.insert(newTrip).then(
+            setTimeout(() => {
+
+                masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "key": maxId + 1}).then((result) => {
+                    res.send(result)
+                })
+            }, 500)
+        )
+      });
 }
 
 const getTrip = (req, res) => {
     console.log(req.params);
-    res.json('trip 3');
+    masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "key": parseInt(req.params.tripId), "include_docs": true}).then((body) => {
+        res.json(body.rows[0].doc);
+    })
 }
 
 const updateTrip = (req, res) => {
