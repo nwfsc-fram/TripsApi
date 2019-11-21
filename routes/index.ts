@@ -33,23 +33,31 @@ const getTrips = (req, res) => {
 }
 
 const newTrip = (req, res) => {
-    masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "descending": true, "limit": 1}).then((body) => {
-        const maxId = body.rows[0].key
-        const newTrip = req.body
-        newTrip.tripId = maxId + 1
-        masterDev.bulk({docs: [newTrip]}).then(
-            setTimeout(() => {
-                masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "key": maxId + 1}).then((result) => {
-                    res.send(result)
-                })
-            }, 500)
-        )
-      });
+    if (req.body.vesselId) {
+        masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "descending": true, "limit": 1}).then((body) => {
+            const maxId = body.rows[0].key
+            const newTrip = req.body
+            newTrip.tripId = maxId + 1
+            masterDev.bulk({docs: [newTrip]}).then(
+                setTimeout(() => {
+                    masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "key": maxId + 1}).then((result) => {
+                        res.send(result)
+                    })
+                }, 500)
+            )
+          });
+    } else {
+        res.status(500).send('vesselID is required to create a new trip.')
+    }
 }
 
 const getTrip = (req, res) => {
     masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "key": parseInt(req.params.tripId), "include_docs": true}).then((body) => {
-        res.json(body.rows[0].doc);
+        if ( body.rows[0].doc ) {
+            res.json(body.rows[0].doc);
+        } else {
+            res.send('Doc with specified tripId not found')
+        }
     })
 }
 
