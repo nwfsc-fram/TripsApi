@@ -1,143 +1,239 @@
 openapi: 3.0.0
 info:
-  version: '0.0.1'
-  title: 'trips Api'
-  description: 'a service to provide unique trip identifiers'
+  title: trips Api
+  description: a service to provide unique trip identifiers
   contact:
     name: seth gerou
-    email: seth.gerou@noaa.gov
     url: nwfsc.noaa.gov
+    email: seth.gerou@noaa.gov
+  version: 0.0.1
+servers:
+- url: https://virtserver.swaggerhub.com/seth.gerou/Trips/0.0.1
+  description: SwaggerHub API Auto Mocking
+tags:
+- name: Trips
+  description: all trips
+- name: Trip
+  description: an individual trip
 paths:
-  /trips:
-    get:
-      parameters:
-        - name: vesselId
-          in: query
-          description: all trips for a given vessel
-          schema:
-            type: string
-        - name: captain
-          in: query
-          description: all trips for a given captain
-          schema:
-            type: string
-        - name: port
-          in: query
-          description: trips starting or ending in specified port
-          schema:
-            type: string
-        - name: fishery
-          in: query
-          description: trips in a given fishery
-          schema:
-            type: string
-      summary: get all trips
-      responses:
-        '200':
-          description: successful response
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  trip:
-                    $ref: '#/components/schemas/Trip'
-        '404':
-          $ref: '#/components/responses/NotFoundError'
-      tags:
-        - Trips
+  /login:
     post:
-      summary: create a new trip
+      tags:
+      - Login
+      summary: Perform login to get JWT token
+      operationId: postLogin
       requestBody:
-        required: true
+        description: Need username and password
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Trip'
+              $ref: '#/components/schemas/Login'
+            examples:
+              Encoded:
+                value:
+                  username: test
+                  passwordEnc: dGVzdA==
+                  applicationName: BOATNET_OBSERVER
+              Basic:
+                value:
+                  username: test
+                  password: test
+        required: true
       responses:
-        '200':
+        200:
+          description: User Authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200'
+              example:
+                username: test
+                token: (JWT Token - decode at jwt.io)
+        401:
+          description: Authorization information is missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_401'
+              example:
+                status: 401
+                message: You have not been granted access to this application.
+  /trips:
+    get:
+      tags:
+      - Trips
+      summary: get all trips
+      parameters:
+      - name: vesselId
+        in: query
+        description: all trips for a given vessel
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: captain
+        in: query
+        description: all trips for a given captain
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: port
+        in: query
+        description: trips starting or ending in specified port
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: fishery
+        in: query
+        description: trips in a given fishery
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      responses:
+        200:
           description: successful response
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  tripID: 
-                    type: integer
-                  trip:
-                    type: object
-        '400':
-          $ref: '#/components/responses/InvalidRequestError'
+                $ref: '#/components/schemas/inline_response_200_1'
+        404:
+          description: No data found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_401'
+              example:
+                status: 404
+                message: Not Found
+      security:
+      - bearerAuth: []
+    post:
       tags:
-        - Trips
+      - Trips
+      summary: create a new trip
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewTrip'
+        required: true
+      responses:
+        200:
+          description: successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200_2'
+        400:
+          description: Invalid Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_401'
+              example:
+                status: 400
+                message: Invalid Request
+      security:
+      - bearerAuth: []
   /trips/{tripNum}:
     get:
+      tags:
+      - Trip
       description: get an individual trip by trip num
       parameters:
-        - name: tripNum
-          in: path
-          required: true
-          schema:
-            type: number
+      - name: tripNum
+        in: path
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: number
       responses:
-        '200':
+        200:
           description: returned a valid trip
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  vesselId:
-                    type: string
-                  vesselName:
-                    type: string
-                  startPort:
-                    type: string
-        '404':
-          $ref: '#/components/responses/NotFoundError'
-      tags:
-        - Trip
+                $ref: '#/components/schemas/inline_response_200_3'
+        404:
+          description: No data found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_401'
+              example:
+                status: 404
+                message: Not Found
+      security:
+      - bearerAuth: []
     put:
+      tags:
+      - Trip
       description: update an individual trip
       parameters:
-        - name: tripNum
-          in: path
-          required: true
-          schema:
-            type: number
-      requestBody:
+      - name: tripNum
+        in: path
         required: true
+        style: simple
+        explode: false
+        schema:
+          type: number
+      requestBody:
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/Trip'
+        required: true
       responses:
-        '200':
+        200:
           description: successfully edited an existing trip
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Trip'
-        '400':
-          $ref: '#/components/responses/InvalidRequestError'
-      tags:
-        - Trip
-
-# Added by API Auto Mocking Plugin
-servers:
-  - description: SwaggerHub API Auto Mocking
-    url: https://virtserver.swaggerhub.com/seth.gerou/Trips/0.0.1
-tags:
-  - name: Trips
-    description: all trips
-  - name: Trip
-    description: an individual trip
+        400:
+          description: Invalid Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_401'
+              example:
+                status: 400
+                message: Invalid Request
+      security:
+      - bearerAuth: []
 components:
   schemas:
-    Trip:
+    Login:
+      required:
+      - username
       type: object
-      required: 
-        - vesselId
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+          description: Required if passwordEnc not specified
+        passwordEnc:
+          type: string
+          description: Required if password not specified
+        applicationName:
+          type: string
+          description: Application name, determines which roles are returned in JWT
+          default: BOATNET_OBSERVER
+    Trip:
+      required:
+      - departureDate
+      - returnDate
+      - vesselId
+      type: object
       properties:
         tripId:
           type: number
@@ -171,34 +267,96 @@ components:
           type: string
         updatedDate:
           type: string
+    NewTrip:
+      required:
+      - departureDate
+      - returnDate
+      - vesselId
+      type: object
+      properties:
+        vesselId:
+          type: string
+        vesselName:
+          type: string
+        departurePort:
+          type: string
+        returnPort:
+          type: string
+        departureDate:
+          type: string
+        returnDate:
+          type: string
+        fisheries:
+          type: array
+          items:
+            type: string
+        permits:
+          type: array
+          items:
+            type: string
+        captain:
+          type: string
+        createdBy:
+          type: string
+        createdDate:
+          type: string
+        updatedBy:
+          type: string
+        updatedDate:
+          type: string
+    inline_response_200:
+      type: object
+      properties:
+        username:
+          type: string
+        token:
+          type: string
+          description: JWT encoded token
+    inline_response_401:
+      type: object
+      properties:
+        status:
+          type: integer
+          format: int64
+        message:
+          type: string
+    inline_response_200_1:
+      type: object
+      properties:
+        trip:
+          $ref: '#/components/schemas/Trip'
+    inline_response_200_2:
+      type: object
+      properties:
+        tripID:
+          type: integer
+        trip:
+          type: object
+    inline_response_200_3:
+      type: object
+      properties:
+        vesselId:
+          type: string
+        vesselName:
+          type: string
+        startPort:
+          type: string
   responses:
     NotFoundError:
       description: No data found
       content:
         application/json:
           schema:
-            type: 'object'
-            properties:
-              status:
-                type: integer
-                format: int64
-              message:
-                type: string
+            $ref: '#/components/schemas/inline_response_401'
           example:
             status: 404
-            message: 'Not Found'
+            message: Not Found
     InvalidRequestError:
       description: Invalid Request
       content:
         application/json:
           schema:
-            type: 'object'
-            properties:
-              status:
-                type: integer
-                format: int64
-              message:
-                type: string
+            $ref: '#/components/schemas/inline_response_401'
           example:
             status: 400
-            message: 'Invalid Request'
+            message: Invalid Request

@@ -2,7 +2,7 @@ const path = require('path');
 const cors = require('cors');
 const moment = require('moment');
 
-const express = require('express');
+import * as express from 'express';
 const app = express();
 const port = 3000;
 
@@ -62,22 +62,6 @@ app.use((err, req, res, next) => {
   });
 
 const commandLineArgs = require('command-line-args');
-
-// app.get('/', (req, res) => res.send('Hello World!'));
-
-app.get('/fish', (req, res) => {
-    console.log(req.query.name)
-    res.send('Hello Fish!')
-});
-
-app.get('/fish/:fishId', (req, res) => {
-    console.log(req.query.name)
-    const fishId = req.params.fishId
-    // res.json(req.params)
-    // res.sendStatus('200')
-    // res.render('<div>This is some test html.</div>')
-    res.status(400).send('Bad Request - Unable to locate ' + fishId)
-});
 
 app.use('/', require('./routes/index.ts'));
 
