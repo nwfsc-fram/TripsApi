@@ -44,7 +44,7 @@ const login = (req, res) => {
       }
 
     request.post({
-        url: 'https://localhost:9000/api/v1/login',
+        url: dbConfig.authServer + 'api/v1/login',
         json: true,
         body: {
                 "username": username,
@@ -62,7 +62,7 @@ const login = (req, res) => {
         token = body.token;
 
         request.get({
-            url: 'https://localhost:9000/api/v1/pubkey',
+            url: dbConfig.authServer + 'api/v1/pubkey',
             rejectUnauthorized: false,
             requestCert: false,
             agent: false,
