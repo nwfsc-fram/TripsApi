@@ -12,15 +12,6 @@ const swaggerDocument = YAML.load(path.resolve(__dirname, 'openapi.yaml'));
 
 const OpenApiValidator = require('express-openapi-validator').OpenApiValidator;
 
-// const keys = ["1", "2", "3"]
-// masterDev.fetch({keys: keys}).then((body) => {
-//   console.log(body.rows[0].id)
-// })
-
-// masterDev.insert({type: "Trash", value: "Delete Me"}).then((body) => {
-//   console.log(body)
-// })
-
 express.static('public');
 
 app.all('/*', (req, res, next) => {

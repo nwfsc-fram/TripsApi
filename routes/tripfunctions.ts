@@ -3,4 +3,4 @@
 // }
 
 
-module.exports = getTrips;
+// module.exports = getTrips;
