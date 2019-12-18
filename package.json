@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "./node_modules/.bin/ts-node-dev ./app.ts --secure --port=3000",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start-server-DEV": "./node_modules/.bin/ts-node ./app.ts --secure --port=9004",
+    "start-server-PROD": "./node_modules/.bin/ts-node ./app.ts --secure --port=9004"
   },
   "author": "",
   "license": "ISC",
