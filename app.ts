@@ -3,6 +3,9 @@ const cors = require('cors');
 const moment = require('moment');
 
 import * as express from 'express';
+import * as https from 'https';
+import * as fs from 'fs';
+import { resolve } from 'path';
 const app = express();
 const port = 3000;
 
@@ -54,10 +57,41 @@ app.use((err, req, res, next) => {
 
 const commandLineArgs = require('command-line-args');
 
+const optionDefinitions = [
+  { name: 'port', alias: 'p', type: Number},
+  { name: 'path', type: String} // Full path, dist/ will be added on
+];
+
+const options = commandLineArgs(optionDefinitions);
+const PORT = options.port ? options.port : 8080;
+
 app.use('/', require('./routes/index.ts'));
 
 app.use(function (req, res, next) {
   res.status(404).send("Unable to locate the requested resource")
 })
 
-app.listen(port, () => console.log(`Trips API listening on port ${port}!`));
+let publicPath = '';
+if (options.path) {
+  publicPath = resolve(__dirname, options.path)
+} else {
+  publicPath = resolve(__dirname, '/dist')
+}
+
+// app.listen(port, () => console.log(`Trips API listening on port ${port}!`));
+
+const httpsServer = https.createServer(
+  {
+    key: fs.readFileSync('./src/keys/key.pem'),
+    cert: fs.readFileSync('./src/keys/cert.pem')
+  },
+  app
+);
+
+// launch an HTTPS Server
+httpsServer.listen(PORT, () => {
+  console.log(
+    'Boatnet HTTPS Secure Server running at https://localhost:' + PORT
+  );
+  console.log('Dist path: ' + publicPath);
+});
