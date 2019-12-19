@@ -6,8 +6,8 @@
   "scripts": {
     "start": "./node_modules/.bin/ts-node-dev ./app.ts --secure --port=3000",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start-server-DEV": "./node_modules/.bin/ts-node ./app.ts --secure --port=9004",
-    "start-server-PROD": "./node_modules/.bin/ts-node ./app.ts --secure --port=9004"
+    "start-server-DEV": "./node_modules/.bin/ts-node ./app.ts --port=9004",
+    "start-server-PROD": "./node_modules/.bin/ts-node ./app.ts --port=9004"
   },
   "author": "",
   "license": "ISC",
@@ -22,6 +22,7 @@
     "https": "^1.0.0",
     "jsonwebtoken": "^8.5.1",
     "moment": "^2.24.0",
+    "nano": "^8.1.0",
     "path": "^0.12.7",
     "pem-jwk": "^2.0.0",
     "request": "^2.88.0",
