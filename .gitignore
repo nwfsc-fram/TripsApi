@@ -5,3 +5,7 @@ old-tripsApi.yaml
 old-openapi.yaml
 public/hello.html
 models/trip.v1.yaml
+keys/cert.pem
+keys/key.pem
+
+keys/temp-pub-key.pem
