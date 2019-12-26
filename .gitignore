@@ -9,3 +9,4 @@ keys/cert.pem
 keys/key.pem
 
 keys/temp-pub-key.pem
+openapi - old.yaml

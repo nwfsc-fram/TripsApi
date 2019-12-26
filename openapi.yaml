@@ -40,7 +40,7 @@ paths:
                   password: test
         required: true
       responses:
-        200:
+        "200":
           description: User Authorized
           content:
             application/json:
@@ -49,7 +49,7 @@ paths:
               example:
                 username: test
                 token: (JWT Token - decode at jwt.io)
-        401:
+        "401":
           description: Authorization information is missing or invalid.
           content:
             application/json:
@@ -58,7 +58,118 @@ paths:
               example:
                 status: 401
                 message: You have not been granted access to this application.
-  /trips:
+  /tripCatch/{tripNum}:
+    get:
+      tags:
+      - Catch
+      summary: get catch for trip
+      parameters:
+      - name: tripNum
+        in: path
+        description: ID of desired trip catch
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200_1'
+        "404":
+          description: No data found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_401'
+              example:
+                status: 404
+                message: Not Found
+      security:
+      - bearerAuth: []
+    put:
+      tags:
+      - Catch
+      description: update trip catch
+      parameters:
+      - name: tripNum
+        in: path
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: number
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TripCatch'
+        required: true
+      responses:
+        "200":
+          description: update success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_401'
+              example:
+                status: 200
+                message: catch data updated
+        "400":
+          description: Invalid Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_401'
+              example:
+                status: 400
+                message: Invalid Request
+      security:
+      - bearerAuth: []
+    post:
+      tags:
+      - Catch
+      summary: submit catch an for existing trip
+      parameters:
+      - name: tripNum
+        in: path
+        description: trip Id for catch
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TripCatch'
+        required: true
+      responses:
+        "200":
+          description: save success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_401'
+              example:
+                status: 200
+                message: catch data saved
+        "400":
+          description: Invalid Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_401'
+              example:
+                status: 400
+                message: Invalid Request
+      security:
+      - bearerAuth: []
+  /trips/:
     get:
       tags:
       - Trips
@@ -97,13 +208,13 @@ paths:
         schema:
           type: string
       responses:
-        200:
+        "200":
           description: successful response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/inline_response_200_1'
-        404:
+                $ref: '#/components/schemas/inline_response_200_2'
+        "404":
           description: No data found
           content:
             application/json:
@@ -125,13 +236,13 @@ paths:
               $ref: '#/components/schemas/NewTrip'
         required: true
       responses:
-        200:
+        "200":
           description: successful response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/inline_response_200_2'
-        400:
+                $ref: '#/components/schemas/inline_response_200_3'
+        "400":
           description: Invalid Request
           content:
             application/json:
@@ -156,13 +267,13 @@ paths:
         schema:
           type: number
       responses:
-        200:
+        "200":
           description: returned a valid trip
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/inline_response_200_3'
-        404:
+                $ref: '#/components/schemas/inline_response_200_4'
+        "404":
           description: No data found
           content:
             application/json:
@@ -192,13 +303,13 @@ paths:
               $ref: '#/components/schemas/Trip'
         required: true
       responses:
-        200:
+        "200":
           description: successfully edited an existing trip
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Trip'
-        400:
+        "400":
           description: Invalid Request
           content:
             application/json:
@@ -228,6 +339,76 @@ components:
           type: string
           description: Application name, determines which roles are returned in JWT
           default: BOATNET_OBSERVER
+    TripCatch:
+      required:
+      - hauls
+      - source
+      - tripId
+      type: object
+      properties:
+        tripId:
+          type: number
+        source:
+          type: string
+        hauls:
+          type: array
+          items:
+            $ref: '#/components/schemas/Haul'
+        fishTickets:
+          type: array
+          items:
+            type: string
+        createdBy:
+          type: string
+        createdDate:
+          type: string
+        updatedBy:
+          type: string
+        updatedDate:
+          type: string
+    Haul:
+      required:
+      - date
+      - haulNum
+      - setLoc
+      - setTime
+      - upLoc
+      - upTime
+      type: object
+      properties:
+        haulNum:
+          type: number
+        date:
+          type: string
+        setTime:
+          type: string
+        setLoc:
+          type: string
+        upTime:
+          type: string
+        upLoc:
+          type: string
+        avgDepth:
+          type: number
+        netType:
+          type: string
+        targetStrategy:
+          type: string
+        catch:
+          type: array
+          items:
+            $ref: '#/components/schemas/Catch'
+    Catch:
+      required:
+      - discard
+      - speciesName
+      properties:
+        speciesName:
+          type: string
+        retained:
+          type: number
+        discard:
+          type: number
     Trip:
       required:
       - departureDate
@@ -323,16 +504,21 @@ components:
     inline_response_200_1:
       type: object
       properties:
+        tripCatch:
+          $ref: '#/components/schemas/TripCatch'
+    inline_response_200_2:
+      type: object
+      properties:
         trip:
           $ref: '#/components/schemas/Trip'
-    inline_response_200_2:
+    inline_response_200_3:
       type: object
       properties:
         tripID:
           type: integer
         trip:
           type: object
-    inline_response_200_3:
+    inline_response_200_4:
       type: object
       properties:
         vesselId:
@@ -360,3 +546,21 @@ components:
           example:
             status: 400
             message: Invalid Request
+    CatchDataSaved:
+      description: save success
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/inline_response_401'
+          example:
+            status: 200
+            message: catch data saved
+    CatchDataUpdated:
+      description: update success
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/inline_response_401'
+          example:
+            status: 200
+            message: catch data updated
