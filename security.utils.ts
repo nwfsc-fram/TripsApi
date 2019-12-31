@@ -1,5 +1,5 @@
 import * as moment from 'moment';
-const dbConfig = require('../dbConfig.json').dbConfig;
+const dbConfig = require('./dbConfig.json').dbConfig;
 
 import * as jwt from 'jsonwebtoken';
 const request = require('request');
