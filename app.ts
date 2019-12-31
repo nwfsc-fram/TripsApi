@@ -25,6 +25,7 @@ app.all('/*', (req, res, next) => {
     'Access-Control-Allow-Headers',
     'Content-type,Accept,X-Access-Token,X-Key'
   );
+  res.header('Authorization');
   if (req.method === 'OPTIONS') {
     res.sendStatus(200);
   } else {
@@ -82,7 +83,7 @@ if (options.path) {
 
 const httpsServer = https.createServer(
   {
-    key: fs.readFileSync('./src/keys/key.pem'),
+    key: fs.readFileSync('./src/keys/key.pem'),  // change these for dev (remove /src)
     cert: fs.readFileSync('./src/keys/cert.pem')
   },
   app
