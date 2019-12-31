@@ -47,7 +47,6 @@ export async function validateJwtRequest(
 }
 
 async function handleJwtToken(jwt: string, res: any) {
-  console.log('executing handle jwt token function');
   const payload = await decodeJwt(jwt);
   res['user'] = JSON.parse(payload.sub);
   return payload;
