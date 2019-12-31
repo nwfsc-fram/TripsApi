@@ -26,6 +26,7 @@ export async function decodeJwt(token) {
                 }, function (key, err, response, body) {
                     key = pemjwk.jwk2pem(JSON.parse(body).keys[0])
             })
+        }
     console.log(key)
     const payload = await jwt.verify(token, key);
 
