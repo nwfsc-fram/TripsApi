@@ -1,7 +1,10 @@
 import * as moment from 'moment';
+const dbConfig = require('../dbConfig.json').dbConfig;
 
 import * as jwt from 'jsonwebtoken';
+const request = require('request');
 import { key } from './routes/index';
+import * as pemjwk from 'pem-jwk';
 
 // from https://stackoverflow.com/questions/23097928/node-js-btoa-is-not-defined-error
 // Encode/decode base64 (not encryption functions)
@@ -17,6 +20,12 @@ function encode64(value) {
 }
 
 export async function decodeJwt(token) {
+    if (!key) {
+        await request.get({
+                url: dbConfig.authServer + 'api/v1/pubkey',
+                }, function (key, err, response, body) {
+                    key = pemjwk.jwk2pem(JSON.parse(body).keys[0])
+            })
     console.log(key)
     const payload = await jwt.verify(token, key);
 
