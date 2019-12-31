@@ -23,8 +23,9 @@ app.all('/*', (req, res, next) => {
   // Set custom headers for CORS
   res.header(
     'Access-Control-Allow-Headers',
-    'Content-type,Accept,X-Access-Token,X-Key'
+    'Content-type,Accept,X-Access-Token,X-Key',
   );
+  res.header('Authorization');
   if (req.method === 'OPTIONS') {
     res.sendStatus(200);
   } else {
@@ -82,8 +83,8 @@ if (options.path) {
 
 const httpsServer = https.createServer(
   {
-    key: fs.readFileSync('./src/keys/key.pem'),
-    cert: fs.readFileSync('./src/keys/cert.pem')
+    key: fs.readFileSync('./keys/key.pem'),  // change these for dev (remove /src)
+    cert: fs.readFileSync('./keys/cert.pem')
   },
   app
 );
