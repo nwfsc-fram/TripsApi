@@ -22,9 +22,10 @@ function encode64(value) {
 export async function decodeJwt(token) {
     if (!key) {
         console.log(dbConfig.authServer + 'api/v1/pubkey');
-        request.get({
+        await request.get({
                 url: dbConfig.authServer + 'api/v1/pubkey',
                 }, function (key, err, response, body) {
+                    console.log(response);
                     key = pemjwk.jwk2pem(JSON.parse(body).keys[0])
             })
         }
