@@ -12,6 +12,7 @@ const request = require('request');
 const https = require('https');
 
 import * as pemjwk from 'pem-jwk';
+import { Request, Response, NextFunction } from 'express';
 
 const DEFAULT_APPLICATION_NAME = 'BOATNET_OBSERVER';
 
@@ -21,6 +22,7 @@ let token = '';
 export let key = '';
 
 const login = (req, res) => {
+
     let username = req.body.username || '';
     const password = req.body.passwordEnc
       ? utils.decode64(req.body.passwordEnc)
@@ -61,22 +63,31 @@ const login = (req, res) => {
         console.log(body)
         token = body.token;
 
-        request.get({
+        res.send({
+            "token": token
+        })
+
+    })
+
+}
+
+async function getPubKey (
+    req: Request,
+    res: Response,
+    next: NextFunction) {
+    if (key === '') {
+        await request.get({
             url: dbConfig.authServer + 'api/v1/pubkey',
             rejectUnauthorized: false,
             requestCert: false,
             agent: false,
         }, function (err, response, body) {
             key = pemjwk.jwk2pem(JSON.parse(body).keys[0])
-
-            res.send({
-                "token": token
-            })
-
+            next();
         })
-
-    })
-
+    } else {
+        next();
+    }
 }
 
 const getTrips = async (req, res) => {
@@ -194,14 +205,18 @@ const updateCatch = async (req, res) => {
 }
 
 const API_VERSION = 'v1';
+router.use('/api/' + API_VERSION + '/login', getPubKey);
 router.post('/api/' + API_VERSION + '/login', login);
+router.use('/api/' + API_VERSION + '/trips', getPubKey);
 router.use('/api/' + API_VERSION + '/trips', validateJwtRequest);
 router.get('/api/' + API_VERSION + '/trips', getTrips);
 router.post('/api/' + API_VERSION + '/trips', newTrip);
+router.use('/api/' + API_VERSION + '/trips/:tripId', getPubKey);
 router.use('/api/' + API_VERSION + '/trips/:tripId', validateJwtRequest);
 router.get('/api/' + API_VERSION + '/trips/:tripId', getTrip);
 router.put('/api/' + API_VERSION + '/trips/:tripId', updateTrip);
-router.use('/api/' + API_VERSION + '/trips/:tripId', validateJwtRequest);
+router.use('/api/' + API_VERSION + '/tripCatch/:tripId', getPubKey);
+router.use('/api/' + API_VERSION + '/tripCatch/:tripId', validateJwtRequest);
 router.get('/api/' + API_VERSION + '/tripCatch/:tripId', getCatch)
 router.post('/api/' + API_VERSION + '/tripCatch/:tripId', newCatch)
 router.put('/api/' + API_VERSION + '/tripCatch/:tripId', updateCatch)
