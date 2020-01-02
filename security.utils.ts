@@ -20,26 +20,14 @@ function encode64(value) {
 }
 
 export async function decodeJwt(token) {
-    if (!key) {
-        console.log(dbConfig.authServer + 'api/v1/pubkey');
-        await request.get({
-                url: dbConfig.authServer + 'api/v1/pubkey',
-                }, function (err, response, body) {
-                    console.log(response);
-                    const key = pemjwk.jwk2pem(JSON.parse(body).keys[0])
-                    console.log(key)
-                    const payload = jwt.verify(token, key).then(
-                        (result: any) => { return result }
-                    );
-            })
-    } else {
-        const payload = await jwt.verify(token, key);
 
-        // JWT Decode here.
-        // console.log('Middleware: JWT payload is still valid.')
-        // console.log('decoded JWT payload', payload);
+    console.log(key)
+    const payload = await jwt.verify(token, key);
 
-        return payload;
-    }
+    // JWT Decode here.
+    // console.log('Middleware: JWT payload is still valid.')
+    // console.log('decoded JWT payload', payload);
+
+    return payload;
 }
 
