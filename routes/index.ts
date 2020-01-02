@@ -127,7 +127,13 @@ const newTrip = async (req, res) => {
             masterDev.bulk({docs: [newTrip]}).then(
                 setTimeout(() => {
                     masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "key": maxId + 1}).then((result) => {
-                        res.send(result)
+
+                        res.send(
+                            {
+                                tripID: maxId + 1,
+                                trip: result
+                            }
+                        )
                     })
                 }, 500)
             )
