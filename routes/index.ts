@@ -126,12 +126,12 @@ const newTrip = async (req, res) => {
             newTrip.tripId = maxId + 1
             masterDev.bulk({docs: [newTrip]}).then(
                 setTimeout(() => {
-                    masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "key": maxId + 1}).then((result) => {
+                    masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "key": maxId + 1, "include_docs": true}).then((result) => {
 
                         res.send(
                             {
                                 tripID: maxId + 1,
-                                trip: result
+                                trip: result.rows[0].doc
                             }
                         )
                     })
