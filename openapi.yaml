@@ -343,10 +343,10 @@ components:
       required:
       - hauls
       - source
-      - tripId
+      - tripNum
       type: object
       properties:
-        tripId:
+        tripNum:
           type: number
         source:
           type: string
@@ -416,7 +416,7 @@ components:
       - vesselId
       type: object
       properties:
-        tripId:
+        tripNum:
           type: number
         vesselId:
           type: string
@@ -514,7 +514,7 @@ components:
     inline_response_200_3:
       type: object
       properties:
-        tripID:
+        tripNum:
           type: integer
         trip:
           type: object

@@ -123,14 +123,14 @@ const newTrip = async (req, res) => {
             const maxId = body.rows[0].key
             const newTrip = req.body
             newTrip.type = 'trips-api'
-            newTrip.tripId = maxId + 1
+            newTrip.tripNum = maxId + 1
             masterDev.bulk({docs: [newTrip]}).then(
                 setTimeout(() => {
                     masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "key": maxId + 1, "include_docs": true}).then((result) => {
 
                         res.send(
                             {
-                                tripID: maxId + 1,
+                                tripNum: maxId + 1,
                                 trip: result.rows[0].doc
                             }
                         )
@@ -144,11 +144,11 @@ const newTrip = async (req, res) => {
 }
 
 const getTrip = async (req, res) => {
-    masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "key": parseInt(req.params.tripId), "include_docs": true}).then((body) => {
+    masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "key": parseInt(req.params.tripNum), "include_docs": true}).then((body) => {
         if ( body.rows[0].doc ) {
             res.json(body.rows[0].doc);
         } else {
-            res.send('Doc with specified tripId not found')
+            res.send('Doc with specified tripNum not found')
         }
     })
 }
@@ -156,7 +156,7 @@ const getTrip = async (req, res) => {
 const updateTrip = async (req, res) => {
     const existing = await masterDev.get(req.body._id)
     console.log(existing)
-    if (existing.tripId === req.body.tripId ) {
+    if (existing.tripNum === req.body.tripNum ) {
         masterDev.bulk({docs: [req.body]}).then( (body) => {
             res.json(body);
         })
@@ -166,7 +166,7 @@ const updateTrip = async (req, res) => {
 }
 
 const getCatch = async (req, res) => {
-    masterDev.view('TripsApi', 'all_api_catch', {"reduce": false, "key": req.params.tripId, "include_docs": true}).then((body) => {
+    masterDev.view('TripsApi', 'all_api_catch', {"reduce": false, "key": req.params.tripNum, "include_docs": true}).then((body) => {
         if ( body.rows.length > 0) {
             const docs = body.rows.map((row) => row.doc)
             res.json(docs)
@@ -177,7 +177,7 @@ const getCatch = async (req, res) => {
 }
 
 const newCatch = async (req, res) => {
-    if (req.params.tripId && req.body.tripId && req.body.source && req.body.hauls) {
+    if (req.params.tripNum && req.body.tripNum && req.body.source && req.body.hauls) {
             const newTrip = req.body
             newTrip.type = 'trips-api-catch'
             masterDev.bulk({docs: [newTrip]}).then(
@@ -194,7 +194,7 @@ const updateCatch = async (req, res) => {
         try {
             const existing = await masterDev.get(req.body._id)
             console.log(existing)
-            if (existing.tripId === req.body.tripId ) {
+            if (existing.tripNum === req.body.tripNum ) {
                 masterDev.bulk({docs: [req.body]}).then( (body) => {
                     res.status('200').send('catch data updated');
                 })
@@ -217,15 +217,15 @@ router.use('/api/' + API_VERSION + '/trips', getPubKey);
 router.use('/api/' + API_VERSION + '/trips', validateJwtRequest);
 router.get('/api/' + API_VERSION + '/trips', getTrips);
 router.post('/api/' + API_VERSION + '/trips', newTrip);
-router.use('/api/' + API_VERSION + '/trips/:tripId', getPubKey);
-router.use('/api/' + API_VERSION + '/trips/:tripId', validateJwtRequest);
-router.get('/api/' + API_VERSION + '/trips/:tripId', getTrip);
-router.put('/api/' + API_VERSION + '/trips/:tripId', updateTrip);
-router.use('/api/' + API_VERSION + '/tripCatch/:tripId', getPubKey);
-router.use('/api/' + API_VERSION + '/tripCatch/:tripId', validateJwtRequest);
-router.get('/api/' + API_VERSION + '/tripCatch/:tripId', getCatch)
-router.post('/api/' + API_VERSION + '/tripCatch/:tripId', newCatch)
-router.put('/api/' + API_VERSION + '/tripCatch/:tripId', updateCatch)
+router.use('/api/' + API_VERSION + '/trips/:tripNum', getPubKey);
+router.use('/api/' + API_VERSION + '/trips/:tripNum', validateJwtRequest);
+router.get('/api/' + API_VERSION + '/trips/:tripNum', getTrip);
+router.put('/api/' + API_VERSION + '/trips/:tripNum', updateTrip);
+router.use('/api/' + API_VERSION + '/tripCatch/:tripNum', getPubKey);
+router.use('/api/' + API_VERSION + '/tripCatch/:tripNum', validateJwtRequest);
+router.get('/api/' + API_VERSION + '/tripCatch/:tripNum', getCatch)
+router.post('/api/' + API_VERSION + '/tripCatch/:tripNum', newCatch)
+router.put('/api/' + API_VERSION + '/tripCatch/:tripNum', updateCatch)
 
 
 module.exports = router;
