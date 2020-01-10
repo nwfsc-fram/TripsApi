@@ -226,8 +226,8 @@ router.use('/api/' + API_VERSION + '/tripCatch/:tripNum', validateJwtRequest);
 router.get('/api/' + API_VERSION + '/tripCatch/:tripNum', getCatch);
 router.post('/api/' + API_VERSION + '/tripCatch/:tripNum', newCatch);
 router.put('/api/' + API_VERSION + '/tripCatch/:tripNum', updateCatch);
-router.get('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-router.get('/spec', express.static(path.resolve(__dirname, 'openapi.yaml')));
+router.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+router.use('/spec', express.static(path.resolve(__dirname, 'openapi.yaml')));
 
 
 module.exports = router;
