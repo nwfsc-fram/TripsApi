@@ -33,7 +33,6 @@ const login = (req, res) => {
     : DEFAULT_APPLICATION_NAME;
 
     username = username.toLowerCase();
-    console.log(username, password);
 
     if (username === '' || password === '') {
         res.status(401);
@@ -60,7 +59,6 @@ const login = (req, res) => {
         if (err) {
             console.log(err);
         }
-        console.log(body)
         token = body.token;
 
         res.send({
@@ -91,7 +89,6 @@ async function getPubKey (
 }
 
 const getTrips = async (req, res) => {
-    console.log(req.query);
     await masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "descending": true, include_docs: true}).then((body) => {
         if (body.rows) {
             const docs = body.rows.map((row) => row.doc)
@@ -155,7 +152,6 @@ const getTrip = async (req, res) => {
 
 const updateTrip = async (req, res) => {
     const existing = await masterDev.get(req.body._id)
-    console.log(existing)
     if (existing.tripNum === req.body.tripNum ) {
         masterDev.bulk({docs: [req.body]}).then( (body) => {
             res.json(body);
@@ -189,11 +185,9 @@ const newCatch = async (req, res) => {
 }
 
 const updateCatch = async (req, res) => {
-    console.log(req.body)
     if (req.body._id) {
         try {
             const existing = await masterDev.get(req.body._id)
-            console.log(existing)
             if (existing.tripNum === req.body.tripNum ) {
                 masterDev.bulk({docs: [req.body]}).then( (body) => {
                     res.status('200').send('catch data updated');
