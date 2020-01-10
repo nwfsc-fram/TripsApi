@@ -11,12 +11,6 @@ const request = require('request');
 
 const https = require('https');
 
-const path = require('path');
-const swaggerUi = require('swagger-ui-express');
-const YAML = require('yamljs');
-const swaggerDocument = YAML.load(path.resolve(__dirname, '../openapi.yaml'));
-
-
 import * as pemjwk from 'pem-jwk';
 import { Request, Response, NextFunction } from 'express';
 
@@ -226,7 +220,6 @@ router.use('/api/' + API_VERSION + '/tripCatch/:tripNum', validateJwtRequest);
 router.get('/api/' + API_VERSION + '/tripCatch/:tripNum', getCatch);
 router.post('/api/' + API_VERSION + '/tripCatch/:tripNum', newCatch);
 router.put('/api/' + API_VERSION + '/tripCatch/:tripNum', updateCatch);
-router.get('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 
 module.exports = router;
