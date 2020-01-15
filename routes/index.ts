@@ -141,12 +141,11 @@ const newTrip = async (req, res) => {
 }
 
 const getTrip = async (req, res) => {
-    await masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "key": parseInt(req.params.tripNum), "include_docs": true}).then((body) => {
+    await masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "key": parseInt(req.params.tripNum, 10), "include_docs": true}).then((body) => {
         if ( body.rows.length > 0 ) {
             res.json(body.rows[0].doc);
         } else {
-            res.json(body);
-            // res.send('Doc with specified tripNum not found')
+            res.send('Doc with specified tripNum not found')
         }
     })
 }
