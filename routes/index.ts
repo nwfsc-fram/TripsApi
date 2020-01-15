@@ -145,7 +145,8 @@ const getTrip = async (req, res) => {
         if ( body.rows.length > 0 ) {
             res.json(body.rows[0].doc);
         } else {
-            res.send('Doc with specified tripNum not found')
+            res.json(body);
+            // res.send('Doc with specified tripNum not found')
         }
     })
 }
