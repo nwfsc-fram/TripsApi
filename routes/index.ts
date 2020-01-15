@@ -90,7 +90,7 @@ async function getPubKey (
 
 const getTrips = async (req, res) => {
     await masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "descending": true, include_docs: true}).then((body) => {
-        if (body.rows) {
+        if ( body.rows.length > 0 ) {
             const docs = body.rows.map((row) => row.doc)
             switch(Object.keys(req.query)[0]) {
                 case 'vesselId':
@@ -142,7 +142,7 @@ const newTrip = async (req, res) => {
 
 const getTrip = async (req, res) => {
     masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "key": parseInt(req.params.tripNum), "include_docs": true}).then((body) => {
-        if ( body.rows[0].doc ) {
+        if ( body.rows.length > 0 ) {
             res.json(body.rows[0].doc);
         } else {
             res.send('Doc with specified tripNum not found')
