@@ -162,7 +162,7 @@ const updateTrip = async (req, res) => {
 }
 
 const getCatch = async (req, res) => {
-    masterDev.view('TripsApi', 'all_api_catch', {"reduce": false, "key": req.params.tripNum, "include_docs": true}).then((body) => {
+    masterDev.view('TripsApi', 'all_api_catch', {"reduce": false, "key": parseInt(req.params.tripNum, 10), "include_docs": true}).then((body) => {
         if ( body.rows.length > 0) {
             const docs = body.rows.map((row) => row.doc)
             res.json(docs)
