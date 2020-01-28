@@ -167,7 +167,7 @@ const getCatch = async (req, res) => {
             const docs = body.rows.map((row) => row.doc)
             res.json(docs)
         } else {
-            res.status(400).send('not found')
+            res.status(200).send('not found')
         }
     })
 }
