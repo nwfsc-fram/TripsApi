@@ -16,6 +16,8 @@ import { Request, Response, NextFunction } from 'express';
 
 const DEFAULT_APPLICATION_NAME = 'BOATNET_OBSERVER';
 
+const moment = require('moment');
+
 import { validateJwtRequest } from '../get-user.middleware';
 
 let token = '';
@@ -174,8 +176,9 @@ const getCatch = async (req, res) => {
 
 const newCatch = async (req, res) => {
     if (req.params.tripNum && req.body.tripNum && req.body.source && req.body.hauls) {
-            const newTrip = req.body
-            newTrip.type = 'trips-api-catch'
+            const newTrip = req.body;
+            newTrip.type = 'trips-api-catch';
+            newTrip.createdDate = moment().format();
             masterDev.bulk({docs: [newTrip]}).then(
                 res.send('catch data saved')
             );
@@ -185,11 +188,13 @@ const newCatch = async (req, res) => {
 }
 
 const updateCatch = async (req, res) => {
-    if (req.body._id) {
+    if (req.body._id && req.body._rev) {
         try {
             const existing = await masterDev.get(req.body._id)
             if (existing.tripNum === req.body.tripNum ) {
-                masterDev.bulk({docs: [req.body]}).then( (body) => {
+                const updateDoc: any = [req.body];
+                updateDoc.updatedDate = moment().format();
+                masterDev.bulk({docs: updateDoc}).then( (body) => {
                     res.status('200').send('catch data updated');
                 })
             } else {
