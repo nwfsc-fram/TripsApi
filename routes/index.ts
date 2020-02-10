@@ -192,9 +192,9 @@ const updateCatch = async (req, res) => {
         try {
             const existing = await masterDev.get(req.body._id)
             if (existing.tripNum === req.body.tripNum ) {
-                const updateDoc: any = [req.body];
-                updateDoc.updatedDate = "moment().format()";
-                masterDev.bulk({docs: updateDoc}).then( (body) => {
+                const updateDoc: any = req.body;
+                updateDoc.updatedDate = moment().format();
+                masterDev.bulk({docs: [updateDoc]}).then( (body) => {
                     res.status('200').send('catch data updated');
                 })
             } else {
