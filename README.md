@@ -31,6 +31,9 @@ Simple micro-service to provide unique trip identifiers.
      "password": "pw"
  }
 ```
+<img src="./login.PNG" alt="Login">
 
 4. Before making future requests, navigate tothe Authorization section and select type: bearer token. Paste the token there and your future requests will be properly authenticated 
+
+<img src="./token.PNG" alt="Login">
 
