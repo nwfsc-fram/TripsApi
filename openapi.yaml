@@ -320,6 +320,35 @@ paths:
                 message: Invalid Request
       security:
       - bearerAuth: []
+      /cruises/:
+        post:
+          tags:
+          - Cruise
+          summary: create a new cruise
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/NewCruise'
+            required: true
+          responses:
+            "200":
+              description: successful response
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/inline_response_200_3'
+            "400":
+              description: Invalid Request
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/inline_response_401'
+                  example:
+                    status: 400
+                    message: Invalid Request
+          security:
+          - bearerAuth: []
 components:
   schemas:
     Login:
@@ -485,6 +514,33 @@ components:
           type: string
         updatedDate:
           type: string
+    NewCruise:
+      required:
+        -departureDate
+        - returnDate
+        -vesselId
+      type: object
+      properties:
+        vesselId:
+          type: string
+          vesselName:
+            type: string
+          departureDate:
+            type: string
+          returnDate:
+            type: string
+          permits:
+            type: array
+            items:
+              type: string
+          createdBy:
+            type: string
+          createdDate:
+            type: string
+          updatedBy:
+            type: string
+          updatedDate:
+            type: string
     inline_response_200:
       type: object
       properties:
@@ -564,3 +620,4 @@ components:
           example:
             status: 200
             message: catch data updated
+
