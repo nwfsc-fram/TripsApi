@@ -19,6 +19,14 @@ Simple micro-service to provide unique trip identifiers.
 
 3. Ensure your keys directory is present if not, you'll have to get that from someone else. Those files are not currently available on github. 
 
+## Updating the model
+The model is stored in the openapi.yaml file. 
+
+1. To update it go https://app.swaggerhub.com/apis/seth.gerou/Trips/0.0.1#/ swagger provides an editor where you can error check your model. Add your new API and make sure it doesn't have any errors
+2. Once your model looks good and is free of errors download it by going to export (upper right corner) -> download api -> resolved yaml. 
+3. This will download a .zip file, copy and pasted the openapi.yaml file into the github repo. 
+
+
 ## Run
 1. Run `yarn start`
 
