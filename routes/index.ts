@@ -116,6 +116,44 @@ const getTrips = async (req, res) => {
       });
 }
 
+const newCruise = async (req, res) => {
+    if (req.body.vesselId) {
+        const queryOptions = {
+            "reduce": false,
+            "descending": true,
+            "limit": 1
+        }
+        await masterDev.view('TripsApi', 'all_api_cruise', queryOptions).then((body) => {
+            const newCruise = req.body
+            newCruise.type = 'cruise-api'
+            let maxId: number = 100000;
+            if (body.rows[0]) {
+                maxId = body.rows[0].key + 1;
+            }
+            newCruise.cruiseNum = maxId;
+            const cruiseQueryOptions = {
+                "reduce": false,
+                "key": maxId,
+                "include_docs": true
+            }
+            masterDev.bulk({docs: [newCruise]}).then(
+                setTimeout(() => {
+                    masterDev.view('TripsApi', 'all_api_cruise', cruiseQueryOptions).then((result) => {
+                        res.send(
+                            {
+                                cruiseNum: maxId,
+                                cruise: result.rows[0].doc
+                            }
+                        )
+                    })
+                }, 500)
+            )
+          });
+    } else {
+        res.status(500).send('vesselID is required to create a new trip.')
+    }
+}
+
 const newTrip = async (req, res) => {
     if (req.body.vesselId) {
         await masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "descending": true, "limit": 1}).then((body) => {
@@ -212,14 +250,21 @@ const updateCatch = async (req, res) => {
 const API_VERSION = 'v1';
 router.use('/api/' + API_VERSION + '/login', getPubKey);
 router.post('/api/' + API_VERSION + '/login', login);
+
 router.use('/api/' + API_VERSION + '/trips', getPubKey);
 router.use('/api/' + API_VERSION + '/trips', validateJwtRequest);
 router.get('/api/' + API_VERSION + '/trips', getTrips);
 router.post('/api/' + API_VERSION + '/trips', newTrip);
+
+router.use('/api/' + API_VERSION + '/cruise', getPubKey);
+router.use('/api/' + API_VERSION + '/cruise', validateJwtRequest);
+router.post('/api/' + API_VERSION + '/cruise', newCruise);
+
 router.use('/api/' + API_VERSION + '/trips/:tripNum', getPubKey);
 router.use('/api/' + API_VERSION + '/trips/:tripNum', validateJwtRequest);
 router.get('/api/' + API_VERSION + '/trips/:tripNum', getTrip);
 router.put('/api/' + API_VERSION + '/trips/:tripNum', updateTrip);
+
 router.use('/api/' + API_VERSION + '/tripCatch/:tripNum', getPubKey);
 router.use('/api/' + API_VERSION + '/tripCatch/:tripNum', validateJwtRequest);
 router.get('/api/' + API_VERSION + '/tripCatch/:tripNum', getCatch);
