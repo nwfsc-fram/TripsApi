@@ -372,11 +372,11 @@ components:
       required:
       - buyers
       - crewSize
-      - departureDate
+      - departureDateTime
       - departurePortCode
       - departureState
-      - departureTime
       - fishery
+      - fisherySector
       - hauls
       - isEFPTrip
       - isObserved
@@ -384,10 +384,9 @@ components:
       - permitNumber
       - provider
       - resubmission
-      - returnDate
+      - returnDateTime
       - returnPortCode
       - returnPortState
-      - returnTime
       - reviewerName
       - skipperName
       - source
@@ -433,12 +432,9 @@ components:
         crewSize:
           type: number
           description: Total number of crew on board the vessel
-        departureDate:
+        departureDateTime:
           type: string
-          description: Date the vessel departed port
-        departureTime:
-          type: string
-          description: Time the vessel departed port
+          description: Date/Time the vessel departed port
         departureState:
           type: string
           description: State where the vessel departed for fishing activities (WA,
@@ -447,12 +443,9 @@ components:
           type: string
           description: Port code where the vessel departed. The port code is the same
             as the PacFIN port code
-        returnDate:
+        returnDateTime:
           type: string
-          description: Date the vessel returned to port for offload
-        returnTime:
-          type: string
-          description: Time the vessel returned to port for offload
+          description: Date/Time the vessel returned to port for offload
         returnPortState:
           type: string
           description: State where the vessel returned for fishing activities (WA,
@@ -475,6 +468,10 @@ components:
         skipperName:
           type: string
           description: Name of the vessel captain
+        fisherySector:
+          type: string
+          description: Description of the EM fishery. Whiting, Midwater Rockfish,
+            Fixed Gear, Bottom Trawl
         fishTicketNumber:
           type: array
           description: fish ticket number from the deleivery
@@ -516,6 +513,7 @@ components:
           type: string
     Haul:
       required:
+      - catchHandlingPerformance
       - codendCapacity
       - deliveryDate
       - endDateTime
@@ -532,6 +530,7 @@ components:
       - startDepth
       - startLatitude
       - startLongitude
+      - systemPerformance
       type: object
       properties:
         haulNum:
@@ -556,6 +555,9 @@ components:
         gearLost:
           type: number
           description: Number of pots or hooks lost (Mandatory for FG hauls)
+        avgHooksPerSeg:
+          type: number
+          description: Average hooks per set
         startDateTime:
           type: string
           description: Date and time the gear was set
@@ -596,6 +598,12 @@ components:
         targetStrategy:
           type: string
           description: Was on logbook - do we want?
+        systemPerformance:
+          type: number
+          description: 1 = No issues, 2 = Video Gaps, 3 = Poor video quality
+        catchHandlingPerformance:
+          type: number
+          description: 1 = No issues, 2 = Issues
         catch:
           type: array
           items:
@@ -608,10 +616,13 @@ components:
       - observerSpeciesCode
       - speciesName
       properties:
+        catchId:
+          type: number
+          description: Unique Catch ID
         catchDisposition:
           type: string
           description: Disposition of the Catch (Retained or Discard)
-        observerSpeciesCode:
+        speciesCode:
           type: number
           description: WCGOP species code (3 or 4 digits)
         estimatedWeight:
@@ -619,17 +630,18 @@ components:
           description: Estimated weight in lbs
         catchCount:
           type: number
-          description: Number of fish for a species (Not required for all species)
+          description: Number of fish for a species (Yellow Eye RF, PHLB, Species
+            of concern...Salmon, Green Sturgeon, Eulachon). Not required for all species
         calcWeightType:
           type: string
           description: Description of how the catch was calculated (EstWeight, FromAverageWt,
             FromLength, CaclField)
         length:
           type: number
-          description: Length of fish in cm (Only required for Pacific Halibut)
+          description: Length (in cm) of individual fish (Pacific Halibut)
         timeOnDeck:
           type: number
-          description: Time Pacific Halibut was on deck before being discarded
+          description: Time on deck (in min) specific to each Pacific Halibut
         comments:
           type: string
           description: Notes pertaining to a specific catch record
