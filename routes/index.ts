@@ -42,7 +42,6 @@ const stringParser = function(req) {
                         if (!['gearTypeDescription', 'comments', 'targetStrategy', 'catch'].includes(haulAttrib) && haulAttrib !== 'startDateTime' && haulAttrib !== 'endDateTime' && typeof parseFloat(haul[haulAttrib]) == 'number') { haul[haulAttrib] = parseFloat(haul[haulAttrib]) }
                         if (haul[haulAttrib] == 'true') { haul[haulAttrib] = true; }
                         if (haul[haulAttrib] == 'false') { haul[haulAttrib] = false; }
-                        // if (haul[haulAttrib] == 'null') { haul[haulAttrib] = null; }
                         if (haulAttrib == 'catch') {
                             for (const catchItem of haul[haulAttrib]) {
                                 for (const catchAttrib of Object.keys(catchItem)) {
