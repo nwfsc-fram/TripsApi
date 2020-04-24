@@ -11,6 +11,8 @@ const request = require('request');
 
 const https = require('https');
 
+const parseString = require('xml2js').parseString;
+
 import * as pemjwk from 'pem-jwk';
 import { Request, Response, NextFunction } from 'express';
 
@@ -22,6 +24,41 @@ import { validateJwtRequest } from '../get-user.middleware';
 
 let token = '';
 export let key = '';
+
+const stringParser = function(req) {
+    parseString(req.rawBody, {explicitArray: false}, function(err, result) {
+        req.body = JSON.parse(JSON.stringify(result.root));
+        if (req.body.permits && typeof req.body.permits === 'string') { req.body.permits = [req.body.permits] }
+        if (req.body.fisheries && typeof req.body.fisheries === 'string') { req.body.fisheries = [req.body.fisheries] }
+        if (req.body.buyers && typeof req.body.buyers === 'string') { req.body.buyers = [req.body.buyers] }
+        if (req.body.fishTicketNumber && typeof req.body.fishTicketNumber === 'string') { req.body.fishTicketNumber = [req.body.fishTicketNumber] }
+        for (const attrib of Object.keys(req.body)) {
+            if (!['gearTypeDescription', 'comments', 'targetStrategy', 'fishTicketNumber'].includes(attrib) && attrib !== 'departureDateTime' && attrib !== 'returnDateTime' && parseFloat(req.body[attrib])) { req.body[attrib] = parseFloat(req.body[attrib]) }
+            if (req.body[attrib] == 'true') { req.body[attrib] = true; }
+            if (req.body[attrib] == 'false') { req.body[attrib] = false; }
+            if (attrib == 'hauls') {
+                for (const haul of req.body[attrib]) {
+                    for (const haulAttrib of Object.keys(haul)) {
+                        if (!['gearTypeDescription', 'comments', 'targetStrategy', 'catch'].includes(haulAttrib) && haulAttrib !== 'startDateTime' && haulAttrib !== 'endDateTime' && typeof parseFloat(haul[haulAttrib]) == 'number') { haul[haulAttrib] = parseFloat(haul[haulAttrib]) }
+                        if (haul[haulAttrib] == 'true') { haul[haulAttrib] = true; }
+                        if (haul[haulAttrib] == 'false') { haul[haulAttrib] = false; }
+                        if (haulAttrib == 'catch') {
+                            for (const catchItem of haul[haulAttrib]) {
+                                for (const catchAttrib of Object.keys(catchItem)) {
+                                    if (typeof parseFloat(catchItem[catchAttrib]) == 'number' && !['catchId', 'catchDisposition', 'speciesCode', 'calcWeightType', 'comments'].includes(catchAttrib)) { catchItem[catchAttrib] = parseFloat(catchItem[catchAttrib]) }
+                                    else if (catchItem[catchAttrib] == 'true') { catchItem[catchAttrib] = true; }
+                                    else if (catchItem[catchAttrib] == 'false') { catchItem[catchAttrib] = false; }
+                                    else { catchItem[catchAttrib] = catchItem[catchAttrib]}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return req;
+    })
+};
 
 const login = (req, res) => {
 
@@ -155,6 +192,7 @@ const newCruise = async (req, res) => {
 }
 
 const newTrip = async (req, res) => {
+    if (req.headers['content-type'] == "application/xml") { stringParser(req); }
     if (req.body.vesselId) {
         await masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "descending": true, "limit": 1}).then((body) => {
             const maxId = body.rows[0].key
@@ -174,7 +212,7 @@ const newTrip = async (req, res) => {
                     })
                 }, 500)
             )
-          });
+            });
     } else {
         res.status(500).send('vesselID is required to create a new trip.')
     }
@@ -191,6 +229,7 @@ const getTrip = async (req, res) => {
 }
 
 const updateTrip = async (req, res) => {
+    if (req.headers['content-type'] == "application/xml") { stringParser(req); }
     const existing = await masterDev.get(req.body._id)
     if (existing.tripNum === req.body.tripNum ) {
         masterDev.bulk({docs: [req.body]}).then( (body) => {
@@ -213,19 +252,23 @@ const getCatch = async (req, res) => {
 }
 
 const newCatch = async (req, res) => {
-    if (req.params.tripNum && req.body.tripNum && req.body.source && req.body.hauls) {
-            const newTrip = req.body;
-            newTrip.type = 'trips-api-catch';
-            newTrip.createdDate = moment().format();
-            masterDev.bulk({docs: [newTrip]}).then(
-                res.send('catch data saved')
-            );
-    } else {
-        res.status(500).send('missing required parameters.')
-    }
+    if (req.headers['content-type'] == "application/xml") { stringParser(req); }
+    setTimeout( () => {
+        if (req.params.tripNum && req.body.tripNum && req.body.source && req.body.hauls) {
+                const newTrip = req.body;
+                newTrip.type = 'trips-api-catch';
+                newTrip.createdDate = moment().format();
+                masterDev.bulk({docs: [newTrip]}).then(
+                    res.send('catch data saved')
+                );
+        } else {
+            res.status(500).send('missing required parameters.')
+        }
+    }, 300)
 }
 
 const updateCatch = async (req, res) => {
+    if (req.headers['content-type'] == "application/xml") { stringParser(req); }
     if (req.body._id && req.body._rev) {
         try {
             const existing = await masterDev.get(req.body._id)
