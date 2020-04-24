@@ -55,6 +55,24 @@ app.use((err, req, res, next) => {
     });
   });
 
+function anyBodyParser(req, res, next) {
+  if (req.headers['content-type'] == "application/xml") {
+    var data = '';
+    req.setEncoding('utf8');
+    req.on('data', function(chunk) {
+      data += chunk;
+    });
+    req.on('end', function() {
+      req.rawBody = data;
+      next();
+      });
+  } else {
+    next();
+  }
+}
+
+app.use(anyBodyParser);
+
 const commandLineArgs = require('command-line-args');
 
 const optionDefinitions = [

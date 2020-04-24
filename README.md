@@ -15,7 +15,7 @@ Simple micro-service to provide unique trip identifiers.
 }
 ```
 
-2. Modify app.ts file line 85 and 86 to get rid of /src/ the new path should look like `./keys/cert.pem`
+2. Modify app.ts file line 103 and 104 to get rid of /src/ the new path should look like `./keys/cert.pem`
 
 3. Ensure your keys directory is present if not, you'll have to get that from someone else. Those files are not currently available on github. 
 
