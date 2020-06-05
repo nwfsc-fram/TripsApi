@@ -378,7 +378,6 @@ components:
       - departureDateTime
       - departurePortCode
       - departureState
-      - fishery
       - fisherySector
       - hauls
       - isEFPTrip
@@ -410,10 +409,6 @@ components:
         logbookPageNumber:
           type: number
           description: Page number from vessel logbook
-        fishery:
-          type: string
-          description: Description of the EM fishery. Whiting, Midwater Rockfish,
-            Fixed Gear, Bottom Trawl
         fisherySector:
           type: string
           description: Description of the EM fishery. Whiting, Midwater Rockfish,
@@ -537,7 +532,7 @@ components:
           type: string
           description: Date and time the vessel offloaded to a buyer
         gearTypeCode:
-          type: number
+          type: string
           description: 1 = Groundfish trawl, footrope < 8 inches (small footrope),
             2 = Groundfish trawl, footrope > 8 inches (large footrope), 3 = Midwater
             trawl, 4 = Danish/Scottish seine (trawl), 5 = Other trawl gear, 17 = Oregon
@@ -598,31 +593,25 @@ components:
     Catch:
       required:
       - catchDisposition
-      - observerSpeciesCode
       - speciesCode
       properties:
         catchId:
           type: number
           description: Unique Catch ID
-        catchDisposition:
+        disposition:
           type: string
-          description: Disposition of the Catch (Retained or Discard)
-        observerSpeciesCode:
-          type: number
-          description: WCGOP species code (3 or 4 digits)
+          description: Retained vs Discarded
+        fate:
+          type: string
+          description: Observer Discard Reason -- 11 Accidental, Incidental, 12  Drop-off,
+            13  Market, 14  Other, 15  Predation, 18  Market- At Dock,19  Utilized
+            on board,16  Regulation, 17  Safety, 20  Survival
         speciesCode:
           type: string
           description: WCGOP species code (3 or 4 digits)
-        estimatedWeight:
+        weight:
           type: number
-          description: Estimated weight in lbs
-        speciesWeight:
-          type: number
-          description: Estimated weight in lbs
-        catchCount:
-          type: number
-          description: Number of fish for a species (Yellow Eye RF, PHLB, Species
-            of concern...Salmon, Green Sturgeon, Eulachon). Not required for all species
+          description: Total estimated weight (lbs)
         speciesCount:
           type: number
           description: Number of fish for a species (Yellow Eye RF, PHLB, Species
