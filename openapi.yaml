@@ -414,6 +414,10 @@ components:
           type: string
           description: Description of the EM fishery. Whiting, Midwater Rockfish,
             Fixed Gear, Bottom Trawl
+        fisherySector:
+          type: string
+          description: Description of the EM fishery. Whiting, Midwater Rockfish,
+            Fixed Gear, Bottom Trawl
         year:
           type: string
           description: Year the fishing activity took place
@@ -468,10 +472,6 @@ components:
         skipperName:
           type: string
           description: Name of the vessel captain
-        fisherySector:
-          type: string
-          description: Description of the EM fishery. Whiting, Midwater Rockfish,
-            Fixed Gear, Bottom Trawl
         fishTicketNumber:
           type: array
           description: fish ticket number from the deleivery
@@ -514,7 +514,6 @@ components:
     Haul:
       required:
       - catchHandlingPerformance
-      - codendCapacity
       - deliveryDate
       - endDateTime
       - endDepth
@@ -523,9 +522,7 @@ components:
       - gearLost
       - gearPerSet
       - gearTypeCode
-      - gearTypeDescription
       - haulNum
-      - netType
       - startDateTime
       - startDepth
       - startLatitude
@@ -541,14 +538,11 @@ components:
           description: Date and time the vessel offloaded to a buyer
         gearTypeCode:
           type: number
-          description: 1  = Groundfish trawl, footrope < 8 inches (small footrope)  ,
-            2  = Groundfish trawl, footrope > 8 inches (large footrope), 10 = pot,
-            19 = hook & line
-        gearTypeDescription:
-          type: string
-          description: Type of gear used for each haul. (Pot, Midwater Trawl net,  1
-            =  Groundfish trawl, footrope < 8 inches (small footrope),  2 = Groundfish
-            trawl, footrope > 8 inches (large footrope)  , snap gear,  LL, etc)
+          description: 1 = Groundfish trawl, footrope < 8 inches (small footrope),
+            2 = Groundfish trawl, footrope > 8 inches (large footrope), 3 = Midwater
+            trawl, 4 = Danish/Scottish seine (trawl), 5 = Other trawl gear, 17 = Oregon
+            set-back flatfish net, 10 = pot, 19 = Longline (fixed), 20 = Longline
+            (snap)
         gearPerSet:
           type: number
           description: Total number of pots or hooks set (Mandatory for FG hauls)
@@ -582,10 +576,6 @@ components:
         endLongitude:
           type: number
           description: Longitude of gear deployement in decimal degree
-        netType:
-          type: string
-          description: 1  = Groundfish trawl, footrope < 8 inches (small footrope)  ,
-            2  = Groundfish trawl, footrope > 8 inches (large footrope)
         codendCapacity:
           type: number
           description: Total estimated weight the codened can hold
@@ -607,11 +597,9 @@ components:
             $ref: '#/components/schemas/Catch'
     Catch:
       required:
-      - calcWeightType
       - catchDisposition
-      - estimatedWeight
       - observerSpeciesCode
-      - speciesName
+      - speciesCode
       properties:
         catchId:
           type: number
@@ -619,13 +607,23 @@ components:
         catchDisposition:
           type: string
           description: Disposition of the Catch (Retained or Discard)
-        speciesCode:
+        observerSpeciesCode:
           type: number
+          description: WCGOP species code (3 or 4 digits)
+        speciesCode:
+          type: string
           description: WCGOP species code (3 or 4 digits)
         estimatedWeight:
           type: number
           description: Estimated weight in lbs
+        speciesWeight:
+          type: number
+          description: Estimated weight in lbs
         catchCount:
+          type: number
+          description: Number of fish for a species (Yellow Eye RF, PHLB, Species
+            of concern...Salmon, Green Sturgeon, Eulachon). Not required for all species
+        speciesCount:
           type: number
           description: Number of fish for a species (Yellow Eye RF, PHLB, Species
             of concern...Salmon, Green Sturgeon, Eulachon). Not required for all species
@@ -642,6 +640,10 @@ components:
         comments:
           type: string
           description: Notes pertaining to a specific catch record
+        screenShotId:
+          type: string
+        screenShotDescription:
+          type: string
     Trip:
       required:
       - departureDate
