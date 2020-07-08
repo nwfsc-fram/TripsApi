@@ -654,8 +654,10 @@ components:
           type: string
         returnDate:
           type: string
-        fishery:
-          type: string
+        fisheries:
+          type: array
+          items:
+            type: string
         permits:
           type: array
           items:
@@ -689,8 +691,10 @@ components:
           type: string
         returnDate:
           type: string
-        fishery:
-          type: string
+        fisheries:
+          type: array
+          items:
+            type: string
         permits:
           type: array
           items:
