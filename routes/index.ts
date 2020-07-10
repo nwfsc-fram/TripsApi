@@ -1,4 +1,5 @@
 const dbConfig = require('../dbConfig.json').dbConfig;
+
 const express = require('express');
 const router = express.Router();
 

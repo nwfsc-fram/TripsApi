@@ -2,10 +2,15 @@ const path = require('path');
 const cors = require('cors');
 const moment = require('moment');
 
+const { Pool } = require('pg');
+
 import * as express from 'express';
 import * as https from 'https';
 import * as fs from 'fs';
 import { resolve } from 'path';
+
+const DWdbConfig = require('./dbConfig.json').DWdbConfig;
+
 const app = express();
 const port = 3000;
 
@@ -110,6 +115,28 @@ const httpsServer = https.createServer(
 httpsServer.listen(PORT, () => {
   console.log(
     'Boatnet HTTPS Secure Server running at https://localhost:' + PORT
-  );
-  console.log('Dist path: ' + publicPath);
+    );
+    console.log('Dist path: ' + publicPath);
 });
+
+const pool = new Pool(DWdbConfig);
+
+getFishTicket('3906539');
+getFishTicket('109746E');
+
+export function getFishTicket(ftid: string) {
+  pool.connect((err, client, done) => {
+    if (err) {
+      throw err
+    }
+    client.query('SELECT * FROM PACFIN.COMPREHENSIVE_FISH_TICKET where FTID = $1', [ftid], (err, res) => {
+      done()
+    if (err) {
+      console.log(err);
+    } else {
+      console.log(res.rows);
+    }
+  });
+})
+}
+
