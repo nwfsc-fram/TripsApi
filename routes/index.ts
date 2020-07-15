@@ -143,7 +143,7 @@ const getTrips = async (req, res) => {
                     res.json(docs.filter( (doc) => doc.departurePort.toLowerCase() === req.query.port.toLowerCase() || doc.returnPort.toLowerCase() === req.query.port.toLowerCase() ))
                     break;
                 case 'fishery':
-                    res.json(docs.filter( (doc) => doc.fisheries && doc.fisheries.map( (fishery) => fishery.toLowerCase() ).includes(req.query.fishery) ))
+                    res.json(docs.filter( (doc) => doc.fishery && doc.fishery.toLowerCase() === req.query.fishery.toLowerCase() ))
                     break;
                 default:
                     res.json(docs)
