@@ -2,10 +2,16 @@ const path = require('path');
 const cors = require('cors');
 const moment = require('moment');
 
+// const { Pool } = require('pg');
+// import * as oracledb from 'oracledb';
+
 import * as express from 'express';
 import * as https from 'https';
 import * as fs from 'fs';
 import { resolve } from 'path';
+
+// const ODWdbConfig = require('./dbConfig.json').ODWdbConfig;
+
 const app = express();
 const port = 3000;
 
@@ -110,6 +116,129 @@ const httpsServer = https.createServer(
 httpsServer.listen(PORT, () => {
   console.log(
     'Boatnet HTTPS Secure Server running at https://localhost:' + PORT
-  );
-  console.log('Dist path: ' + publicPath);
+    );
+    console.log('Dist path: ' + publicPath);
 });
+
+// export function getOraclePool() {
+//   const pool = oracledb.getPool();
+//   console.log(
+//     'Connect to pool ' +
+//       pool.poolAlias +
+//       ', pool connections open: ' +
+//       pool.connectionsOpen
+//   );
+//   return pool;
+// }
+
+// function createOraclePool() {
+//   console.log('Creating oracle connection pool to', ODWdbConfig.connectString);
+//   const oracleCredentials = {
+//     user: ODWdbConfig.user,
+//     password: ODWdbConfig.password,
+//     connectString: ODWdbConfig.connectString
+//   };
+//   oracledb.fetchAsString = [ oracledb.CLOB ];
+
+//   oracledb.createPool(oracleCredentials, function(err, pool) {
+//     if (pool) {
+//       console.log('Oracle connection pool created:', pool.poolAlias); // 'default'
+//     } else {
+//       console.log(err);
+//     }
+//   });
+// }
+
+// function closeOracleConnection(connection: any) {
+//   console.log('Closing oracledb connection.');
+//   connection.close();
+// }
+
+// createOraclePool();
+
+// // getFishTicket('3906539');
+// // getFishTicket('109746E');
+// setTimeout( () => {
+//   getFishTicket('50026972')
+// }, 3000
+// )
+
+// export async function getFishTicket(
+//   ftid: string
+// ): Promise<string[]> {
+//   let fishTicketRows = [];
+
+//   // const bindvars = {
+//   //   ftid,
+//   //   ret: { dir: oracledb.BIND_OUT, type: oracledb.STRING, maxSize: 1000000 }
+//   // };
+
+//   try {
+//     const pool = getOraclePool();
+//     const connection = await pool.getConnection();
+//     // const response = await connection.execute(
+//     //   'BEGIN :ret := SELECT * FROM PACFIN.COMPREHENSIVE_FISH_TICKET where FTID = :ftid; END;',
+//     //   bindvars
+//     // );
+//     // const result = JSON.parse(response.outBinds.ret);
+
+//     const result = await connection.execute(
+//       `SELECT *
+//        FROM PACFIN.COMPREHENSIVE_FISH_TICKET
+//        WHERE FTID = :id;`,
+//       [ftid],
+//     );
+
+//     console.log(result);
+
+//     closeOracleConnection(connection);
+//     if (result) {
+//       fishTicketRows = result;
+//       console.log(fishTicketRows);
+//       return result;
+//     }
+//   } catch (connErr) {
+//     console.error(connErr.message);
+//     throw new Error(connErr.message);
+//   }
+
+  // try {
+  //   const pool = getOraclePool();
+  //   const connection = await pool.getConnection();
+  //   const rolesOracleResult = await getOracleRoles(connection, applicationName);
+  //   closeOracleConnection(connection);
+  //   if (rolesOracleResult && rolesOracleResult.roles) {
+  //     for (let role of rolesOracleResult.roles) {
+  //       if (!roles.includes(role.role_name)) {
+  //         roles.push(role.role_name);
+  //       }
+  //     }
+  //   }
+  // } catch (err) {
+  //   throw new Error(err);
+  // }
+
+  // if (roles.length) {
+  //   return roles;
+  // } else {
+  //   console.log('No roles for', applicationName);
+  //   throw new Error('No roles for ' + applicationName);
+  // }
+}
+
+// export function getFishTicketOld(ftid: string) {
+//   pool.connect((err, client, done) => {
+//     if (err) {
+//       throw err
+//     }
+//     client.query('SELECT * FROM PACFIN.COMPREHENSIVE_FISH_TICKET where FTID = $1', [ftid], (err, res) => {
+//       done()
+//     if (err) {
+//       console.log(err);
+//     } else {
+//       console.log(res.rows);
+//     }
+//   });
+// })
+// }
+

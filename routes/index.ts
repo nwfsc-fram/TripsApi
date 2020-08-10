@@ -1,4 +1,5 @@
 const dbConfig = require('../dbConfig.json').dbConfig;
+
 const express = require('express');
 const router = express.Router();
 
@@ -60,7 +61,7 @@ const stringParser = function(req) {
     })
 };
 
-const login = (req, res) => {
+const login = async (req, res) => {
 
     let username = req.body.username || '';
     const password = req.body.passwordEnc
@@ -83,7 +84,7 @@ const login = (req, res) => {
         return false;
       }
 
-    request.post({
+    await request.post({
         url: dbConfig.authServer + 'api/v1/login',
         json: true,
         body: {
@@ -142,7 +143,7 @@ const getTrips = async (req, res) => {
                     res.json(docs.filter( (doc) => doc.departurePort.toLowerCase() === req.query.port.toLowerCase() || doc.returnPort.toLowerCase() === req.query.port.toLowerCase() ))
                     break;
                 case 'fishery':
-                    res.json(docs.filter( (doc) => doc.fisheries && doc.fisheries.map( (fishery) => fishery.toLowerCase() ).includes(req.query.fishery) ))
+                    res.json(docs.filter( (doc) => doc.fishery && doc.fishery.toLowerCase() === req.query.fishery.toLowerCase() ))
                     break;
                 default:
                     res.json(docs)
