@@ -61,7 +61,7 @@ const stringParser = function(req) {
     })
 };
 
-const login = async (req, res) => {
+const login = (req, res) => {
 
     let username = req.body.username || '';
     const password = req.body.passwordEnc
@@ -84,7 +84,7 @@ const login = async (req, res) => {
         return false;
       }
 
-    await request.post({
+    request.post({
         url: dbConfig.authServer + 'api/v1/login',
         json: true,
         body: {
