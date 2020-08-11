@@ -32,9 +32,15 @@ const stringParser = function(req) {
         if (req.body.permits && typeof req.body.permits === 'string') { req.body.permits = [req.body.permits] }
         if (req.body.fisheries && typeof req.body.fisheries === 'string') { req.body.fisheries = [req.body.fisheries] }
         if (req.body.buyers && typeof req.body.buyers === 'string') { req.body.buyers = [req.body.buyers] }
-        if (req.body.fishTicketNumber && typeof req.body.fishTicketNumber === 'string') { req.body.fishTicketNumber = [req.body.fishTicketNumber] }
+        if (req.body.fishTickets) {
+            for (const fishTicket of req.body.fishTickets) {
+                fishTicket.fishTicketNumber = [fishTicket.fishTicketNumber]
+                fishTicket.fishTicketDate = [fishTicket.fishTicketDate]
+            }
+        }
+
         for (const attrib of Object.keys(req.body)) {
-            if (!['gearTypeDescription', 'comments', 'targetStrategy', 'fishTicketNumber'].includes(attrib) && attrib !== 'departureDateTime' && attrib !== 'returnDateTime' && parseFloat(req.body[attrib])) { req.body[attrib] = parseFloat(req.body[attrib]) }
+            if (!['gearTypeDescription', 'comments', 'targetStrategy', 'fishTickets'].includes(attrib) && attrib !== 'departureDateTime' && attrib !== 'returnDateTime' && parseFloat(req.body[attrib])) { req.body[attrib] = parseFloat(req.body[attrib]) }
             if (req.body[attrib] == 'true') { req.body[attrib] = true; }
             if (req.body[attrib] == 'false') { req.body[attrib] = false; }
             if (attrib == 'hauls') {

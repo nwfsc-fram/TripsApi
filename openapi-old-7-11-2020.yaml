@@ -467,11 +467,14 @@ components:
         skipperName:
           type: string
           description: Name of the vessel captain
-        fishTickets:
+        fishTicketNumber:
           type: array
-          description: fish ticket number(s) from the deleivery
+          description: fish ticket number from the deleivery
           items:
-            $ref: '#/components/schemas/FishTicket'
+            type: string
+        fishTicketDate:
+          type: string
+          description: Date the of the deliver on the fish ticket
         comment:
           type: string
           description: Notes from the logbook
@@ -666,13 +669,6 @@ components:
         updatedBy:
           type: string
         updatedDate:
-          type: string
-    FishTicket:
-      type: object
-      properties:
-        fishTicketNumber:
-          type: string
-        fishTicketDate:
           type: string
     NewTrip:
       required:
