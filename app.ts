@@ -224,7 +224,7 @@ httpsServer.listen(PORT, () => {
   //   console.log('No roles for', applicationName);
   //   throw new Error('No roles for ' + applicationName);
   // }
-}
+// }
 
 // export function getFishTicketOld(ftid: string) {
 //   pool.connect((err, client, done) => {
