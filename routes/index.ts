@@ -22,6 +22,8 @@ const DEFAULT_APPLICATION_NAME = 'BOATNET_OBSERVER';
 const moment = require('moment');
 
 import { validateJwtRequest } from '../get-user.middleware';
+import { getFishTicket } from '../oracle_routines';
+import { catchEvaluator } from '../trip-functions';
 
 let token = '';
 export let key = '';
@@ -266,7 +268,10 @@ const newCatch = async (req, res) => {
                 newTrip.type = 'trips-api-catch';
                 newTrip.createdDate = moment().format();
                 masterDev.bulk({docs: [newTrip]}).then(
-                    res.send('catch data saved')
+                    () => {
+                        res.send('catch data saved');
+                        catchEvaluator(req.params.tripNum);
+                    }
                 );
         } else {
             res.status(500).send('missing required parameters.')
@@ -284,6 +289,7 @@ const updateCatch = async (req, res) => {
                 updateDoc.updateDate = moment().format();
                 masterDev.bulk({docs: [updateDoc]}).then( (body) => {
                     res.status('200').send('catch data updated');
+                    catchEvaluator(req.params.tripNum);
                 })
             } else {
                 res.status(500).send('Trip ID can not be changed.')
@@ -296,6 +302,8 @@ const updateCatch = async (req, res) => {
         res.status(500).send('invalid doc - must include _id and _rev')
     }
 }
+
+catchEvaluator('100169');
 
 const API_VERSION = 'v1';
 router.use('/api/' + API_VERSION + '/login', getPubKey);
