@@ -427,10 +427,10 @@ components:
           description: Limited Entry permit number (GF0000)
         isEFPTrip:
           type: boolean
-          description: Flag indicating if the trip was an EFP trip
+          description: Y/N flag indicating if the trip was an EFP trip
         isObserved:
           type: boolean
-          description: Flag indicating if a scientific observer was on board
+          description: Y/N flag indicating if a scientific observer was on board
         crewSize:
           type: number
           description: Total number of crew on board the vessel
@@ -463,7 +463,7 @@ components:
             type: string
         isSigned:
           type: boolean
-          description: Flag inidicating if the logbook was signed
+          description: Y/N flag inidicating if the logbook was signed
         skipperName:
           type: string
           description: Name of the vessel captain
@@ -480,7 +480,7 @@ components:
           description: Date the loogbook was submitted by the 3rd party provider
         resubmission:
           type: boolean
-          description: Flag indicating the submission of corrected data
+          description: Y/N flag indicating the submission of corrected data
         provider:
           type: string
           description: Name of the Third Party Provider
@@ -571,15 +571,12 @@ components:
         codendCapacity:
           type: number
           description: Total estimated weight the codened can hold
-        isCodendLost:
-          type: boolean
-          description: Indicate a lost codend
         comments:
           type: string
           description: Notes pertaining to a specific haul record
         targetStrategy:
           type: string
-          description: Target species or grouping
+          description: Was on logbook - do we want?
         systemPerformance:
           type: number
           description: 1 = No issues, 2 = Video Gaps, 3 = Poor video quality
