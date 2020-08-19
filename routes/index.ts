@@ -359,8 +359,8 @@ router.get('/api/' + API_VERSION + '/tripCatch/:tripNum', getCatch);
 router.post('/api/' + API_VERSION + '/tripCatch/:tripNum', newCatch);
 router.put('/api/' + API_VERSION + '/tripCatch/:tripNum', updateCatch);
 
-router.use('/api' + API_VERSION + '/email', getPubKey);
-router.use('/api' + API_VERSION + '/email', validateJwtRequest);
-router.post('/api' + API_VERSION + '/email', emailCoordinator);
+router.use('/api/' + API_VERSION + '/email', getPubKey);
+router.use('/api/' + API_VERSION + '/email', validateJwtRequest);
+router.post('/api/' + API_VERSION + '/email', emailCoordinator);
 
 module.exports = router;
