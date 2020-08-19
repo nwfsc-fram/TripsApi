@@ -319,20 +319,29 @@ const emailCoordinator = async (req, res) => {
 
       let mailTo = 'seth.gerou@gmail.com'
 
-      var mailOptions = {
-        from: 'nmfs.nwfsc.fram.data.team@noaa.gov ',
-        to: mailTo,
-        subject: 'OTS trip #' + req.body.trip.tripNum + ' submitted by ' + req.body.trip.createdBy + 'requires an Observer',
-        text: req.body.trip
-      };
+      try {
+        let mailOptions = {
+            from: 'nmfs.nwfsc.fram.data.team@noaa.gov ',
+            to: mailTo,
+            subject: 'OTS trip #' + req.body.trip.tripNum + ' submitted by ' + req.body.trip.createdBy + 'requires an Observer',
+            text: req.body.trip
+        };
 
-    transporter.sendMail(mailOptions, function(error, info){
-        if (error) {
-            console.log(error);
-        } else {
-            console.log('Email sent: ' + info.response);
-        }
-    });
+        transporter.sendMail(mailOptions, function(error, info) {
+            if (error) {
+                console.log(error);
+                res.status(400).send(error);
+            } else {
+                console.log('Email sent: ' + info.response);
+                res.status(200).send(info.response);
+            }
+        });
+
+      } catch (err) {
+          console.log(err);
+          res.status(400).send(err);
+      }
+
 }
 
 const API_VERSION = 'v1';
