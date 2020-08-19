@@ -309,6 +309,7 @@ const updateCatch = async (req, res) => {
 // catchEvaluator('100169');
 
 const emailCoordinator = async (req, res) => {
+    console.log(req);
     const transporter = nodemailer.createTransport({
         service: mailConfig.service,
         auth: {
@@ -324,7 +325,7 @@ const emailCoordinator = async (req, res) => {
             from: 'nmfs.nwfsc.fram.data.team@noaa.gov ',
             to: mailTo,
             subject: 'OTS trip #' + req.body.tripNum + ' submitted by ' + req.body.createdBy + 'requires an Observer',
-            text: req.body
+            text: JSON.stringify(req.body)
         };
 
         transporter.sendMail(mailOptions, function(error, info) {
