@@ -323,8 +323,8 @@ const emailCoordinator = async (req, res) => {
         let mailOptions = {
             from: 'nmfs.nwfsc.fram.data.team@noaa.gov ',
             to: mailTo,
-            subject: 'OTS trip #' + req.body.trip.tripNum + ' submitted by ' + req.body.trip.createdBy + 'requires an Observer',
-            text: req.body.trip
+            subject: 'OTS trip #' + req.body.tripNum + ' submitted by ' + req.body.createdBy + 'requires an Observer',
+            text: req.body
         };
 
         transporter.sendMail(mailOptions, function(error, info) {
