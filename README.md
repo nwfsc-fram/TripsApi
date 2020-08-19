@@ -45,7 +45,31 @@ Prod endpoint: https://www.nwfsc.noaa.gov/trips/api/v1/login
 ```
 <img src="./login.PNG" alt="Login">
 
-4. Before making future requests, navigate tothe Authorization section and select type: bearer token. Paste the token there and your future requests will be properly authenticated 
+4. Before making future requests, navigate tothe Authorization section and select type: bearer token. Paste the token there and your future requests will be properly authenticated
 
 <img src="./token.PNG" alt="Login">
+
+getFishTicket Capability:
+
+the tripsApi background expansions processes rely on an Oracle connection to get fish ticket data.  credentials are configured in dbConfig.ODWdbConfig with a section like:
+
+    "ODWdbConfig": {
+      "user": "username",
+      "password": "password",
+      "connectString": "database:port/schema"
+    },
+
+Email Capabilty:
+
+the tripsApi exposes an emailing capability that is configured in dbConfig.mailConfig with a section like:
+,
+    "mailConfig": {
+      "service": "gmail",
+      "username": "first.last@noaa.gov",
+      "password": "application specific password" -- set this up in gmail - https://myaccount.google.com/apppasswords
+    }
+
+sending mail as nmfs.nwfsc.fram.data.team@noaa.gov (instead of a personal NOAA address) requires configuration of an alias.
+https://mail.google.com/mail/u/0/#settings/accounts in the 'Send mail as:' section, click 'Add another email address' and follow the instructions.
+Note: you'll need to verify the address, so it needs to be one you have access to (you receive mails sent to the address).
 
