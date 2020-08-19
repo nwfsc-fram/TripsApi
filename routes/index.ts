@@ -10,6 +10,9 @@ const utils = require('../security.utils.ts');
 const axios = require('axios');
 const request = require('request');
 
+const nodemailer = require('nodemailer');
+const mailConfig = require('../dbConfig.json').mailConfig;
+
 const https = require('https');
 
 const parseString = require('xml2js').parseString;
@@ -303,7 +306,34 @@ const updateCatch = async (req, res) => {
     }
 }
 
-catchEvaluator('100169');
+// catchEvaluator('100169');
+
+const emailCoordinator = async (req, res) => {
+    const transporter = nodemailer.createTransport({
+        service: mailConfig.service,
+        auth: {
+          user: mailConfig.username,
+          pass: mailConfig.password
+        }
+      });
+
+      let mailTo = 'seth.gerou@gmail.com'
+
+      var mailOptions = {
+        from: 'nmfs.nwfsc.fram.data.team@noaa.gov ',
+        to: mailTo,
+        subject: 'OTS trip #' + req.body.trip.tripNum + ' submitted by ' + req.body.trip.createdBy + 'requires an Observer',
+        text: req.body.trip
+      };
+
+    transporter.sendMail(mailOptions, function(error, info){
+        if (error) {
+            console.log(error);
+        } else {
+            console.log('Email sent: ' + info.response);
+        }
+    });
+}
 
 const API_VERSION = 'v1';
 router.use('/api/' + API_VERSION + '/login', getPubKey);
@@ -329,5 +359,8 @@ router.get('/api/' + API_VERSION + '/tripCatch/:tripNum', getCatch);
 router.post('/api/' + API_VERSION + '/tripCatch/:tripNum', newCatch);
 router.put('/api/' + API_VERSION + '/tripCatch/:tripNum', updateCatch);
 
+router.use('/api' + API_VERSION + '/email', getPubKey);
+router.use('/api' + API_VERSION + '/email', validateJwtRequest);
+router.post('/api' + API_VERSION + '/email', emailCoordinator);
 
 module.exports = router;
