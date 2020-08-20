@@ -27,6 +27,7 @@ const moment = require('moment');
 import { validateJwtRequest } from '../get-user.middleware';
 import { getFishTicket } from '../oracle_routines';
 import { catchEvaluator } from '../trip-functions';
+import { runInNewContext } from 'vm';
 
 let token = '';
 export let key = '';
@@ -330,12 +331,25 @@ const emailCoordinator = async (req, res) => {
           return;
       }
 
+      const emailText = {
+          tripNum: req.body.tripNum ? req.body.tripNum : 'missing',
+          vesselName: req.body.vessel ? req.body.vessel.vesselName : 'missing',
+          vesselId: req.body.vesselId ? req.body.vesselId : 'missing',
+          departureDate: req.body.departureDate ? moment(req.body.departureDate).format('MMM Do, HH:mm') : 'missing',
+          departurePort: req.body.departurePort ? req.body.departurePort.name : 'missing',
+          returnDate: req.body.returnDate ? moment(req.body.returnDate).format('MMM Do') : 'missing',
+          returnPort: req.body.returnPort ? req.body.returnPort.name : 'missing',
+          fishery: req.body.fishery ? req.body.fishery.description : 'missing',
+          createdBy: req.body.createdBy ? req.body.createdBy : 'missing',
+          notes: req.body.notes ? req.body.notes : 'missing'
+      }
+
       try {
         let mailOptions = {
             from: 'nmfs.nwfsc.fram.data.team@noaa.gov ',
             to: 'seth.gerou@noaa.gov',
-            subject: req.body.departureDate + ' trip, for vessel: ' + req.body.vessel.vesselName + ' departure port: ' + req.body.departurePort.name +  ' requires an Observer. Mail to:' + mailTo,
-            text: JSON.stringify(req.body)
+            subject: moment(req.body.departureDate).format('MMM Do, HH:mm') + ' trip, for vessel: ' + req.body.vessel.vesselName + ', departure port: ' + req.body.departurePort.name +  ' requires an Observer. Mail to:' + mailTo,
+            text: JSON.stringify(emailText)
         };
 
         transporter.sendMail(mailOptions, function(error, info) {
