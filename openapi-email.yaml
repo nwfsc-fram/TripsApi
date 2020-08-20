@@ -256,6 +256,34 @@ paths:
                 message: Invalid Request
       security:
       - bearerAuth: []
+  /email:
+    post:
+      tags:
+      - Email
+      description: send email to coordinator - private functionality
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Trip'
+      responses:
+        "200":
+          description: email sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200_5'
+        "400":
+          description: Invalid Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_401'
+              example:
+                status: 400
+                message: Invalid Request
+      security:
+      - bearerAuth: []
   /trips/{tripNum}:
     get:
       tags:
@@ -780,6 +808,14 @@ components:
         vesselName:
           type: string
         startPort:
+          type: string
+    inline_response_200_5:
+      type: object
+      properties:
+        status:
+          type: integer
+          format: int64
+        message:
           type: string
   responses:
     NotFoundError:
