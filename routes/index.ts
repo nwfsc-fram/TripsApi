@@ -353,8 +353,8 @@ const emailCoordinator = async (req, res) => {
       try {
         let mailOptions = {
             from: mailConfig.sender,
-            to: mailConfig.username,
-            subject: req.body.emailType + " : " + moment(req.body.departureDate).format('MMM Do YYYY, HH:mm') + ' trip, for vessel: ' + req.body.vessel.vesselName + ', departure port: ' + req.body.departurePort.name +  ' requires an Observer. Mail to:' + mailTo,
+            to: mailTo,
+            subject: req.body.emailType + " : " + moment(req.body.departureDate).format('MMM Do YYYY, HH:mm') + ' trip, for vessel: ' + req.body.vessel.vesselName + ', departure port: ' + req.body.departurePort.name +  ' requires an Observer.',
             html: emailHTML
         };
 
