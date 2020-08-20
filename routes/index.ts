@@ -310,7 +310,7 @@ const updateCatch = async (req, res) => {
 // catchEvaluator('100169');
 
 const emailCoordinator = async (req, res) => {
-    console.log(req);
+
     const transporter = nodemailer.createTransport({
         service: mailConfig.service,
         auth: {
@@ -340,13 +340,14 @@ const emailCoordinator = async (req, res) => {
           "Return Port: " + (req.body.returnPort ? req.body.returnPort.name : 'missing') + "<br>" +
           "Fishery: " + (req.body.fishery ? req.body.fishery.description : 'missing') + "<br>" +
           "Created By: " + (req.body.createdBy ? req.body.createdBy : 'missing') + "<br>" +
+          "Created Date: " + (req.body.createdDate ? req.body.createdDate : 'missing') + "<br>" +
           "Notes: " + (req.body.notes ? req.body.notes : 'missing') + "<br>" + "</p>";
 
       try {
         let mailOptions = {
             from: mailConfig.sender,
             to: mailConfig.username,
-            subject: moment(req.body.departureDate).format('MMM Do YYYY, HH:mm') + ' trip, for vessel: ' + req.body.vessel.vesselName + ', departure port: ' + req.body.departurePort.name +  ' requires an Observer. Mail to:' + mailTo,
+            subject: req.headers.type + " : " + moment(req.body.departureDate).format('MMM Do YYYY, HH:mm') + ' trip, for vessel: ' + req.body.vessel.vesselName + ', departure port: ' + req.body.departurePort.name +  ' requires an Observer. Mail to:' + mailTo,
             html: emailHTML
         };
 
