@@ -331,17 +331,24 @@ const emailCoordinator = async (req, res) => {
           return;
       }
 
+      let changelogstring = '';
+      for (const row of req.body.changeLog) {
+          changelogstring += "<b>" + (row.property + "</b> changed to <b>" + row.newVal + "</b> from <b>" + row.oldVal + "</b><br> ");
+      }
+
       const emailHTML =
-          "<p>Trip #: " + (req.body.tripNum ? req.body.tripNum : 'missing') + "<br>" +
-          "Vessel: " + (req.body.vessel ? req.body.vessel.vesselName : 'missing') + " (" + (req.body.vesselId ? req.body.vesselId : 'missing') + ")<br>" +
-          "Departure Date/Time: " + (req.body.departureDate ? moment(req.body.departureDate).format('MMM Do YYYY, HH:mm') : 'missing') + "<br>" +
-          "Departure Port: " + (req.body.departurePort ? req.body.departurePort.name : 'missing') + "<br>" +
-          "Return Date: " + (req.body.returnDate ? moment(req.body.returnDate).format('MMM Do YYYY') : 'missing') + "<br>" +
-          "Return Port: " + (req.body.returnPort ? req.body.returnPort.name : 'missing') + "<br>" +
-          "Fishery: " + (req.body.fishery ? req.body.fishery.description : 'missing') + "<br>" +
-          "Created By: " + (req.body.createdBy ? req.body.createdBy : 'missing') + "<br>" +
-          "Created Date: " + (req.body.createdDate ? req.body.createdDate : 'missing') + "<br>" +
-          "Notes: " + (req.body.notes ? req.body.notes : 'missing') + "<br>" + "</p>";
+          "<p>Trip #: <b>" + (req.body.tripNum ? req.body.tripNum : 'missing') + "</b><br>" +
+          "Vessel: <b>" + (req.body.vessel ? req.body.vessel.vesselName : 'missing') + " (" + (req.body.vesselId ? req.body.vesselId : 'missing') + ")</b><br>" +
+          "Departure Date/Time: <b>" + (req.body.departureDate ? moment(req.body.departureDate).format('MMM Do YYYY, HH:mm') : 'missing') + "</b><br>" +
+          "Departure Port: <b>" + (req.body.departurePort ? req.body.departurePort.name : 'missing') + "</b><br>" +
+          "Return Date: <b>" + (req.body.returnDate ? moment(req.body.returnDate).format('MMM Do YYYY') : 'missing') + "</b><br>" +
+          "Return Port: <b>" + (req.body.returnPort ? req.body.returnPort.name : 'missing') + "</b><br>" +
+          "Fishery: <b>" + (req.body.fishery ? req.body.fishery.description : 'missing') + "</b><br>" +
+          "Created By: <b>" + (req.body.createdBy ? req.body.createdBy : 'missing') + "</b><br>" +
+          "Created Date: <b>" + (req.body.createdDate ? req.body.createdDate : 'missing') + "</b><br>" +
+          "Notes: <b>" + (req.body.notes ? req.body.notes : 'missing') + "</b><br>" +
+          "Change Log: <br>" + changelogstring +
+          "</p>"
 
       try {
         let mailOptions = {
