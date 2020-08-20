@@ -818,8 +818,3 @@ components:
           example:
             status: 200
             message: catch data updated
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
