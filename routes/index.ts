@@ -321,9 +321,9 @@ const emailCoordinator = async (req, res) => {
 
       let mailTo = '';
       if (req.body.departurePort.state === 'CA' && req.body.departurePort.code !== 'CRS') {
-          mailTo = 'john.lafargue@noaa.gov'
+          mailTo = mailConfig.southCorrdinatorEmail;
       } else {
-          mailTo = 'scott.leach@noaa.gov'
+          mailTo = mailConfig.northCoordinatorEmail;
       }
 
       if (!req.body.tripNum) {
@@ -332,24 +332,21 @@ const emailCoordinator = async (req, res) => {
       }
 
       const emailHTML =
-          "<p>tripNum: " + (req.body.tripNum ? req.body.tripNum : 'missing') + "<br>" +
-          "vesselName: " + (req.body.vessel ? req.body.vessel.vesselName : 'missing') + "<br>" +
-          "vesselId: " + (req.body.vesselId ? req.body.vesselId : 'missing') + "<br>" +
-          "departureDate: " + (req.body.departureDate ? moment(req.body.departureDate).format('MMM Do, HH:mm') : 'missing') + "<br>" +
-          "departurePort: " + (req.body.departurePort ? req.body.departurePort.name : 'missing') + "<br>" +
-          "returnDate: " + (req.body.returnDate ? moment(req.body.returnDate).format('MMM Do') : 'missing') + "<br>" +
-          "returnPort: " + (req.body.returnPort ? req.body.returnPort.name : 'missing') + "<br>" +
-          "fishery: " + (req.body.fishery ? req.body.fishery.description : 'missing') + "<br>" +
-          "createdBy: " + (req.body.createdBy ? req.body.createdBy : 'missing') + "<br>" +
-          "notes: " + (req.body.notes ? req.body.notes : 'missing') + "<br>" + "</p>";
-
-    console.log(emailHTML) // THIS IS WHERE YOU LEFT OFF - IS THIS NOT A STRING?
+          "<p>Trip #: " + (req.body.tripNum ? req.body.tripNum : 'missing') + "<br>" +
+          "Vessel: " + (req.body.vessel ? req.body.vessel.vesselName : 'missing') + " (" + (req.body.vesselId ? req.body.vesselId : 'missing') + ")<br>" +
+          "Departure Date/Time: " + (req.body.departureDate ? moment(req.body.departureDate).format('MMM Do YYYY, HH:mm') : 'missing') + "<br>" +
+          "Departure Port: " + (req.body.departurePort ? req.body.departurePort.name : 'missing') + "<br>" +
+          "Return Date: " + (req.body.returnDate ? moment(req.body.returnDate).format('MMM Do YYYY') : 'missing') + "<br>" +
+          "Return Port: " + (req.body.returnPort ? req.body.returnPort.name : 'missing') + "<br>" +
+          "Fishery: " + (req.body.fishery ? req.body.fishery.description : 'missing') + "<br>" +
+          "Created By: " + (req.body.createdBy ? req.body.createdBy : 'missing') + "<br>" +
+          "Notes: " + (req.body.notes ? req.body.notes : 'missing') + "<br>" + "</p>";
 
       try {
         let mailOptions = {
-            from: 'nmfs.nwfsc.fram.data.team@noaa.gov ',
-            to: 'seth.gerou@noaa.gov',
-            subject: moment(req.body.departureDate).format('MMM Do, HH:mm') + ' trip, for vessel: ' + req.body.vessel.vesselName + ', departure port: ' + req.body.departurePort.name +  ' requires an Observer. Mail to:' + mailTo,
+            from: mailConfig.sender,
+            to: mailConfig.username,
+            subject: moment(req.body.departureDate).format('MMM Do YYYY, HH:mm') + ' trip, for vessel: ' + req.body.vessel.vesselName + ', departure port: ' + req.body.departurePort.name +  ' requires an Observer. Mail to:' + mailTo,
             html: emailHTML
         };
 
