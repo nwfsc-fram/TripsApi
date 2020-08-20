@@ -318,13 +318,23 @@ const emailCoordinator = async (req, res) => {
         }
       });
 
-      let mailTo = 'seth.gerou@gmail.com'
+      let mailTo = '';
+      if (req.body.departurePort.state === 'CA' && req.body.departurePort.code !== 'CRS') {
+          mailTo = 'john.lafargue@noaa.gov'
+      } else {
+          mailTo = 'scott.leach@noaa.gov'
+      }
+
+      if (!req.body.tripNum) {
+          res.statsus(400).send('invalid submission');
+          return;
+      }
 
       try {
         let mailOptions = {
             from: 'nmfs.nwfsc.fram.data.team@noaa.gov ',
-            to: mailTo,
-            subject: 'OTS trip #' + req.body.tripNum + ' submitted by ' + req.body.createdBy + 'requires an Observer',
+            to: 'seth.gerou@noaa.gov',
+            subject: req.body.departureDate + ' trip, for vessel: ' + req.body.vessel.vesselName + ' departure port: ' + req.body.departurePort.name +  ' requires an Observer. Mail to:' + mailTo,
             text: JSON.stringify(req.body)
         };
 
