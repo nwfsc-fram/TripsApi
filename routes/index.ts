@@ -332,16 +332,18 @@ const emailCoordinator = async (req, res) => {
       }
 
       const emailHTML =
-          "<p>tripNum: " + req.body.tripNum ? req.body.tripNum : 'missing' + "<br>" +
-          "vesselName: " + req.body.vessel ? req.body.vessel.vesselName : 'missing' + "<br>" +
-          "vesselId: " + req.body.vesselId ? req.body.vesselId : 'missing' + "<br>" +
-          "departureDate: " + req.body.departureDate ? moment(req.body.departureDate).format('MMM Do, HH:mm') : 'missing' + "<br>" +
-          "departurePort: " + req.body.departurePort ? req.body.departurePort.name : 'missing' + "<br>" +
-          "returnDate: " + req.body.returnDate ? moment(req.body.returnDate).format('MMM Do') : 'missing' + "<br>" +
-          "returnPort: " + req.body.returnPort ? req.body.returnPort.name : 'missing' + "<br>" +
-          "fishery: " + req.body.fishery ? req.body.fishery.description : 'missing' + "<br>" +
-          "createdBy: " + req.body.createdBy ? req.body.createdBy : 'missing' + "<br>" +
-          "notes: " + req.body.notes ? req.body.notes : 'missing' + "<br>" + "</p>";
+          "<p>tripNum: " + (req.body.tripNum ? req.body.tripNum : 'missing') + "<br>" +
+          "vesselName: " + (req.body.vessel ? req.body.vessel.vesselName : 'missing') + "<br>" +
+          "vesselId: " + (req.body.vesselId ? req.body.vesselId : 'missing') + "<br>" +
+          "departureDate: " + (req.body.departureDate ? moment(req.body.departureDate).format('MMM Do, HH:mm') : 'missing') + "<br>" +
+          "departurePort: " + (req.body.departurePort ? req.body.departurePort.name : 'missing') + "<br>" +
+          "returnDate: " + (req.body.returnDate ? moment(req.body.returnDate).format('MMM Do') : 'missing') + "<br>" +
+          "returnPort: " + (req.body.returnPort ? req.body.returnPort.name : 'missing') + "<br>" +
+          "fishery: " + (req.body.fishery ? req.body.fishery.description : 'missing') + "<br>" +
+          "createdBy: " + (req.body.createdBy ? req.body.createdBy : 'missing') + "<br>" +
+          "notes: " + (req.body.notes ? req.body.notes : 'missing') + "<br>" + "</p>";
+
+    console.log(emailHTML) // THIS IS WHERE YOU LEFT OFF - IS THIS NOT A STRING?
 
       try {
         let mailOptions = {
