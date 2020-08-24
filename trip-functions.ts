@@ -46,7 +46,10 @@ export async function catchEvaluator(tripNum: string) {
         let catches: any[] = jp.query(logbook, '$..catch');
         catches = flattenDeep(catches);
 
-        const fishTickets = await getFishTicket(logbook.fishTickets[0].fishTicketNumber);
+        const fishTickets = [];
+        for (const row of logbook.fishTickets) {
+            fishTickets.push(fishTickets, await getFishTicket(row.fishTicketNumer))
+        }
 
         function unsortedCatch(logbook: any, fishTickets: any) { // is this calc done per haul, or for the whole trip
             let catches: any[] = jp.query(logbook, '$..catch');
