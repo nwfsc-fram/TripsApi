@@ -49,7 +49,7 @@ Prod endpoint: https://www.nwfsc.noaa.gov/trips/api/v1/login
 
 <img src="./token.PNG" alt="Login">
 
-getFishTicket Capability:
+# getFishTicket Capability:
 
 the tripsApi background expansions processes rely on an Oracle connection to get fish ticket data.  credentials are configured in dbConfig.ODWdbConfig with a section like:
 
@@ -59,7 +59,30 @@ the tripsApi background expansions processes rely on an Oracle connection to get
       "connectString": "database:port/schema"
     },
 
-Email Capabilty:
+# Oracle Client configuration
+
+- For the oracledb module to work on windows, it requires the oracle instant client 12_1 binary downloadable here https://oracle.github.io/odpi/doc/installation.html#windows
+- To run from cmd without instant client in system PATH:
+  * Git Bash:
+```
+export PATH=$PATH:"/C/ORACLE/instantclient_12_1"
+npm run server
+```
+  * CMD:
+
+```
+set PATH=%PATH%;C:\ORACLE\instantclient_12_1
+npm run start
+```
+
+  * Powershell:
+
+```
+$env:Path += ";C:\ORACLE\instantclient_12_1"
+```
+
+
+# Email Capabilty:
 
 the tripsApi exposes an emailing capability that is configured in dbConfig.mailConfig with a section like:
 ,
