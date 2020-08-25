@@ -43,58 +43,66 @@ export async function catchEvaluator(tripNum: string) {
             }
         }
 
-        let catches: any[] = jp.query(logbook, '$..catch');
-        catches = flattenDeep(catches);
+        // let catches: any[] = jp.query(logbook, '$..catch');
+        // catches = flattenDeep(catches);
+        // would it make sense to format like proposed output before feeding to expansions?
 
         const fishTickets = [];
         for (const row of logbook.fishTickets) {
             fishTickets.push(fishTickets, await getFishTicket(row.fishTicketNumer))
         }
 
-        function unsortedCatch(logbook: any, fishTickets: any) { // is this calc done per haul, or for the whole trip
-            let catches: any[] = jp.query(logbook, '$..catch');
+        function unsortedCatch(thirdPartyReview: any, fishTickets: any) { // calc performed per haul
+            let catches: any[] = jp.query(thirdPartyReview, '$..catch');
             catches = flattenDeep(catches);
-            const unsortedCatch = catches.reduce( (acc, val) => {
-                if (val.speciesCode === 'UNST') {
-                    return acc + val.weight;
-                } else {
-                    return acc;
-                }
-            }, 0)
 
-            // get total catch weight from fish tickets
-            let totalWeight = fishTickets.reduce((acc: number, val: any) => {
-                return acc + val.LANDED_WEIGHT_LBS
-            }, 0)
+            let results = [];
 
-            // get unique species from fish tickets
-            const specieses = uniq(fishTickets.map( (row: any) => row.PACFIN_SPECIES_CODE))
-
-            // get sum of landed lbs, percent of total, and calculated net bleed lbs per species
-            const speciesWeights = [];
-            for (const species of specieses) {
-                const speciesWeight = fishTickets.reduce((acc: number, val: any) => {
-                    if (val.PACFIN_SPECIES_CODE === species) {
-                        return acc + val.LANDED_WEIGHT_LBS
+            for (const haul of thirdPartyReview.hauls) {
+                let haulCatches = jp.query(haul, '$..catch');
+                const unsortedCatch = haulCatches.reduce( (acc, val) => {
+                    if (val.speciesCode === 'UNST') {
+                        return acc + val.weight;
                     } else {
-                        return acc
+                        return acc;
                     }
                 }, 0)
-                const percent_of_total = speciesWeight / totalWeight;
-                const net_bleed_weight = percent_of_total * unsortedCatch;
-                speciesWeights.push( // should these be calculated per haul, or for the whole trip?
-                    {
-                        PACFIN_SPECIES_CODE: species,
-                        LANDED_WEIGHT_SUM: speciesWeight,
-                        PERCENT_OF_TOTAL: percent_of_total,
-                        NET_BLEED_WEIGHT: net_bleed_weight
-                    });
+
+                // get total catch weight from fish tickets
+                let totalWeight = fishTickets.reduce((acc: number, val: any) => {
+                    return acc + val.LANDED_WEIGHT_LBS
+                }, 0)
+
+                // get unique species from fish tickets
+                const specieses = uniq(fishTickets.map( (row: any) => row.PACFIN_SPECIES_CODE))
+
+                // get sum of landed lbs, percent of total, and calculated net bleed lbs per species
+                const speciesWeights = [];
+                for (const species of specieses) {
+                    const speciesWeight = fishTickets.reduce((acc: number, val: any) => {
+                        if (val.PACFIN_SPECIES_CODE === species) {
+                            return acc + val.LANDED_WEIGHT_LBS
+                        } else {
+                            return acc
+                        }
+                    }, 0)
+                    const percent_of_total = speciesWeight / totalWeight;
+                    const net_bleed_weight = percent_of_total * unsortedCatch;
+                    results.push( // should these be calculated per haul, or for the whole trip?
+                        {
+                            PACFIN_SPECIES_CODE: species,
+                            LANDED_WEIGHT_SUM: speciesWeight,
+                            PERCENT_OF_TOTAL: percent_of_total,
+                            NET_BLEED_WEIGHT: net_bleed_weight,
+                            haulNum: haul.haulNum
+                        });
+                }
             }
-            console.log(speciesWeights);
-            return [totalWeight, unsortedCatch, speciesWeights];
+            console.log(results);
+            return results;
         }
 
-        unsortedCatch(logbook, fishTickets);
+        unsortedCatch(thirdParty, fishTickets);
 
         // evaluate catch docs
         // is source logbook, thirdParty, or nwfsc
