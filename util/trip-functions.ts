@@ -38,7 +38,7 @@ export async function catchEvaluator(tripNum: string) {
         for (const tripCatch of tripCatches) {
             if (tripCatch.source === sourceType.logbook) {
                 logbook = cloneDeep(tripCatch)
-            } else if (tripCatch.source === sourceType.logbook) {
+            } else if (tripCatch.source === sourceType.thirdPartyReview) {
                 thirdParty = cloneDeep(tripCatch)
             } else if (tripCatch.source === sourceType.nwfscAudit) {
                 nwfscAudit = cloneDeep(tripCatch)
