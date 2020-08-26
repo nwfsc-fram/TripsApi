@@ -25,12 +25,14 @@ const DEFAULT_APPLICATION_NAME = 'BOATNET_OBSERVER';
 const moment = require('moment');
 
 import { validateJwtRequest } from '../get-user.middleware';
-import { getFishTicket } from '../oracle_routines';
-import { catchEvaluator } from '../trip-functions';
+import { getFishTicket } from '../util/oracle_routines';
+import { catchEvaluator } from '../util/trip-functions';
+import { Catches, sourceType } from '@boatnet/bn-models';
 import { runInNewContext } from 'vm';
 
 let token = '';
 export let key = '';
+const jp = require('jsonpath');
 
 const stringParser = function(req) {
     parseString(req.rawBody, {explicitArray: false}, function(err, result) {
@@ -266,17 +268,29 @@ const getCatch = async (req, res) => {
 
 const newCatch = async (req, res) => {
     if (req.headers['content-type'] == "application/xml") { stringParser(req); }
-    setTimeout( () => {
+    setTimeout(async () => {
         if (req.params.tripNum && req.body.tripNum && req.body.source && req.body.hauls) {
-                const newTrip = req.body;
-                newTrip.type = 'trips-api-catch';
-                newTrip.createdDate = moment().format();
-                masterDev.bulk({docs: [newTrip]}).then(
-                    () => {
-                        res.send('catch data saved');
-                        // catchEvaluator(req.params.tripNum);
-                    }
-                );
+            const newTrip = req.body;
+            newTrip.type = 'trips-api-catch';
+            newTrip.createdDate = moment().format();
+
+            const tripDocs = await masterDev.view('TripsApi', 'all_api_trips', { "key": req.params.tripNum });
+            if (tripDocs.rows.length === 0 ) {
+                res.status(500).send('tripNum does not exist');
+            } else {
+                const catchDocs = await masterDev.view('TripsApi', 'all_api_catch', { "key": req.params.tripNum, "include_docs": true });
+                const sourceTypes: string[] = jp.query(catchDocs, '$..source');
+                if (sourceTypes.includes(req.body.source)) {
+                    catchEvaluator(req.params.tripNum); // update results but don't add new catch doc
+                } else {
+                    masterDev.bulk({ docs: [newTrip] }).then(
+                        () => {
+                            catchEvaluator(req.params.tripNum);
+                            res.send('catch data saved');
+                        }
+                    );
+                }
+            }
         } else {
             res.status(500).send('missing required parameters.')
         }
