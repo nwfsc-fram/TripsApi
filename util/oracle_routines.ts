@@ -30,6 +30,31 @@ export async function getFishTicket(ftid: string): Promise<string[]> {
     }
   }
 
+export async function fakeDBTest() {
+  // Right now this function is to test where this call will come from
+  const vmsOleConfig =  {
+    "user": "squishy",
+    "password": "squid",
+    "connectString": "fake.url.noaa.gov:1555/SCHEMA"
+      } 
+  let readConnection: any;
+  try {
+    readConnection = await oracledb.getConnection(vmsOleConfig);
+    const result = await readConnection.execute(
+      'SELECT * FROM fake_table'
+    );
+    return result;
+  } catch (err) {
+      console.error(err);
+  } finally {
+    try {
+      await readConnection.close();
+    } catch (err) {
+        console.error(err);
+    }
+  }
+}
+
 function closeOracleConnection(connection: any) {
     console.log('Closing oracledb connection.');
     connection.close();
