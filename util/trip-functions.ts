@@ -108,9 +108,12 @@ export async function catchEvaluator(tripNum: string) {
         const expansionRule: lostCodend = new lostCodend();
         let result = expansionRule.logbookExpansion(logbook);
         result = formatLogbook(result);
-        const doc = await masterDev.view('TripsApi', 'expansion_results', { "key": result.tripNum });
-        if (doc.rows.length === 0) {
-            await masterDev.insert(result);
+        const doc = await masterDev.view('TripsApi', 'expansion_results', { "key": result.tripNum, "include_docs": true });
+        if (doc.rows.length !== 0) {
+            const currDoc = doc.rows[0].doc;
+            // TODO comapre documents and record changes in changeLog
+        } else {
+            await masterDev.bulk({ docs: [result] });
         }
 
       //  unsortedCatch(thirdParty, fishTickets);

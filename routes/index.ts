@@ -32,6 +32,7 @@ import { runInNewContext } from 'vm';
 
 let token = '';
 export let key = '';
+const jp = require('jsonpath');
 
 const stringParser = function(req) {
     parseString(req.rawBody, {explicitArray: false}, function(err, result) {
@@ -273,18 +274,25 @@ const newCatch = async (req, res) => {
             newTrip.type = 'trips-api-catch';
             newTrip.createdDate = moment().format();
 
-            const doc = await masterDev.view('TripsApi', 'all_api_catch', { "key": req.params.tripNum });
-            console.log(doc);
-            if (doc.rows.length === 0) {
-                masterDev.bulk({ docs: [newTrip] }).then(
-                    () => {
-                        //res.send('catch data saved');
-                        catchEvaluator(req.params.tripNum);
-                    }
-                );
+            const tripDocs = await masterDev.view('TripsApi', 'all_api_trips', { "key": req.params.tripNum });
+            if (tripDocs.rows.length === 0 ) {
+                res.status(500).send('tripNum does not exist');
+            } else {
+                const catchDocs = await masterDev.view('TripsApi', 'all_api_catch', { "key": req.params.tripNum, "include_docs": true });
+                const sourceTypes: string[] = jp.query(catchDocs, '$..source');
+                if (sourceTypes.includes(req.body.source)) {
+                    catchEvaluator(req.params.tripNum); // update results but don't add new catch doc
+                } else {
+                    masterDev.bulk({ docs: [newTrip] }).then(
+                        () => {
+                            catchEvaluator(req.params.tripNum);
+                            res.send('catch data saved');
+                        }
+                    );
+                }
             }
         } else {
-           // res.status(500).send('missing required parameters.')
+            res.status(500).send('missing required parameters.')
         }
     }, 300)
 }
