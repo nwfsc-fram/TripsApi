@@ -25,7 +25,7 @@ const DEFAULT_APPLICATION_NAME = 'BOATNET_OBSERVER';
 const moment = require('moment');
 
 import { validateJwtRequest } from '../get-user.middleware';
-import { getFishTicket } from '../util/oracle_routines';
+import { getFishTicket, fakeDBTest } from '../util/oracle_routines';
 import { catchEvaluator } from '../util/trip-functions';
 import { Catches, sourceType } from '@boatnet/bn-models';
 import { runInNewContext } from 'vm';
@@ -416,5 +416,7 @@ router.put('/api/' + API_VERSION + '/tripCatch/:tripNum', updateCatch);
 router.use('/api/' + API_VERSION + '/email', getPubKey);
 router.use('/api/' + API_VERSION + '/email', validateJwtRequest);
 router.post('/api/' + API_VERSION + '/email', emailCoordinator);
+
+router.get('/api/' + API_VERSION + '/vmstest', fakeDBTest);
 
 module.exports = router;
