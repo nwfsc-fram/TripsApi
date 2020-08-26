@@ -272,14 +272,17 @@ const newCatch = async (req, res) => {
             const newTrip = req.body;
             newTrip.type = 'trips-api-catch';
             newTrip.createdDate = moment().format();
-            catchEvaluator(req.params.tripNum);
 
-            /*masterDev.bulk({ docs: [newTrip] }).then(
-                () => {
-                    res.send('catch data saved');
-                    // catchEvaluator(req.params.tripNum);
-                }
-            );*/
+            const doc = await masterDev.view('TripsApi', 'all_api_catch', { "key": req.params.tripNum });
+            console.log(doc);
+            if (doc.rows.length === 0) {
+                masterDev.bulk({ docs: [newTrip] }).then(
+                    () => {
+                        //res.send('catch data saved');
+                        catchEvaluator(req.params.tripNum);
+                    }
+                );
+            }
         } else {
            // res.status(500).send('missing required parameters.')
         }

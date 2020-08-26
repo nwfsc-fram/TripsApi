@@ -38,7 +38,7 @@ export async function catchEvaluator(tripNum: string) {
         for (const tripCatch of tripCatches) {
             if (tripCatch.source === sourceType.logbook) {
                 logbook = cloneDeep(tripCatch)
-            } else if (tripCatch.source === sourceType.thirdPartyReview) {
+            } else if (tripCatch.source === sourceType.thirdParty) {
                 thirdParty = cloneDeep(tripCatch)
             } else if (tripCatch.source === sourceType.nwfscAudit) {
                 nwfscAudit = cloneDeep(tripCatch)
@@ -108,7 +108,7 @@ export async function catchEvaluator(tripNum: string) {
         const expansionRule: lostCodend = new lostCodend();
         let result = expansionRule.logbookExpansion(logbook);
         result = formatLogbook(result);
-        const doc = await masterDev.view('TripsApi', 'expansion-results', { "key": result.tripNum });
+        const doc = await masterDev.view('TripsApi', 'expansion_results', { "key": result.tripNum });
         if (doc.rows.length === 0) {
             await masterDev.insert(result);
         }
