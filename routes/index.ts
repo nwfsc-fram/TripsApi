@@ -286,21 +286,6 @@ const newCatch = async (req, res) => {
     }, 300)
 }
 
-const logbook: Catches = {
-    headers: {
-        'content-type': 'json'
-    },
-    params: {
-        tripNum: 100198
-    },
-    body: {
-        tripNum: 100198,
-        source: sourceType.logbook,
-        hauls: []
-    }
-};
-newCatch(logbook, {});
-
 const updateCatch = async (req, res) => {
     if (req.headers['content-type'] == "application/xml") { stringParser(req); }
     if (req.body._id && req.body._rev) {
