@@ -1,10 +1,12 @@
-const dbConfig = require('./dbConfig.json').dbConfig;
+const dbConfig = require('../dbConfig.json').dbConfig;
 const couchDB = require('nano')(dbConfig.login);
 const masterDev = couchDB.db.use('master-dev');
 const jp = require('jsonpath');
 import { cloneDeep, flattenDeep, get, remove, set, uniqBy, uniq } from 'lodash';
-
 import { getFishTicket } from './oracle_routines';
+import { lostCodend } from '@boatnet/bn-expansions';
+import { sourceType } from '@boatnet/bn-models';
+import { formatLogbook } from './formatter';
 
 export async function catchEvaluator(tripNum: string) {
     //  wait for a while to be sure data is fully submitted to couch
@@ -34,11 +36,11 @@ export async function catchEvaluator(tripNum: string) {
         let nwfscAudit = null;
 
         for (const tripCatch of tripCatches) {
-            if (tripCatch.source === 'logbook') {
+            if (tripCatch.source === sourceType.logbook) {
                 logbook = cloneDeep(tripCatch)
-            } else if (tripCatch.source === 'thirdParty') {
+            } else if (tripCatch.source === sourceType.logbook) {
                 thirdParty = cloneDeep(tripCatch)
-            } else if (tripCatch.source === 'nwfscAudit') {
+            } else if (tripCatch.source === sourceType.nwfscAudit) {
                 nwfscAudit = cloneDeep(tripCatch)
             }
         }
@@ -102,7 +104,16 @@ export async function catchEvaluator(tripNum: string) {
             return results;
         }
 
-        unsortedCatch(thirdParty, fishTickets);
+        // TODO call expansion, right now calling lostCodend by default
+        const expansionRule: lostCodend = new lostCodend();
+        let result = expansionRule.logbookExpansion(logbook);
+        result = formatLogbook(result);
+        const doc = await masterDev.view('TripsApi', 'expansion-results', { "key": result.tripNum });
+        if (doc.rows.length === 0) {
+            await masterDev.insert(result);
+        }
+
+      //  unsortedCatch(thirdParty, fishTickets);
 
         // evaluate catch docs
         // is source logbook, thirdParty, or nwfsc

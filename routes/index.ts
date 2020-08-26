@@ -25,8 +25,9 @@ const DEFAULT_APPLICATION_NAME = 'BOATNET_OBSERVER';
 const moment = require('moment');
 
 import { validateJwtRequest } from '../get-user.middleware';
-import { getFishTicket } from '../oracle_routines';
-import { catchEvaluator } from '../trip-functions';
+import { getFishTicket } from '../util/oracle_routines';
+import { catchEvaluator } from '../util/trip-functions';
+import { Catches, sourceType } from '@boatnet/bn-models';
 import { runInNewContext } from 'vm';
 
 let token = '';
@@ -266,22 +267,39 @@ const getCatch = async (req, res) => {
 
 const newCatch = async (req, res) => {
     if (req.headers['content-type'] == "application/xml") { stringParser(req); }
-    setTimeout( () => {
+    setTimeout(async () => {
         if (req.params.tripNum && req.body.tripNum && req.body.source && req.body.hauls) {
-                const newTrip = req.body;
-                newTrip.type = 'trips-api-catch';
-                newTrip.createdDate = moment().format();
-                masterDev.bulk({docs: [newTrip]}).then(
-                    () => {
-                        res.send('catch data saved');
-                        // catchEvaluator(req.params.tripNum);
-                    }
-                );
+            const newTrip = req.body;
+            newTrip.type = 'trips-api-catch';
+            newTrip.createdDate = moment().format();
+            catchEvaluator(req.params.tripNum);
+
+            /*masterDev.bulk({ docs: [newTrip] }).then(
+                () => {
+                    res.send('catch data saved');
+                    // catchEvaluator(req.params.tripNum);
+                }
+            );*/
         } else {
-            res.status(500).send('missing required parameters.')
+           // res.status(500).send('missing required parameters.')
         }
     }, 300)
 }
+
+const logbook: Catches = {
+    headers: {
+        'content-type': 'json'
+    },
+    params: {
+        tripNum: 100198
+    },
+    body: {
+        tripNum: 100198,
+        source: sourceType.logbook,
+        hauls: []
+    }
+};
+newCatch(logbook, {});
 
 const updateCatch = async (req, res) => {
     if (req.headers['content-type'] == "application/xml") { stringParser(req); }
