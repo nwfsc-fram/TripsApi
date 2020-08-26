@@ -3,16 +3,18 @@ const couchDB = require('nano')(dbConfig.login);
 const masterDev = couchDB.db.use('master-dev');
 const jp = require('jsonpath');
 import { cloneDeep, flattenDeep, get, remove, set, uniqBy, uniq } from 'lodash';
-
 import { getFishTicket } from './oracle_routines';
+import { lostCodend } from '@boatnet/bn-expansions';
+import { Catches, Disposition, sourceType } from '@boatnet/bn-models';
+import { formatLogbook } from '../util/formatter';
 
 export async function catchEvaluator(tripNum: string) {
     //  wait for a while to be sure data is fully submitted to couch
-    setTimeout( async () => {
+    setTimeout(async () => {
 
         // get trip
-        const trip = await masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "key": parseInt(tripNum, 10), "include_docs": true}).then((body) => {
-            if ( body.rows.length > 0 ) {
+        const trip = await masterDev.view('TripsApi', 'all_api_trips', { "reduce": false, "key": parseInt(tripNum, 10), "include_docs": true }).then((body) => {
+            if (body.rows.length > 0) {
                 return body.rows.map((row) => row.doc)[0];
             } else {
                 console.log('Doc with specified tripNum not found');
@@ -20,8 +22,8 @@ export async function catchEvaluator(tripNum: string) {
         })
 
         // get catch docs
-        const tripCatches = await masterDev.view('TripsApi', 'all_api_catch', {"reduce": false, "key": parseInt(tripNum, 10), "include_docs": true}).then((body) => {
-            if ( body.rows.length > 0) {
+        const tripCatches = await masterDev.view('TripsApi', 'all_api_catch', { "reduce": false, "key": parseInt(tripNum, 10), "include_docs": true }).then((body) => {
+            if (body.rows.length > 0) {
                 const docs = body.rows.map((row) => row.doc);
                 return docs
             } else {
@@ -60,7 +62,7 @@ export async function catchEvaluator(tripNum: string) {
 
             for (const haul of thirdPartyReview.hauls) {
                 let haulCatches = jp.query(haul, '$..catch');
-                const unsortedCatch = haulCatches.reduce( (acc, val) => {
+                const unsortedCatch = haulCatches.reduce((acc, val) => {
                     if (val.speciesCode === 'UNST') {
                         return acc + val.weight;
                     } else {
@@ -74,7 +76,7 @@ export async function catchEvaluator(tripNum: string) {
                 }, 0)
 
                 // get unique species from fish tickets
-                const specieses = uniq(fishTickets.map( (row: any) => row.PACFIN_SPECIES_CODE))
+                const specieses = uniq(fishTickets.map((row: any) => row.PACFIN_SPECIES_CODE))
 
                 // get sum of landed lbs, percent of total, and calculated net bleed lbs per species
                 const speciesWeights = [];
@@ -102,15 +104,24 @@ export async function catchEvaluator(tripNum: string) {
             return results;
         }
 
+        // TODO call expansion, right now calling lostCodend by default
+        const expansionRule: lostCodend = new lostCodend();
+        let result = expansionRule.logbookExpansion(logbook);
+        result = formatLogbook(result);
+        const doc = await masterDev.view('TripsApi', 'expansion-results', { "key": result.tripNum });
+        if (doc.rows.length === 0) {
+            await masterDev.insert(result);
+        }
+
         unsortedCatch(thirdParty, fishTickets);
 
         // evaluate catch docs
         // is source logbook, thirdParty, or nwfsc
-            // logbook
+        // logbook
 
-            // thirdParty or nwfsc
+        // thirdParty or nwfsc
         console.log('catch evaluated!!!');
-        }, 3000
+    }, 3000
     )
 
 }

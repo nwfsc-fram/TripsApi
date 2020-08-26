@@ -25,15 +25,16 @@ const DEFAULT_APPLICATION_NAME = 'BOATNET_OBSERVER';
 const moment = require('moment');
 
 import { validateJwtRequest } from '../get-user.middleware';
-import { getFishTicket } from '../oracle_routines';
-import { catchEvaluator } from '../trip-functions';
+import { getFishTicket } from '../util/oracle_routines';
+import { catchEvaluator } from '../util/trip-functions';
 import { runInNewContext } from 'vm';
+import { Catches, Disposition, sourceType } from '@boatnet/bn-models';
 
 let token = '';
 export let key = '';
 
-const stringParser = function(req) {
-    parseString(req.rawBody, {explicitArray: false}, function(err, result) {
+const stringParser = function (req) {
+    parseString(req.rawBody, { explicitArray: false }, function (err, result) {
         req.body = JSON.parse(JSON.stringify(result.root));
         if (req.body.permits && typeof req.body.permits === 'string') { req.body.permits = [req.body.permits] }
         if (req.body.fisheries && typeof req.body.fisheries === 'string') { req.body.fisheries = [req.body.fisheries] }
@@ -61,7 +62,7 @@ const stringParser = function(req) {
                                     if (typeof parseFloat(catchItem[catchAttrib]) == 'number' && !['catchId', 'catchDisposition', 'speciesCode', 'calcWeightType', 'comments'].includes(catchAttrib)) { catchItem[catchAttrib] = parseFloat(catchItem[catchAttrib]) }
                                     else if (catchItem[catchAttrib] == 'true') { catchItem[catchAttrib] = true; }
                                     else if (catchItem[catchAttrib] == 'false') { catchItem[catchAttrib] = false; }
-                                    else { catchItem[catchAttrib] = catchItem[catchAttrib]}
+                                    else { catchItem[catchAttrib] = catchItem[catchAttrib] }
                                 }
                             }
                         }
@@ -77,33 +78,33 @@ const login = async (req, res) => {
 
     let username = req.body.username || '';
     const password = req.body.passwordEnc
-      ? utils.decode64(req.body.passwordEnc)
-      : req.body.password || '';
+        ? utils.decode64(req.body.passwordEnc)
+        : req.body.password || '';
 
     const applicationName = req.body.applicationName
-    ? req.body.applicationName.toUpperCase()
-    : DEFAULT_APPLICATION_NAME;
+        ? req.body.applicationName.toUpperCase()
+        : DEFAULT_APPLICATION_NAME;
 
     username = username.toLowerCase();
 
     if (username === '' || password === '') {
         res.status(401);
         res.json({
-          status: 401,
-          message: 'Invalid credentials - missing inputs.'
+            status: 401,
+            message: 'Invalid credentials - missing inputs.'
         });
         console.log('Missing user or pw.');
         return false;
-      }
+    }
 
     await request.post({
         url: dbConfig.authServer + 'api/v1/login',
         json: true,
         body: {
-                "username": username,
-                "password": password,
-                "applicationName": applicationName
-            },
+            "username": username,
+            "password": password,
+            "applicationName": applicationName
+        },
         rejectUnauthorized: false,
         requestCert: false,
         agent: false,
@@ -121,7 +122,7 @@ const login = async (req, res) => {
 
 }
 
-async function getPubKey (
+async function getPubKey(
     req: Request,
     res: Response,
     next: NextFunction) {
@@ -141,29 +142,29 @@ async function getPubKey (
 }
 
 const getTrips = async (req, res) => {
-    await masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "descending": true, include_docs: true}).then((body) => {
-        if ( body.rows.length > 0 ) {
+    await masterDev.view('TripsApi', 'all_api_trips', { "reduce": false, "descending": true, include_docs: true }).then((body) => {
+        if (body.rows.length > 0) {
             const docs = body.rows.map((row) => row.doc)
-            switch(Object.keys(req.query)[0]) {
+            switch (Object.keys(req.query)[0]) {
                 case 'vesselId':
-                  res.json(docs.filter( (doc) => doc.vesselId === req.query.vesselId ))
-                  break;
+                    res.json(docs.filter((doc) => doc.vesselId === req.query.vesselId))
+                    break;
                 case 'captain':
-                    res.json(docs.filter( (doc) => doc.captain.toLowerCase() === req.query.captain.toLowerCase() ))
+                    res.json(docs.filter((doc) => doc.captain.toLowerCase() === req.query.captain.toLowerCase()))
                     break;
                 case 'port':
-                    res.json(docs.filter( (doc) => doc.departurePort.toLowerCase() === req.query.port.toLowerCase() || doc.returnPort.toLowerCase() === req.query.port.toLowerCase() ))
+                    res.json(docs.filter((doc) => doc.departurePort.toLowerCase() === req.query.port.toLowerCase() || doc.returnPort.toLowerCase() === req.query.port.toLowerCase()))
                     break;
                 case 'fishery':
-                    res.json(docs.filter( (doc) => doc.fishery && doc.fishery.toLowerCase() === req.query.fishery.toLowerCase() ))
+                    res.json(docs.filter((doc) => doc.fishery && doc.fishery.toLowerCase() === req.query.fishery.toLowerCase()))
                     break;
                 default:
                     res.json(docs)
-              }
+            }
         } else {
             res.status(400).send('not found')
         }
-      });
+    });
 }
 
 const newCruise = async (req, res) => {
@@ -186,7 +187,7 @@ const newCruise = async (req, res) => {
                 "key": maxId,
                 "include_docs": true
             }
-            masterDev.bulk({docs: [newCruise]}).then(
+            masterDev.bulk({ docs: [newCruise] }).then(
                 setTimeout(() => {
                     masterDev.view('TripsApi', 'all_api_cruise', cruiseQueryOptions).then((result) => {
                         res.send(
@@ -198,7 +199,7 @@ const newCruise = async (req, res) => {
                     })
                 }, 500)
             )
-          });
+        });
     } else {
         res.status(500).send('vesselID is required to create a new trip.')
     }
@@ -207,14 +208,14 @@ const newCruise = async (req, res) => {
 const newTrip = async (req, res) => {
     if (req.headers['content-type'] == "application/xml") { stringParser(req); }
     if (req.body.vesselId) {
-        await masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "descending": true, "limit": 1}).then((body) => {
+        await masterDev.view('TripsApi', 'all_api_trips', { "reduce": false, "descending": true, "limit": 1 }).then((body) => {
             const maxId = body.rows[0].key
             const newTrip = req.body
             newTrip.type = 'trips-api'
             newTrip.tripNum = maxId + 1
-            masterDev.bulk({docs: [newTrip]}).then(
+            masterDev.bulk({ docs: [newTrip] }).then(
                 setTimeout(() => {
-                    masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "key": maxId + 1, "include_docs": true}).then((result) => {
+                    masterDev.view('TripsApi', 'all_api_trips', { "reduce": false, "key": maxId + 1, "include_docs": true }).then((result) => {
 
                         res.send(
                             {
@@ -225,15 +226,15 @@ const newTrip = async (req, res) => {
                     })
                 }, 500)
             )
-            });
+        });
     } else {
         res.status(500).send('vesselID is required to create a new trip.')
     }
 }
 
 const getTrip = async (req, res) => {
-    await masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "key": parseInt(req.params.tripNum, 10), "include_docs": true}).then((body) => {
-        if ( body.rows.length > 0 ) {
+    await masterDev.view('TripsApi', 'all_api_trips', { "reduce": false, "key": parseInt(req.params.tripNum, 10), "include_docs": true }).then((body) => {
+        if (body.rows.length > 0) {
             res.json(body.rows[0].doc);
         } else {
             res.send('Doc with specified tripNum not found')
@@ -244,8 +245,8 @@ const getTrip = async (req, res) => {
 const updateTrip = async (req, res) => {
     if (req.headers['content-type'] == "application/xml") { stringParser(req); }
     const existing = await masterDev.get(req.body._id)
-    if (existing.tripNum === req.body.tripNum ) {
-        masterDev.bulk({docs: [req.body]}).then( (body) => {
+    if (existing.tripNum === req.body.tripNum) {
+        masterDev.bulk({ docs: [req.body] }).then((body) => {
             res.json(body);
         })
     } else {
@@ -254,8 +255,8 @@ const updateTrip = async (req, res) => {
 }
 
 const getCatch = async (req, res) => {
-    masterDev.view('TripsApi', 'all_api_catch', {"reduce": false, "key": parseInt(req.params.tripNum, 10), "include_docs": true}).then((body) => {
-        if ( body.rows.length > 0) {
+    masterDev.view('TripsApi', 'all_api_catch', { "reduce": false, "key": parseInt(req.params.tripNum, 10), "include_docs": true }).then((body) => {
+        if (body.rows.length > 0) {
             const docs = body.rows.map((row) => row.doc)
             res.json(docs)
         } else {
@@ -266,32 +267,113 @@ const getCatch = async (req, res) => {
 
 const newCatch = async (req, res) => {
     if (req.headers['content-type'] == "application/xml") { stringParser(req); }
-    setTimeout( () => {
+    setTimeout(async () => {
         if (req.params.tripNum && req.body.tripNum && req.body.source && req.body.hauls) {
-                const newTrip = req.body;
-                newTrip.type = 'trips-api-catch';
-                newTrip.createdDate = moment().format();
-                masterDev.bulk({docs: [newTrip]}).then(
-                    () => {
-                        res.send('catch data saved');
-                        // catchEvaluator(req.params.tripNum);
-                    }
-                );
+            const newTrip = req.body;
+            newTrip.type = 'trips-api-catch';
+            newTrip.createdDate = moment().format();
+            catchEvaluator(req.params.tripNum);
+
+            /*masterDev.bulk({ docs: [newTrip] }).then(
+                () => {
+                    res.send('catch data saved');
+                    // catchEvaluator(req.params.tripNum);
+                }
+            );*/
         } else {
             res.status(500).send('missing required parameters.')
         }
     }, 300)
 }
 
+const logbook: Catches = {
+    headers: {
+        'content-type': 'json'
+    },
+    params: {
+        tripNum: 100197
+    },
+    body: {
+        tripNum: 100197,
+        source: sourceType.logbook,
+        logbookPageNumber: 55555,
+        fisherySector: 'Shoreside Hake',
+        year: '2020',
+        vesselName: 'Traveler',
+        vesselNumber: '929536',
+        permitNumber: 'GF0111',
+        isEFPTrip: true,
+        isObservered: false,
+        crewSize: 4,
+        departureDate: '07-31-2020',
+        departureState: 'WA',
+        depaturePortCode: 'SEA',
+        returnDateTime: '07-31-2020',
+        returnPortState: 'O',
+        returnPortCode: 'NEW',
+        buyers: [],
+        isSignedTrue: true,
+        fishTickets: [{
+            fishTicketNumber: '50055555',
+            fishTicketDate: '08-01-2019'
+        }],
+        hauls: [{
+            haulNum: 1,
+            gearTypeCode: '3',
+            startDateTime: '2020-07-31T09:00:47Z',
+            startLatitude: 40.424292,
+            startLongitude: -123.801898,
+            endDateTime: '2020-07-31T11:00:47Z',
+            endLatitude: 41.1,
+            endLongitude: -124.1,
+            targetStrategy: 'PWHT',
+            systemPerformance: 1,
+            catchHandlingPerformance: 1,
+            catch: [{
+                disposition: Disposition.RETAINED,
+                fate: '11 Accidental, Incidental',
+                speciesCode: 'PWHT',
+                weight: 300000
+            },
+            {
+                disposition: Disposition.DISCARDED,
+                fate: '11 Accidental, Incidental',
+                speciesCode: 'DOVR',
+                weight: 40
+            },
+            {
+                disposition: Disposition.DISCARDED,
+                fate: '11 Accidental, Incidental',
+                speciesCode: 'EFLS',
+                weight: 10
+            }]
+        },
+        {
+            haulNum: 2,
+            gearTypeCode: '3',
+            startDateTime: '2020-07-31T14:00:47Z',
+            startLatitude: 41.2,
+            startLongitude: -124.2,
+            endDateTime: '2020-07-31T15:30:47Z',
+            endLatitude: 41.1,
+            endLongitude: -124.1,
+            isCodendLost: true,
+            targetStrategy: 'PWHT'
+        }]
+
+    }
+};
+newCatch(logbook, {});
+
 const updateCatch = async (req, res) => {
     if (req.headers['content-type'] == "application/xml") { stringParser(req); }
     if (req.body._id && req.body._rev) {
         try {
             const existing = await masterDev.get(req.body._id)
-            if (existing.tripNum === req.body.tripNum ) {
+            if (existing.tripNum === req.body.tripNum) {
                 const updateDoc: any = req.body;
                 updateDoc.updateDate = moment().format();
-                masterDev.bulk({docs: [updateDoc]}).then( (body) => {
+                masterDev.bulk({ docs: [updateDoc] }).then((body) => {
                     res.status('200').send('catch data updated');
                     // catchEvaluator(req.params.tripNum);
                 })
@@ -314,51 +396,51 @@ const emailCoordinator = async (req, res) => {
     const transporter = nodemailer.createTransport({
         service: mailConfig.service,
         auth: {
-          user: mailConfig.username,
-          pass: mailConfig.password
+            user: mailConfig.username,
+            pass: mailConfig.password
         }
-      });
+    });
 
-      let mailTo = '';
-      if (req.body.departurePort.state === 'CA' && req.body.departurePort.code !== 'CRS') {
-          mailTo = mailConfig.southCorrdinatorEmail;
-      } else {
-          mailTo = mailConfig.northCoordinatorEmail;
-      }
+    let mailTo = '';
+    if (req.body.departurePort.state === 'CA' && req.body.departurePort.code !== 'CRS') {
+        mailTo = mailConfig.southCorrdinatorEmail;
+    } else {
+        mailTo = mailConfig.northCoordinatorEmail;
+    }
 
-      if (!req.body.tripNum) {
-          res.statsus(400).send('invalid submission');
-          return;
-      }
+    if (!req.body.tripNum) {
+        res.statsus(400).send('invalid submission');
+        return;
+    }
 
-      let changelogstring = '';
-      for (const row of req.body.changeLog) {
-          changelogstring += "<b>" + (row.property + "</b> changed to <b>" + row.newVal + "</b> from <b>" + row.oldVal + "</b><br> ");
-      }
+    let changelogstring = '';
+    for (const row of req.body.changeLog) {
+        changelogstring += "<b>" + (row.property + "</b> changed to <b>" + row.newVal + "</b> from <b>" + row.oldVal + "</b><br> ");
+    }
 
-      const emailHTML =
-          "<p>Trip #: <b>" + (req.body.tripNum ? req.body.tripNum : 'missing') + "</b><br>" +
-          "Vessel: <b>" + (req.body.vessel ? req.body.vessel.vesselName : 'missing') + " (" + (req.body.vesselId ? req.body.vesselId : 'missing') + ")</b><br>" +
-          "Departure Date/Time: <b>" + (req.body.departureDate ? moment(req.body.departureDate).format('MMM Do YYYY, HH:mm') : 'missing') + "</b><br>" +
-          "Departure Port: <b>" + (req.body.departurePort ? req.body.departurePort.name : 'missing') + "</b><br>" +
-          "Return Date: <b>" + (req.body.returnDate ? moment(req.body.returnDate).format('MMM Do YYYY') : 'missing') + "</b><br>" +
-          "Return Port: <b>" + (req.body.returnPort ? req.body.returnPort.name : 'missing') + "</b><br>" +
-          "Fishery: <b>" + (req.body.fishery ? req.body.fishery.description : 'missing') + "</b><br>" +
-          "Created By: <b>" + (req.body.createdBy ? req.body.createdBy : 'missing') + "</b><br>" +
-          "Created Date: <b>" + (req.body.createdDate ? req.body.createdDate : 'missing') + "</b><br>" +
-          "Notes: <b>" + (req.body.notes ? req.body.notes : 'missing') + "</b><br>" +
-          "Change Log: <br>" + changelogstring +
-          "</p>"
+    const emailHTML =
+        "<p>Trip #: <b>" + (req.body.tripNum ? req.body.tripNum : 'missing') + "</b><br>" +
+        "Vessel: <b>" + (req.body.vessel ? req.body.vessel.vesselName : 'missing') + " (" + (req.body.vesselId ? req.body.vesselId : 'missing') + ")</b><br>" +
+        "Departure Date/Time: <b>" + (req.body.departureDate ? moment(req.body.departureDate).format('MMM Do YYYY, HH:mm') : 'missing') + "</b><br>" +
+        "Departure Port: <b>" + (req.body.departurePort ? req.body.departurePort.name : 'missing') + "</b><br>" +
+        "Return Date: <b>" + (req.body.returnDate ? moment(req.body.returnDate).format('MMM Do YYYY') : 'missing') + "</b><br>" +
+        "Return Port: <b>" + (req.body.returnPort ? req.body.returnPort.name : 'missing') + "</b><br>" +
+        "Fishery: <b>" + (req.body.fishery ? req.body.fishery.description : 'missing') + "</b><br>" +
+        "Created By: <b>" + (req.body.createdBy ? req.body.createdBy : 'missing') + "</b><br>" +
+        "Created Date: <b>" + (req.body.createdDate ? req.body.createdDate : 'missing') + "</b><br>" +
+        "Notes: <b>" + (req.body.notes ? req.body.notes : 'missing') + "</b><br>" +
+        "Change Log: <br>" + changelogstring +
+        "</p>"
 
-      try {
+    try {
         let mailOptions = {
             from: mailConfig.sender,
             to: mailTo,
-            subject: req.body.emailType + " : " + moment(req.body.departureDate).format('MMM Do YYYY, HH:mm') + ' trip, for vessel: ' + req.body.vessel.vesselName + ', departure port: ' + req.body.departurePort.name +  (['NEW', 'UPDATE'].includes(req.body.emailType) ? 'requires an Observer.' : '.'),
+            subject: req.body.emailType + " : " + moment(req.body.departureDate).format('MMM Do YYYY, HH:mm') + ' trip, for vessel: ' + req.body.vessel.vesselName + ', departure port: ' + req.body.departurePort.name + (['NEW', 'UPDATE'].includes(req.body.emailType) ? 'requires an Observer.' : '.'),
             html: emailHTML
         };
 
-        transporter.sendMail(mailOptions, function(error, info) {
+        transporter.sendMail(mailOptions, function (error, info) {
             if (error) {
                 console.log(error);
                 res.status(400).send(error);
@@ -368,10 +450,10 @@ const emailCoordinator = async (req, res) => {
             }
         });
 
-      } catch (err) {
-          console.log(err);
-          res.status(400).send(err);
-      }
+    } catch (err) {
+        console.log(err);
+        res.status(400).send(err);
+    }
 
 }
 
