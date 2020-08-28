@@ -287,7 +287,7 @@ const newCatch = async (req, res) => {
                     masterDev.bulk({ docs: [newTrip] }).then(
                         () => {
                             catchEvaluator(req.params.tripNum);
-                            res.send('catch data saved');
+                            res.status('200').send('catch data saved');
                         }
                     );
                 }
@@ -300,6 +300,8 @@ const newCatch = async (req, res) => {
 
 const updateCatch = async (req, res) => {
     if (req.headers['content-type'] == "application/xml") { stringParser(req); }
+    // TODO should we fetch catch couch doc to get id and rev rather than
+    // relying on user to input those values?
     if (req.body._id && req.body._rev) {
         try {
             const existing = await masterDev.get(req.body._id)
@@ -307,8 +309,8 @@ const updateCatch = async (req, res) => {
                 const updateDoc: any = req.body;
                 updateDoc.updateDate = moment().format();
                 masterDev.bulk({docs: [updateDoc]}).then( (body) => {
-                    res.status('200').send('catch data updated');
                     catchEvaluator(req.params.tripNum);
+                    res.status('200').send('catch data updated');
                 })
             } else {
                 res.status(500).send('Trip ID can not be changed.')
