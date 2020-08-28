@@ -8,7 +8,7 @@ import * as express from 'express';
 import * as https from 'https';
 import * as fs from 'fs';
 import { resolve } from 'path';
-import { getFishTicket } from './util/oracle_routines';
+import { getFishTicket } from './oracle_routines';
 
 const ODWdbConfig = require('./dbConfig.json').ODWdbConfig;
 
@@ -106,8 +106,8 @@ if (options.path) {
 
 const httpsServer = https.createServer(
   {
-    key: fs.readFileSync('./keys/key.pem'),  // change these for dev (remove /src)
-    cert: fs.readFileSync('./keys/cert.pem')
+    key: fs.readFileSync('./src/keys/key.pem'),  // change these for dev (remove /src)
+    cert: fs.readFileSync('./src/keys/cert.pem')
   },
   app
 );

@@ -125,8 +125,9 @@ export async function catchEvaluator(tripNum: string) {
             const currDoc = existingDoc.rows[0].doc;
             const changeLog: ChangeLog[] = computeChangeLog(currDoc, result, updatedBy);
             set(result, 'changeLog', changeLog);
+            set(result, '_id', currDoc._id);
+            set(result, '_rev', currDoc._rev);
         }
-        // TODO doesn't seem like it updates existing docs
         await masterDev.bulk({ docs: [result] });
 
       //  unsortedCatch(thirdParty, fishTickets);
