@@ -2,19 +2,22 @@ const dbConfig = require('../dbConfig.json').dbConfig;
 const couchDB = require('nano')(dbConfig.login);
 const masterDev = couchDB.db.use('master-dev');
 const jp = require('jsonpath');
-import { cloneDeep, flattenDeep, get, remove, set, uniqBy, uniq } from 'lodash';
+import { cloneDeep, filter, flattenDeep, set, uniq } from 'lodash';
 import { getFishTicket } from './oracle_routines';
 import { lostCodend } from '@boatnet/bn-expansions';
-import { sourceType } from '@boatnet/bn-models';
+import { sourceType, ChangeLog, CatchResults } from '@boatnet/bn-models';
 import { formatLogbook } from './formatter';
+import * as moment from 'moment';
+
+var diff = require('deep-diff');
 
 export async function catchEvaluator(tripNum: string) {
     //  wait for a while to be sure data is fully submitted to couch
-    setTimeout( async () => {
+    setTimeout(async () => {
 
         // get trip
-        const trip = await masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "key": parseInt(tripNum, 10), "include_docs": true}).then((body) => {
-            if ( body.rows.length > 0 ) {
+        const trip = await masterDev.view('TripsApi', 'all_api_trips', { "reduce": false, "key": parseInt(tripNum, 10), "include_docs": true }).then((body) => {
+            if (body.rows.length > 0) {
                 return body.rows.map((row) => row.doc)[0];
             } else {
                 console.log('Doc with specified tripNum not found');
@@ -22,8 +25,8 @@ export async function catchEvaluator(tripNum: string) {
         })
 
         // get catch docs
-        const tripCatches = await masterDev.view('TripsApi', 'all_api_catch', {"reduce": false, "key": parseInt(tripNum, 10), "include_docs": true}).then((body) => {
-            if ( body.rows.length > 0) {
+        const tripCatches = await masterDev.view('TripsApi', 'all_api_catch', { "reduce": false, "key": parseInt(tripNum, 10), "include_docs": true }).then((body) => {
+            if (body.rows.length > 0) {
                 const docs = body.rows.map((row) => row.doc);
                 return docs
             } else {
@@ -62,7 +65,7 @@ export async function catchEvaluator(tripNum: string) {
 
             for (const haul of thirdPartyReview.hauls) {
                 let haulCatches = jp.query(haul, '$..catch');
-                const unsortedCatch = haulCatches.reduce( (acc, val) => {
+                const unsortedCatch = haulCatches.reduce((acc, val) => {
                     if (val.speciesCode === 'UNST') {
                         return acc + val.weight;
                     } else {
@@ -76,7 +79,7 @@ export async function catchEvaluator(tripNum: string) {
                 }, 0)
 
                 // get unique species from fish tickets
-                const specieses = uniq(fishTickets.map( (row: any) => row.PACFIN_SPECIES_CODE))
+                const specieses = uniq(fishTickets.map((row: any) => row.PACFIN_SPECIES_CODE))
 
                 // get sum of landed lbs, percent of total, and calculated net bleed lbs per species
                 const speciesWeights = [];
@@ -104,17 +107,27 @@ export async function catchEvaluator(tripNum: string) {
             return results;
         }
 
-        // TODO call expansion, right now calling lostCodend by default
-        const expansionRule: lostCodend = new lostCodend();
-        let result = expansionRule.logbookExpansion(logbook);
-        result = formatLogbook(result);
-        const doc = await masterDev.view('TripsApi', 'expansion_results', { "key": result.tripNum, "include_docs": true });
-        if (doc.rows.length !== 0) {
-            const currDoc = doc.rows[0].doc;
-            // TODO comapre documents and record changes in changeLog
-        } else {
-            await masterDev.bulk({ docs: [result] });
+        let result: any = {};
+        let updatedBy: string = '';
+        if (logbook) {
+            // TODO call expansion, right now calling lostCodend by default
+            const expansionRule: lostCodend = new lostCodend();
+            result = expansionRule.logbookExpansion(logbook);
+            updatedBy = logbook.updatedBy;
+        } else if (thirdParty) {
+            // check which expansion to apply and apply it
+            updatedBy = thirdParty.updatedBy;
         }
+        result = formatLogbook(result);
+        const existingDoc = await masterDev.view('TripsApi', 'expansion_results',
+            { "key": tripNum, "include_docs": true });
+        if (existingDoc.rows.length !== 0) {
+            const currDoc = existingDoc.rows[0].doc;
+            const changeLog: ChangeLog[] = computeChangeLog(currDoc, result, updatedBy);
+            set(result, 'changeLog', changeLog);
+        }
+        // TODO doesn't seem like it updates existing docs
+        await masterDev.bulk({ docs: [result] });
 
       //  unsortedCatch(thirdParty, fishTickets);
 
@@ -124,7 +137,36 @@ export async function catchEvaluator(tripNum: string) {
 
             // thirdParty or nwfsc
         console.log('catch evaluated!!!');
-        }, 3000
+    }, 3000
     )
 
 }
+
+function computeChangeLog(currDoc: any, results: CatchResults, updatedBy: string): ChangeLog[] {
+    let changeLog: ChangeLog[] = [];
+    changeLog = currDoc.changeLog ? currDoc.changeLog : [];
+    let differences = diff.diff(currDoc, results, (path, key) =>
+        ~['_id', '_rev', 'createDate', 'updateDate', 'changeLog'].indexOf(key)
+    );
+    differences = differences ? differences : [];
+
+    for (const difference of differences) {
+        let oldVal: any, newVal: any, property: any;
+        if (difference.kind === 'A') {
+            property = difference.path.join('.') + difference.index;
+            oldVal = difference.item.lhs;
+            newVal = difference.item.rhs;
+        } else {
+            property = difference.path.join('.');
+            oldVal = difference.lhs;
+            newVal = difference.rhs;
+        }
+        changeLog.push({
+            updatedBy, property, oldVal, newVal,
+            updateDate: moment().format(),
+            app: 'catch-api'
+        });
+    }
+    return changeLog;
+}
+

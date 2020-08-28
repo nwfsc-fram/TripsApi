@@ -31,10 +31,10 @@ function catchToHaul(catchVals: Catches) {
                 weight: catchVal.weight,
                 count,
                 speciesCode: catchVal.speciesCode,
-                startDepth: haul.startDepth,
+                //startDepth: haul.startDepth,
                 startLatitude: haul.startLatitude,
                 startLongitude: haul.startLongitude,
-                endDepth: haul.endDepth,
+                //endDepth: haul.endDepth,
                 endLatitude: haul.endLatitude,
                 endLongitude: haul.endLongitude,
                 gearType: haul.gearTypeCode,
@@ -42,6 +42,7 @@ function catchToHaul(catchVals: Catches) {
                 // fishery
                 // ifqSpeciesGroupName
                 // fishingArea
+                updateDate: moment().format(),
                 createDate: moment().format()
             })
         }

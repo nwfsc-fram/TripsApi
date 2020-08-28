@@ -281,7 +281,8 @@ const newCatch = async (req, res) => {
                 const catchDocs = await masterDev.view('TripsApi', 'all_api_catch', { "key": req.params.tripNum, "include_docs": true });
                 const sourceTypes: string[] = jp.query(catchDocs, '$..source');
                 if (sourceTypes.includes(req.body.source)) {
-                    catchEvaluator(req.params.tripNum); // update results but don't add new catch doc
+                    res.status(500).send('trip num ' + req.params.tripNum + ' already exists. ' +
+                        'Please submit updated data via put tripCatch request');
                 } else {
                     masterDev.bulk({ docs: [newTrip] }).then(
                         () => {
@@ -307,7 +308,7 @@ const updateCatch = async (req, res) => {
                 updateDoc.updateDate = moment().format();
                 masterDev.bulk({docs: [updateDoc]}).then( (body) => {
                     res.status('200').send('catch data updated');
-                    // catchEvaluator(req.params.tripNum);
+                    catchEvaluator(req.params.tripNum);
                 })
             } else {
                 res.status(500).send('Trip ID can not be changed.')
