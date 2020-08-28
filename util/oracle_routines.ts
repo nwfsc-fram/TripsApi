@@ -35,7 +35,7 @@ export async function fakeDBTest() {
   const vmsOleConfig =  {
     "user": "squishy",
     "password": "squid",
-    "connectString": "fake.url.noaa.gov:1555/SCHEMA"
+    "connectString": "www.google.com:1555/SCHEMA"
       } 
   let readConnection: any;
   try {
