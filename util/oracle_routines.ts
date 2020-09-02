@@ -33,27 +33,8 @@ export async function getFishTicket(ftid: string): Promise<string[]> {
   }
 
 export async function fakeDBTest() {
-  // Right now this function is to test where this call will come from
-  let readConnection: any;
-  let vms_connect_info = {
-    user: vmsOleConfig.user,
-    password: vmsOleConfig.password,
-    connectString: vmsOleConfig.connectString
-  }
-  try {
-    readConnection = await oracledb.getConnection(vms_connect_info);
-    let selectSQL = `select * from NWFSC.WCGOP_COMPFT_FEDPERMITS_V2 WHERE PACFIN_YEAR > 1980;`
-    const result = await readConnection.execute(selectSQL, {}, {resultSet: true});
-  } catch (err) {
-      console.error(err);
-  } finally {
-    try {
-      await readConnection.close();
-    } catch (err) {
-        console.error(err);
-    }
-    return true;
-  }
+  // Sucessfully tested so this can just be a place holder now
+  return true;
 }
 
 function closeOracleConnection(connection: any) {
