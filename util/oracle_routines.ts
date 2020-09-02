@@ -1,5 +1,7 @@
 import * as oracledb from 'oracledb';
 
+const vmsOleConfig = require('../dbConfig.json').vmsOleConfig;
+
 export async function getFishTicket(ftid: string): Promise<string[]> {
     let fishTicketRows: any = [];
 
@@ -32,18 +34,16 @@ export async function getFishTicket(ftid: string): Promise<string[]> {
 
 export async function fakeDBTest() {
   // Right now this function is to test where this call will come from
-  const vmsOleConfig =  {
-    "user": "squishy",
-    "password": "squid",
-    "connectString": "www.google.com:1555/SCHEMA"
-      } 
   let readConnection: any;
+  let vms_connect_info = {
+    user: vmsOleConfig.user,
+    password: vmsOleConfig.password,
+    connectString: vmsOleConfig.connectString
+  }
   try {
-    readConnection = await oracledb.getConnection(vmsOleConfig);
-    const result = await readConnection.execute(
-      'SELECT * FROM fake_table'
-    );
-    return result;
+    readConnection = await oracledb.getConnection(vms_connect_info);
+    let selectSQL = `select * from NWFSC.WCGOP_COMPFT_FEDPERMITS_V2 WHERE PACFIN_YEAR > 1980;`
+    const result = await readConnection.execute(selectSQL, {}, {resultSet: true});
   } catch (err) {
       console.error(err);
   } finally {
@@ -52,6 +52,7 @@ export async function fakeDBTest() {
     } catch (err) {
         console.error(err);
     }
+    return true;
   }
 }
 
