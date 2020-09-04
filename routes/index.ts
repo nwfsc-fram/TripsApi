@@ -76,7 +76,6 @@ const stringParser = function(req) {
 };
 
 const login = async (req, res) => {
-
     let username = req.body.username || '';
     const password = req.body.passwordEnc
       ? utils.decode64(req.body.passwordEnc)
@@ -307,7 +306,7 @@ const updateCatch = async (req, res) => {
                 updateDoc.updateDate = moment().format();
                 masterDev.bulk({docs: [updateDoc]}).then( (body) => {
                     res.status('200').send('catch data updated');
-                    // catchEvaluator(req.params.tripNum);
+                    catchEvaluator(req.params.tripNum);
                 })
             } else {
                 res.status(500).send('Trip ID can not be changed.')
