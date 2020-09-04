@@ -1,5 +1,7 @@
 import * as oracledb from 'oracledb';
 
+const vmsOleConfig = require('../dbConfig.json').vmsOleConfig;
+
 export async function getFishTicket(ftid: string): Promise<string[]> {
     let fishTicketRows: any = [];
 
@@ -29,6 +31,11 @@ export async function getFishTicket(ftid: string): Promise<string[]> {
       throw new Error(connErr.message);
     }
   }
+
+export async function fakeDBTest() {
+  // Sucessfully tested so this can just be a place holder now
+  return true;
+}
 
 function closeOracleConnection(connection: any) {
     console.log('Closing oracledb connection.');

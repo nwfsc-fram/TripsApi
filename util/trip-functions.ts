@@ -1,4 +1,4 @@
-const dbConfig = require('./dbConfig.json').dbConfig;
+const dbConfig = require('../dbConfig.json').dbConfig;
 const couchDB = require('nano')(dbConfig.login);
 const masterDev = couchDB.db.use('master-dev');
 const jp = require('jsonpath');
@@ -6,7 +6,8 @@ import { cloneDeep, flattenDeep, get, remove, set, uniqBy, uniq, setWith } from 
 
 import { getFishTicket } from './oracle_routines';
 import { unsortedCatch, lostCodend, selectiveDiscards } from '@boatnet/bn-expansions';
-import { Catches } from '@boatnet/bn-models';
+import { Catches, sourceType } from '@boatnet/bn-models';
+import { formatLogbook } from './formatter';
 
 export async function catchEvaluator(tripNum: string) {
     //  wait for a while to be sure data is fully submitted to couch
