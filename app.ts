@@ -8,7 +8,7 @@ import * as express from 'express';
 import * as https from 'https';
 import * as fs from 'fs';
 import { resolve } from 'path';
-import { getFishTicket } from './oracle_routines';
+import { getFishTicket } from './util/oracle_routines';
 
 const ODWdbConfig = require('./dbConfig.json').ODWdbConfig;
 
