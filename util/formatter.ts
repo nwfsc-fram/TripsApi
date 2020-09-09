@@ -1,11 +1,11 @@
 import { Catches, CatchResults, ResponseCatchTypeName } from '@boatnet/bn-models';
-import * as moment from 'moment';
 import { set, get } from 'lodash';
 
 export function formatLogbook(logbook: Catches): CatchResults {
     let result: CatchResults = {
         type: ResponseCatchTypeName,
-        tripNum: logbook.tripNum
+        tripNum: logbook.tripNum,
+        updatedBy: logbook.updatedBy
     };
     const logbookCatch: any[] = catchToHaul(logbook);
     set(result, 'logbookCatch', logbookCatch);
@@ -42,8 +42,6 @@ function catchToHaul(catchVals: Catches) {
                 // fishery
                 // ifqSpeciesGroupName
                 // fishingArea
-                updateDate: moment().format(),
-                createDate: moment().format()
             })
         }
     }

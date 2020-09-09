@@ -27,8 +27,9 @@ const moment = require('moment');
 import { validateJwtRequest } from '../get-user.middleware';
 import { getFishTicket } from '../util/oracle_routines';
 import { catchEvaluator } from '../util/trip-functions';
-import { Catches, sourceType } from '@boatnet/bn-models';
+import { Catches, sourceType, ResponseCatchTypeName } from '@boatnet/bn-models';
 import { runInNewContext } from 'vm';
+import { set } from 'lodash';
 
 let token = '';
 export let key = '';
@@ -300,31 +301,22 @@ const newCatch = async (req, res) => {
 
 const updateCatch = async (req, res) => {
     if (req.headers['content-type'] == "application/xml") { stringParser(req); }
-    // TODO should we fetch catch couch doc to get id and rev rather than
-    // relying on user to input those values?
-    if (req.body._id && req.body._rev) {
-        try {
-            const existing = await masterDev.get(req.body._id)
-            if (existing.tripNum === req.body.tripNum ) {
-                const updateDoc: any = req.body;
-                updateDoc.updateDate = moment().format();
-                masterDev.bulk({docs: [updateDoc]}).then( (body) => {
-                    catchEvaluator(req.params.tripNum);
-                    res.status('200').send('catch data updated');
-                })
-            } else {
-                res.status(500).send('Trip ID can not be changed.')
-            }
-        } catch (err) {
-            res.status(500).send(err)
-        }
-
+    const tripNum = req.body.tripNum;
+    const catchDocs = await masterDev.view('TripsApi', 'all_api_catch', { "key": tripNum, "include_docs": true });
+    if (catchDocs.rows.length === 0) {
+        res.status(500).send('Catch doc with tripNum ' + tripNum + ' does not exist.');
     } else {
-        res.status(500).send('invalid doc - must include _id and _rev')
+        let currDoc = catchDocs.rows[0].doc;
+        const updateDoc: any = req.body;
+        set(updateDoc, '_id', currDoc._id);
+        set(updateDoc, '_rev', currDoc._rev);
+        set(updateDoc, 'updateDate', moment().format());
+        masterDev.bulk({docs: [updateDoc]}).then( (body) => {
+            catchEvaluator(req.params.tripNum);
+            res.status(200).send('catch data updated');
+        })
     }
 }
-
-// catchEvaluator('100169');
 
 const emailCoordinator = async (req, res) => {
 

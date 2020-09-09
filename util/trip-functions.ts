@@ -2,14 +2,12 @@ const dbConfig = require('../dbConfig.json').dbConfig;
 const couchDB = require('nano')(dbConfig.login);
 const masterDev = couchDB.db.use('master-dev');
 const jp = require('jsonpath');
-import { cloneDeep, filter, flattenDeep, set, uniq } from 'lodash';
+import { cloneDeep, flattenDeep, set, uniq } from 'lodash';
 import { getFishTicket } from './oracle_routines';
 import { lostCodend } from '@boatnet/bn-expansions';
-import { sourceType, ChangeLog, CatchResults } from '@boatnet/bn-models';
+import { sourceType } from '@boatnet/bn-models';
 import { formatLogbook } from './formatter';
 import * as moment from 'moment';
-
-var diff = require('deep-diff');
 
 export async function catchEvaluator(tripNum: string) {
     //  wait for a while to be sure data is fully submitted to couch
@@ -122,11 +120,13 @@ export async function catchEvaluator(tripNum: string) {
         const existingDoc = await masterDev.view('TripsApi', 'expansion_results',
             { "key": tripNum, "include_docs": true });
         if (existingDoc.rows.length !== 0) {
-            const currDoc = existingDoc.rows[0].doc;
-            const changeLog: ChangeLog[] = computeChangeLog(currDoc, result, updatedBy);
-            set(result, 'changeLog', changeLog);
+            let currDoc = existingDoc.rows[0].doc;
+            set(result, 'revisionHistory', updateRevisionHistory(currDoc));
             set(result, '_id', currDoc._id);
             set(result, '_rev', currDoc._rev);
+            set(result, 'updateDate', moment().format());
+        } else {
+            set(result, 'createDate', moment().format());
         }
         await masterDev.bulk({ docs: [result] });
 
@@ -143,31 +143,22 @@ export async function catchEvaluator(tripNum: string) {
 
 }
 
-function computeChangeLog(currDoc: any, results: CatchResults, updatedBy: string): ChangeLog[] {
-    let changeLog: ChangeLog[] = [];
-    changeLog = currDoc.changeLog ? currDoc.changeLog : [];
-    let differences = diff.diff(currDoc, results, (path, key) =>
-        ~['_id', '_rev', 'createDate', 'updateDate', 'changeLog'].indexOf(key)
-    );
-    differences = differences ? differences : [];
-
-    for (const difference of differences) {
-        let oldVal: any, newVal: any, property: any;
-        if (difference.kind === 'A') {
-            property = difference.path.join('.') + difference.index;
-            oldVal = difference.item.lhs;
-            newVal = difference.item.rhs;
-        } else {
-            property = difference.path.join('.');
-            oldVal = difference.lhs;
-            newVal = difference.rhs;
+function updateRevisionHistory(currDoc: any): any[] {
+    let revisionHistory: any[] = currDoc.revisionHistory;
+    revisionHistory = revisionHistory ? revisionHistory : [];
+    revisionHistory.push({
+        updateDate: moment().format(),
+        oldVal: {
+            updateDate: currDoc.updateDate,
+            createDate: currDoc.createDate,
+            updatedBy: currDoc.updatedBy,
+            logbookCatch: currDoc.logbookCatch,
+            thirdPartyReviewCatch: currDoc.thirdPartyReviewCatch,
+            nwfscAuditCatch: currDoc.nwfscAuditCatch,
+            debitSourceCatch: currDoc.debitSourceCatch,
+            ifqTripReporting: currDoc.ifqTripReporting
         }
-        changeLog.push({
-            updatedBy, property, oldVal, newVal,
-            updateDate: moment().format(),
-            app: 'catch-api'
-        });
-    }
-    return changeLog;
+    })
+    return revisionHistory;
 }
 
