@@ -151,7 +151,7 @@ export async function catchEvaluator(tripNum: string) {
 function updateRevisionHistory(currDoc: any): any[] {
     let revisionHistory: any[] = currDoc.revisionHistory;
     revisionHistory = revisionHistory ? revisionHistory : [];
-    revisionHistory.push({
+    revisionHistory.unshift({
         updateDate: moment().format(),
         oldVal: {
             updateDate: currDoc.updateDate,

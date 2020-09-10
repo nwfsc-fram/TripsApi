@@ -312,6 +312,7 @@ const updateCatch = async (req, res) => {
                 const updateDoc: any = req.body;
                 set(updateDoc, '_id', currDoc._id);
                 set(updateDoc, '_rev', currDoc._rev);
+                set(updateDoc, 'type', 'trips-api-catch');
                 set(updateDoc, 'updateDate', moment().format());
                 masterDev.bulk({ docs: [updateDoc] }).then((body) => {
                     catchEvaluator(req.params.tripNum);
