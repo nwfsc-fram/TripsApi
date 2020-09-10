@@ -2,20 +2,20 @@ const dbConfig = require('../dbConfig.json').dbConfig;
 const couchDB = require('nano')(dbConfig.login);
 const masterDev = couchDB.db.use('master-dev');
 const jp = require('jsonpath');
-import { cloneDeep, flattenDeep, get, remove, set, uniqBy, uniq, setWith } from 'lodash';
-
+import { cloneDeep, flattenDeep, set, uniq } from 'lodash';
 import { getFishTicket } from './oracle_routines';
 import { unsortedCatch, lostCodend, selectiveDiscards } from '@boatnet/bn-expansions';
 import { Catches, sourceType } from '@boatnet/bn-models';
-import { formatLogbook } from './formatter';
+import { format } from './formatter';
+import * as moment from 'moment';
 
 export async function catchEvaluator(tripNum: string) {
     //  wait for a while to be sure data is fully submitted to couch
-    setTimeout( async () => {
+    setTimeout(async () => {
 
         // get trip
-        const trip = await masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "key": parseInt(tripNum, 10), "include_docs": true}).then((body) => {
-            if ( body.rows.length > 0 ) {
+        const trip = await masterDev.view('TripsApi', 'all_api_trips', { "reduce": false, "key": parseInt(tripNum, 10), "include_docs": true }).then((body) => {
+            if (body.rows.length > 0) {
                 return body.rows.map((row) => row.doc)[0];
             } else {
                 console.log('Doc with specified tripNum not found');
@@ -61,6 +61,19 @@ export async function catchEvaluator(tripNum: string) {
                 nwfscAudit = cloneDeep( await evaluateTripCatch(nwfscAudit));
             }
             // then write all tripCatch docs to results doc
+            let result: any = format(logbook, thirdParty, nwfscAudit);
+            const existingDoc = await masterDev.view('TripsApi', 'expansion_results',
+                                                   { "key": tripNum, "include_docs": true });
+            if (existingDoc.rows.length !== 0) {
+              let currDoc = existingDoc.rows[0].doc;
+              set(result, 'revisionHistory', updateRevisionHistory(currDoc));
+              set(result, '_id', currDoc._id);
+              set(result, '_rev', currDoc._rev);
+              set(result, 'updateDate', moment().format());
+            } else {
+              set(result, 'createDate', moment().format());
+            }
+            await masterDev.bulk({ docs: [result] });
         } catch (err) {
             console.log(err);
         }
@@ -110,8 +123,8 @@ export async function catchEvaluator(tripNum: string) {
                 const selectiveDiscardsExp: selectiveDiscards = new selectiveDiscards();
                 tripCatch = cloneDeep(selectiveDiscardsExp.rulesExpansion(logbook, tripCatch));
             }
-
-            return tripCatch;
+         
+          return tripCatch;
         }
 
         // evaluate catch docs
@@ -130,7 +143,26 @@ export async function catchEvaluator(tripNum: string) {
                 // any catch in a general grouping that needs to be expanded to specific members? - perform selective discards calcs
 
         console.log('catch evaluated!!!');
-        }, 3000
+    }, 3000
     )
 
+}
+
+function updateRevisionHistory(currDoc: any): any[] {
+    let revisionHistory: any[] = currDoc.revisionHistory;
+    revisionHistory = revisionHistory ? revisionHistory : [];
+    revisionHistory.unshift({
+        updateDate: moment().format(),
+        oldVal: {
+            updateDate: currDoc.updateDate,
+            createDate: currDoc.createDate,
+            updatedBy: currDoc.updatedBy,
+            logbookCatch: currDoc.logbookCatch,
+            thirdPartyReviewCatch: currDoc.thirdPartyReviewCatch,
+            nwfscAuditCatch: currDoc.nwfscAuditCatch,
+            debitSourceCatch: currDoc.debitSourceCatch,
+            ifqTripReporting: currDoc.ifqTripReporting
+        }
+    })
+    return revisionHistory;
 }
