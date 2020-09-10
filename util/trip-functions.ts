@@ -6,7 +6,7 @@ import { cloneDeep, flattenDeep, set, uniq } from 'lodash';
 import { getFishTicket } from './oracle_routines';
 import { unsortedCatch, lostCodend, selectiveDiscards } from '@boatnet/bn-expansions';
 import { Catches, sourceType } from '@boatnet/bn-models';
-import { formatLogbook } from './formatter';
+import { format } from './formatter';
 import * as moment from 'moment';
 
 export async function catchEvaluator(tripNum: string) {
@@ -61,7 +61,7 @@ export async function catchEvaluator(tripNum: string) {
                 nwfscAudit = cloneDeep( await evaluateTripCatch(nwfscAudit));
             }
             // then write all tripCatch docs to results doc
-            let result: any = = format(logbook, thirdParty, nwfscAudit);
+            let result: any = format(logbook, thirdParty, nwfscAudit);
             const existingDoc = await masterDev.view('TripsApi', 'expansion_results',
                                                    { "key": tripNum, "include_docs": true });
             if (existingDoc.rows.length !== 0) {

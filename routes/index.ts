@@ -305,15 +305,20 @@ const updateCatch = async (req, res) => {
     if (catchDocs.rows.length === 0) {
         res.status(500).send('Catch doc with tripNum ' + tripNum + ' does not exist.');
     } else {
-        let currDoc = catchDocs.rows[0].doc;
-        const updateDoc: any = req.body;
-        set(updateDoc, '_id', currDoc._id);
-        set(updateDoc, '_rev', currDoc._rev);
-        set(updateDoc, 'updateDate', moment().format());
-        masterDev.bulk({docs: [updateDoc]}).then( (body) => {
-            catchEvaluator(req.params.tripNum);
-            res.status(200).send('catch data updated');
-        })
+        // loop through matching catchDocs and get the one with the same sourceType
+        for (const row of catchDocs.rows) {
+            if (req.body.source === row.doc.source) {
+                const currDoc = row.doc;
+                const updateDoc: any = req.body;
+                set(updateDoc, '_id', currDoc._id);
+                set(updateDoc, '_rev', currDoc._rev);
+                set(updateDoc, 'updateDate', moment().format());
+                masterDev.bulk({ docs: [updateDoc] }).then((body) => {
+                    catchEvaluator(req.params.tripNum);
+                    res.status(200).send('catch data updated');
+                })
+            }
+        }
     }
 }
 
