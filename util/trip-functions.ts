@@ -2,12 +2,14 @@ const dbConfig = require('../dbConfig.json').dbConfig;
 const couchDB = require('nano')(dbConfig.login);
 const masterDev = couchDB.db.use('master-dev');
 const jp = require('jsonpath');
-import { cloneDeep, flattenDeep, get, remove, set, uniqBy, uniq, setWith } from 'lodash';
+import { cloneDeep, flattenDeep, get, remove, set, uniqBy, uniq, setWith, clone } from 'lodash';
 
 import { getFishTicket } from './oracle_routines';
-import { unsortedCatch, lostCodend, selectiveDiscards } from '@boatnet/bn-expansions';
-import { Catches, sourceType } from '@boatnet/bn-models';
+import { unsortedCatch, lostCodend, selectiveDiscards, missingWeight } from '@boatnet/bn-expansions';
+import { Catches, sourceType, FishTicketRow } from '@boatnet/bn-models';
 import { formatLogbook } from './formatter';
+
+import { emExpansions } from '@boatnet/bn-expansions/lib/base/em-rule-base';
 
 export async function catchEvaluator(tripNum: string) {
     //  wait for a while to be sure data is fully submitted to couch
@@ -73,6 +75,8 @@ export async function catchEvaluator(tripNum: string) {
             if (flattenedCatch.find( (row: any) => (row.length || row.count) && !row.weight)) {
                 console.log('length or count without weight found.');
                 //tripCatch = weightFromLengthOrCount(tripCatch);
+                const missingWeightsExp: missingWeight = new missingWeight();
+                tripCatch = cloneDeep(missingWeightsExp.rulesExpansion(tripCatch, fishTickets, logbook));
             }
 
             // does catch contain pacific halibut, lingcod, or sablefish?
@@ -111,6 +115,7 @@ export async function catchEvaluator(tripNum: string) {
                 tripCatch = cloneDeep(selectiveDiscardsExp.rulesExpansion(logbook, tripCatch));
             }
 
+            console.log(jp.query(tripCatch, '$..catch'));
             return tripCatch;
         }
 
@@ -134,3 +139,5 @@ export async function catchEvaluator(tripNum: string) {
     )
 
 }
+
+
