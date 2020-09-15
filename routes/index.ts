@@ -27,8 +27,9 @@ const moment = require('moment');
 import { validateJwtRequest } from '../get-user.middleware';
 import { getFishTicket, fakeDBTest } from '../util/oracle_routines';
 import { catchEvaluator } from '../util/trip-functions';
-import { Catches, sourceType } from '@boatnet/bn-models';
+import { Catches, sourceType, ResponseCatchTypeName } from '@boatnet/bn-models';
 import { runInNewContext } from 'vm';
+import { set } from 'lodash';
 
 let token = '';
 export let key = '';
@@ -280,12 +281,13 @@ const newCatch = async (req, res) => {
                 const catchDocs = await masterDev.view('TripsApi', 'all_api_catch', { "key": req.params.tripNum, "include_docs": true });
                 const sourceTypes: string[] = jp.query(catchDocs, '$..source');
                 if (sourceTypes.includes(req.body.source)) {
-                    catchEvaluator(req.params.tripNum); // update results but don't add new catch doc
+                    res.status(500).send('trip num ' + req.params.tripNum + ' already exists. ' +
+                        'Please submit updated data via put tripCatch request');
                 } else {
                     masterDev.bulk({ docs: [newTrip] }).then(
                         () => {
                             catchEvaluator(req.params.tripNum);
-                            res.send('catch data saved');
+                            res.status('200').send('catch data saved');
                         }
                     );
                 }
@@ -298,29 +300,28 @@ const newCatch = async (req, res) => {
 
 const updateCatch = async (req, res) => {
     if (req.headers['content-type'] == "application/xml") { stringParser(req); }
-    if (req.body._id && req.body._rev) {
-        try {
-            const existing = await masterDev.get(req.body._id)
-            if (existing.tripNum === req.body.tripNum ) {
-                const updateDoc: any = req.body;
-                updateDoc.updateDate = moment().format();
-                masterDev.bulk({docs: [updateDoc]}).then( (body) => {
-                    res.status('200').send('catch data updated');
-                    catchEvaluator(req.params.tripNum);
-                })
-            } else {
-                res.status(500).send('Trip ID can not be changed.')
-            }
-        } catch (err) {
-            res.status(500).send(err)
-        }
-
+    const tripNum = req.body.tripNum;
+    const catchDocs = await masterDev.view('TripsApi', 'all_api_catch', { "key": tripNum, "include_docs": true });
+    if (catchDocs.rows.length === 0) {
+        res.status(500).send('Catch doc with tripNum ' + tripNum + ' does not exist.');
     } else {
-        res.status(500).send('invalid doc - must include _id and _rev')
+        // loop through matching catchDocs and get the one with the same sourceType
+        for (const row of catchDocs.rows) {
+            if (req.body.source === row.doc.source) {
+                const currDoc = row.doc;
+                const updateDoc: any = req.body;
+                set(updateDoc, '_id', currDoc._id);
+                set(updateDoc, '_rev', currDoc._rev);
+                set(updateDoc, 'type', 'trips-api-catch');
+                set(updateDoc, 'updateDate', moment().format());
+                masterDev.bulk({ docs: [updateDoc] }).then((body) => {
+                    catchEvaluator(req.params.tripNum);
+                    res.status(200).send('catch data updated');
+                })
+            }
+        }
     }
 }
-
-// catchEvaluator('100169');
 
 const emailCoordinator = async (req, res) => {
 
