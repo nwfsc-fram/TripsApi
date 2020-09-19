@@ -11,9 +11,9 @@ export async function format(logbook: Catches, review: Catches, audit: Catches) 
         tripNum: logbook.tripNum,
         updatedBy: logbook.updatedBy
     };
-    const logbookCatch: any[] = catchToHaul(logbook);
-    const reviewCatch: any[] = catchToHaul(review);
-    const auditCatch: any[] = catchToHaul(audit);
+    const logbookCatch: any[] = await catchToHaul(logbook);
+    const reviewCatch: any[] = await catchToHaul(review);
+    const auditCatch: any[] = await catchToHaul(audit);
     set(result, 'logbookCatch', logbookCatch);
     set(result, 'thirdPartyReviewCatch', reviewCatch);
     set(result, 'nwfscAuditCatch', auditCatch);
@@ -38,20 +38,33 @@ export async function format(logbook: Catches, review: Catches, audit: Catches) 
     return result;
 }
 
-function catchToHaul(catchVals: Catches) {
+async function catchToHaul(catchVals: Catches) {
     const results: any[] = [];
+    let pacfinSpeciesCode = "";
+    let wcgopSpeciesCode = "";
 
     for (const haul of get(catchVals, 'hauls', [])) {
         for (const catchVal of get(haul, 'catch', [])) {
             const count = catchVal.speciesCount ? catchVal.speciesCode : null;
+
+            const speciesCode = parseInt(catchVal.speciesCode) ? parseInt(catchVal.speciesCode) : catchVal.speciesCode;
+            const codeLookup = await masterDev.view('em-views', 'groupings-and-alias-by-wcem',
+                { "key": speciesCode, "include_docs": false });
+            if (typeof codeLookup.rows[0].key === 'string') {
+                pacfinSpeciesCode = codeLookup.rows[0].key;
+                wcgopSpeciesCode = codeLookup.rows[0].value;
+            } else {
+                pacfinSpeciesCode = codeLookup.rows[0].value;
+                wcgopSpeciesCode = codeLookup.rows[0].key;
+            }
             results.push({
                 disposition: catchVal.disposition,
                 haulNum: haul.haulNum,
                 weight: catchVal.weight,
                 count,
-                speciesCode: catchVal.speciesCode,
-                wcgopSpeciesCode: catchVal.wcgopSpeciesCode, // TODO reference view to populate this
-                // TODO populate docId from view (the field beth requested)
+                pacfinSpeciesCode,
+                wcgopSpeciesCode,
+                docId: codeLookup.rows[0].id,
                 startDepth: haul.startDepth,
                 startLatitude: haul.startLatitude,
                 startLongitude: haul.startLongitude,
@@ -130,11 +143,10 @@ function setIFQTripReporting(catchResult: CatchResults) {
     const resultsArr: any[] = [];
 
     let allRecords = catchResult.ifqLogbookTripLevel.concat(catchResult.ifqThirdPartyReviewTripLevel);
-    
     const ifqGroupings = uniqBy(allRecords, (record: any) => {
         return record.ifqGrouping + record.disposition
     })
-    for(const grouping of ifqGroupings) {
+    for (const grouping of ifqGroupings) {
         if (grouping.disposition === Disposition.DISCARDED) {
             const emCatch = catchResult.ifqThirdPartyReviewTripLevel.filter((catchVal) => {
                 if (grouping.ifqGrouping === catchVal.ifqGrouping && catchVal.disposition === Disposition.DISCARDED) {
