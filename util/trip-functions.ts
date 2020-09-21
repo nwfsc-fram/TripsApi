@@ -2,10 +2,11 @@ const dbConfig = require('../dbConfig.json').dbConfig;
 const couchDB = require('nano')(dbConfig.login);
 const masterDev = couchDB.db.use('master-dev');
 const jp = require('jsonpath');
-import { cloneDeep, flattenDeep, set, uniq } from 'lodash';
+import { cloneDeep, flattenDeep, set } from 'lodash';
+
 import { getFishTicket } from './oracle_routines';
-import { unsortedCatch, lostCodend, selectiveDiscards } from '@boatnet/bn-expansions';
-import { Catches, sourceType } from '@boatnet/bn-models';
+import { unsortedCatch, lostCodend, selectiveDiscards, missingWeight, lostFixedGear } from '@boatnet/bn-expansions';
+import { Catches } from '@boatnet/bn-models';
 import { format } from './formatter';
 import * as moment from 'moment';
 
@@ -52,15 +53,15 @@ export async function catchEvaluator(tripNum: string) {
                         fishTickets.push.apply(fishTickets, await getFishTicket(row.fishTicketNumber));
                     }
                 }
-                logbook = cloneDeep( await evaluateTripCatch(logbook));
+                logbook = cloneDeep( await evaluatecurrCatch(logbook));
             }
             if (thirdParty) {
-                thirdParty = cloneDeep( await evaluateTripCatch(thirdParty));
+                thirdParty = cloneDeep( await evaluatecurrCatch(thirdParty));
             }
             if (nwfscAudit) {
-                nwfscAudit = cloneDeep( await evaluateTripCatch(nwfscAudit));
+                nwfscAudit = cloneDeep( await evaluatecurrCatch(nwfscAudit));
             }
-            // then write all tripCatch docs to results doc
+            // then write all currCatch docs to results doc
             let result: any = format(logbook, thirdParty, nwfscAudit);
             const existingDoc = await masterDev.view('TripsApi', 'expansion_results',
                                                    { "key": tripNum, "include_docs": true });
@@ -78,53 +79,57 @@ export async function catchEvaluator(tripNum: string) {
             console.log(err);
         }
 
-        async function evaluateTripCatch(tripCatch: Catches) {
-            let flattenedCatch: any[] = jp.query(tripCatch, '$..catch');
+        async function evaluatecurrCatch(currCatch: Catches) {
+            let flattenedCatch: any[] = jp.query(currCatch, '$..catch');
             flattenedCatch = flattenDeep(flattenedCatch);
 
             // does any catch have a length and or a count but not a weight?
             if (flattenedCatch.find( (row: any) => (row.length || row.count) && !row.weight)) {
                 console.log('length or count without weight found.');
-                //tripCatch = weightFromLengthOrCount(tripCatch);
+                //currCatch = weightFromLengthOrCount(currCatch);
+                const missingWeightsExp: missingWeight = new missingWeight();
+                currCatch = cloneDeep(missingWeightsExp.expand({currCatch, fishTickets, logbook}));
             }
 
             // does catch contain pacific halibut, lingcod, or sablefish?
             if (flattenedCatch.find ((row: any) => ['PHLB', '101', 'LCOD', '603', 'SABL', '203'].includes(row.speciesCode.toString()))) {
                 console.log('mortality rate species found');
-                // tripCatch = mortalityRateCalc(tripCatch);
+                // currCatch = mortalityRateCalc(currCatch);
             };
 
             // is any catch unsorted catch? ('UNST' or '999' speciesCode) (Net Bleed)?
             if (
                 flattenedCatch.find( (row: any) => ['UNST', '999'].includes(row.speciesCode.toString())) &&
-                tripCatch.hauls.find( (row: any) => ['1', '2', '3', '4', '5'].includes(row.gearTypeCode))
+                currCatch.hauls.find( (row: any) => ['1', '2', '3', '4', '5'].includes(row.gearTypeCode))
             ) {
                 console.log('unsorted catch (net bleed) found');
                 const unsortedCatchExp: unsortedCatch = new unsortedCatch();
-                tripCatch = cloneDeep(unsortedCatchExp.rulesExpansion(tripCatch, fishTickets));
+                currCatch = cloneDeep(unsortedCatchExp.expand({currCatch, fishTickets}));
             }
 
             // any fixed-gear haul have lost gear (gearLost > 0 )?
-            if (tripCatch.hauls.find( (row: any) => row.gearLost && row.gearLost > 0 && ['10', '19', '20'].includes(row.gearTypeCode)) ) {
+            if (currCatch.hauls.find( (row: any) => row.gearLost && row.gearLost > 0 && ['10', '19', '20'].includes(row.gearTypeCode)) ) {
                 console.log('lost fixed gear found');
-                //tripCatch = lostFixedGear(tripCatch);
+                const lostFixedGearExp: lostFixedGear = new lostFixedGear();
+                currCatch = lostFixedGearExp.expand({currCatch});
             }
 
             // any haul have lost codend (isCodendLost = true)?
-            if (tripCatch.hauls.find( (row: any) => row.isCodendLost && ['1', '2', '3', '4', '5'].includes(row.gearTypeCode))) {
+            if (currCatch.hauls.find( (row: any) => row.isCodendLost && ['1', '2', '3', '4', '5'].includes(row.gearTypeCode))) {
                 console.log('lost trawl gear codend found');
                 const lostCodendExp: lostCodend = new lostCodend();
-                tripCatch = cloneDeep(lostCodendExp.logbookExpansion(tripCatch));
+                currCatch = cloneDeep(lostCodendExp.expand({currCatch}));
             }
 
             // any review/audit catch in a general grouping that needs to be expanded to specific members?
-            if (flattenedCatch.find( (row: any) => ['5000'].includes(row.speciesCode.toString())) && ['thirdParty', 'nwfscAudit'].includes(tripCatch.source)) {
+            if (flattenedCatch.find( (row: any) => ['5000'].includes(row.speciesCode.toString())) && ['thirdParty', 'nwfscAudit'].includes(currCatch.source)) {
                 console.log('review general grouping found');
                 const selectiveDiscardsExp: selectiveDiscards = new selectiveDiscards();
-                tripCatch = cloneDeep(selectiveDiscardsExp.rulesExpansion(logbook, tripCatch));
+                currCatch = cloneDeep(selectiveDiscardsExp.expand({logbook, currCatch}));
             }
-         
-          return tripCatch;
+
+            console.log(jp.query(currCatch, '$..catch'));
+            return currCatch;
         }
 
         // evaluate catch docs
