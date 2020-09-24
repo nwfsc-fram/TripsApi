@@ -371,6 +371,7 @@ const emailCoordinator = async (req, res) => {
 }
 
 const API_VERSION = 'v1';
+
 router.get('/lookups', getLookups);
 router.get('/instructions', getInstructions);
 router.get('/program', getProgram);
