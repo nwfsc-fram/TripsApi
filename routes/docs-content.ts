@@ -23,7 +23,6 @@ export const head = '<html lang="en">\
                     <link href="/static/bootstrap-4.5.2-dist/css/bootstrap.min.css" rel="stylesheet"/>\
                     <script src="/static/jquery/jquery-3.5.1.min.js"></script>\
                     <script src="/static/bootstrap-4.5.2-dist/js/bootstrap.min.js"></script>\
-                    <script> $(function(){$("#includeDocs").load("/static/spec.html"); });</script> \
                     </head>';
 
 export const header = '<body class="container"><header> \
@@ -57,7 +56,7 @@ export const lookupTables = async () => {
     for (const row of emLookupTypes) {
         const rowLookups = lookupResults.rows.filter( (couchRow: any) => couchRow.key === row.lookup );
         tables += '<h5 id="' + row.title + '">Field: "' + row.title + '"</h5>';
-        tables += '<table><tr><th>Lookup</th><th>Description</th><th>Usage</th><th>Level</th></tr>';
+        tables += '<table style="width: 70%"><tr><th>Lookup</th><th>Description</th><th>Usage</th><th>Level</th></tr>';
         for (const line of rowLookups) {
             tables += '<tr><td>' + line.value[1] + '</td><td>' + line.value[0] + '</td>'
             tables += '<td>' + row.usage + '</td><td>' + row.level + '</td></tr>'
@@ -98,7 +97,8 @@ export const programContent = () => {
 };
 
 export const docsContent = () => {
-    return '<div id="includeDocs"></div>';
+    // return '<div id="includeDocs"></div>';
+    return '<iframe src="/api-docs/#/" style="width: 100%; height: 100%"></iframe>'
 }
 
 export const end = '</body></html>';
