@@ -409,8 +409,7 @@ components:
           description: "Page number from vessel logbook"
         fisherySector:
           type: "string"
-          description: "Description of the EM fishery. Whiting, Midwater Rockfish,\
-            \ Fixed Gear, Bottom Trawl"
+          description: "Description of the EM fishery. Whiting, Midwater Rockfish, Fixed Gear, Bottom Trawl"
         year:
           type: "string"
           description: "Year the fishing activity took place"
@@ -437,23 +436,19 @@ components:
           description: "Date/Time the vessel departed port"
         departureState:
           type: "string"
-          description: "State where the vessel departed for fishing activities (WA,\
-            \ OR, CA)"
+          description: "State where the vessel departed for fishing activities (WA, OR, CA)"
         departurePortCode:
           type: "string"
-          description: "Port code where the vessel departed. The port code is the\
-            \ same as the PacFIN port code"
+          description: "Port code where the vessel departed. The port code is the same as the PacFIN port code"
         returnDateTime:
           type: "string"
           description: "Date/Time the vessel returned to port for offload"
         returnPortState:
           type: "string"
-          description: "State where the vessel returned for fishing activities (WA,\
-            \ OR, CA)"
+          description: "State where the vessel returned for fishing activities (WA, OR, CA)"
         returnPortCode:
           type: "string"
-          description: "Port code where the vessel returned. The port code is the\
-            \ same as the PacFIN port code"
+          description: "Port code where the vessel returned. The port code is the same as the PacFIN port code"
         buyers:
           type: "array"
           description: "IFQ Dealer where the vessel offloaded"
@@ -475,8 +470,7 @@ components:
           description: "Notes from the logbook"
         submissionDatetime:
           type: "string"
-          description: "Date the loogbook was submitted by the 3rd party provider\
-            \ (auto-populated)"
+          description: "Date the loogbook was submitted by the 3rd party provider (auto-populated)"
         resubmission:
           type: "boolean"
           description: "Flag indicating the submission of corrected data"
@@ -488,8 +482,7 @@ components:
           description: "Name of the person who entered the logbook data"
         totalReviewTime:
           type: "string"
-          description: "Time (in Minutes) to complete the review of all hauls in the\
-            \ database"
+          description: "Time (in Minutes) to complete the review of all hauls in the database"
         hauls:
           type: "array"
           items:
@@ -592,11 +585,7 @@ components:
           description: "Date and time the vessel offloaded to a buyer"
         gearTypeCode:
           type: "string"
-          description: "1 = Groundfish trawl, footrope < 8 inches (small footrope),\
-            \ 2 = Groundfish trawl, footrope > 8 inches (large footrope), 3 = Midwater\
-            \ trawl, 4 = Danish/Scottish seine (trawl), 5 = Other trawl gear, 17 =\
-            \ Oregon set-back flatfish net, 10 = pot, 19 = Longline (fixed), 20 =\
-            \ Longline (snap)"
+          description: "1 = Groundfish trawl, footrope < 8 inches (small footrope), 2 = Groundfish trawl, footrope > 8 inches (large footrope), 3 = Midwater trawl, 4 = Danish/Scottish seine (trawl), 5 = Other trawl gear, 17 = Oregon set-back flatfish net, 10 = pot, 19 = Longline (fixed), 20 = Longline (snap)"
         gearPerSet:
           type: "number"
           description: "Total number of pots or hooks set (Mandatory for FG hauls)"
@@ -665,9 +654,7 @@ components:
           description: "Retained vs Discarded"
         fate:
           type: "string"
-          description: "Observer Discard Reason -- 11 Accidental, Incidental, 12 \
-            \ Drop-off, 13  Market, 14  Other, 15  Predation, 18  Market- At Dock,19\
-            \  Utilized on board,16  Regulation, 17  Safety, 20  Survival"
+          description: "Observer Discard Reason -- 11 Accidental, Incidental, 12  Drop-off, 13  Market, 14  Other, 15  Predation, 18  Market- At Dock,19  Utilized on board,16  Regulation, 17  Safety, 20  Survival"
         speciesCode:
           type: "string"
           description: "WCGOP species code (3 or 4 digits)"
@@ -676,13 +663,10 @@ components:
           description: "Total estimated weight (lbs)"
         speciesCount:
           type: "number"
-          description: "Number of fish for a species (Yellow Eye RF, PHLB, Species\
-            \ of concern...Salmon, Green Sturgeon, Eulachon). Not required for all\
-            \ species"
+          description: "Number of fish for a species (Yellow Eye RF, PHLB, Species of concern...Salmon, Green Sturgeon, Eulachon). Not required for all species"
         calcWeightType:
           type: "string"
-          description: "Description of how the catch was calculated (EstWeight, FromAverageWt,\
-            \ FromLength, CaclField)"
+          description: "Description of how the catch was calculated (EstWeight, FromAverageWt, FromLength, CaclField)"
         length:
           type: "number"
           description: "Length (in cm) of individual fish (Pacific Halibut)"
