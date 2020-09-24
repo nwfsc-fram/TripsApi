@@ -2,8 +2,7 @@
 openapi: "3.0.0"
 info:
   title: "trips Api"
-  description: "a service to provide unique trip identifiers, cruise identifiers,\
-    \ and to receive trip catch (logbook and em review) submissions"
+  description: "a service to provide unique trip identifiers, cruise identifiers, and receive trip catch (logbook and em review) submissions"
   contact:
     name: "Fram Data Team"
     url: "https://www.fisheries.noaa.gov/region/west-coast"
