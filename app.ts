@@ -47,9 +47,9 @@ app.disable('x-powered-by'); // Disable express version sharing
 app.use('/spec', express.static(path.resolve(__dirname, 'openapi.yaml')));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-new OpenApiValidator({
-    apiSpec: './openapi.yaml'
-  }).install(app);
+// new OpenApiValidator({
+//     apiSpec: './openapi.yaml'
+//   }).install(app);
 
 // Handle bad requests
 app.use((err, req, res, next) => {
