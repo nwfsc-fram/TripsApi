@@ -2,12 +2,13 @@ const dbConfig = require('../dbConfig.json').dbConfig;
 const couchDB = require('nano')(dbConfig.login);
 const masterDev = couchDB.db.use('master-dev');
 const jp = require('jsonpath');
-import { cloneDeep, flattenDeep, get, set, uniq } from 'lodash';
+import { cloneDeep, flattenDeep, set } from 'lodash';
 import { getFishTicket } from './oracle_routines';
 import { unsortedCatch, lostCodend, selectiveDiscards, ExpansionParameters, discardMortalityRates } from '@boatnet/bn-expansions';
-import { Catches, sourceType, Disposition, GearTypes } from '@boatnet/bn-models';
+import { Catches } from '@boatnet/bn-models';
 import { format } from './formatter';
 import * as moment from 'moment';
+import { getMixedGroupingInfo } from './getMixedGroupings';
 
 export async function catchEvaluator(tripNum: string) {
     //  wait for a while to be sure data is fully submitted to couch
@@ -79,59 +80,62 @@ export async function catchEvaluator(tripNum: string) {
             console.log(err);
         }
 
-        async function evaluateTripCatch(tripCatch: Catches) {
-            let flattenedCatch: any[] = jp.query(tripCatch, '$..catch');
+        async function evaluatecurrCatch(currCatch: Catches) {
+            let flattenedCatch: any[] = jp.query(currCatch, '$..catch');
             flattenedCatch = flattenDeep(flattenedCatch);
-            let expansionParams: ExpansionParameters = { currCatch: tripCatch };
+            let expansionParams: ExpansionParameters = { currCatch };
 
             // does any catch have a length and or a count but not a weight?
             if (flattenedCatch.find((row: any) => (row.length || row.count) && !row.weight)) {
                 console.log('length or count without weight found.');
-                //tripCatch = weightFromLengthOrCount(tripCatch);
+                //currCatch = weightFromLengthOrCount(currCatch);
+                const missingWeightsExp: missingWeight = new missingWeight();
+                currCatch = cloneDeep(missingWeightsExp.expand({currCatch, fishTickets, logbook}));
             }
 
             // does catch contain pacific halibut, lingcod, or sablefish?
             if (flattenedCatch.find((row: any) => ['PHLB', '101', 'LCOD', '603', 'SABL', '203'].includes(row.speciesCode.toString()))) {
                 console.log('mortality rate species found');
                 const dmr: discardMortalityRates = new discardMortalityRates();
-                expansionParams = { currCatch: tripCatch };
-                tripCatch = cloneDeep(dmr.expand(expansionParams));
+                expansionParams = { currCatch };
+                currCatch = cloneDeep(dmr.expand(expansionParams));
             };
 
             // is any catch unsorted catch? ('UNST' or '999' speciesCode) (Net Bleed)?
             if (
                 flattenedCatch.find((row: any) => ['UNST', '999'].includes(row.speciesCode.toString())) &&
-                tripCatch.hauls.find((row: any) => ['1', '2', '3', '4', '5'].includes(row.gearTypeCode))
+                currCatch.hauls.find((row: any) => ['1', '2', '3', '4', '5'].includes(row.gearTypeCode))
             ) {
                 console.log('unsorted catch (net bleed) found');
                 const unsortedCatchExp: unsortedCatch = new unsortedCatch();
-                expansionParams = { currCatch: tripCatch, fishTickets };
-                tripCatch = cloneDeep(unsortedCatchExp.expand(expansionParams));
+                expansionParams = { currCatch, fishTickets };
+                currCatch = cloneDeep(unsortedCatchExp.expand(expansionParams));
             }
 
             // any fixed-gear haul have lost gear (gearLost > 0 )?
-            if (tripCatch.hauls.find((row: any) => row.gearLost && row.gearLost > 0 && ['10', '19', '20'].includes(row.gearTypeCode))) {
+            if (currCatch.hauls.find( (row: any) => row.gearLost && row.gearLost > 0 && ['10', '19', '20'].includes(row.gearTypeCode)) ) {
                 console.log('lost fixed gear found');
-                //tripCatch = lostFixedGear(tripCatch);
+                const lostFixedGearExp: lostFixedGear = new lostFixedGear();
+                currCatch = lostFixedGearExp.expand({currCatch});
             }
 
             // any haul have lost codend (isCodendLost = true)?
-            if (tripCatch.hauls.find((row: any) => row.isCodendLost && ['1', '2', '3', '4', '5'].includes(row.gearTypeCode))) {
+            if (currCatch.hauls.find((row: any) => row.isCodendLost && ['1', '2', '3', '4', '5'].includes(row.gearTypeCode))) {
                 console.log('lost trawl gear codend found');
                 const lostCodendExp: lostCodend = new lostCodend();
-                expansionParams = { currCatch: tripCatch };
-                tripCatch = cloneDeep(lostCodendExp.expand(expansionParams));
+                expansionParams = { currCatch };
+                currCatch = cloneDeep(lostCodendExp.expand(expansionParams));
             }
 
             // any review/audit catch in a general grouping that needs to be expanded to specific members?
-            if (flattenedCatch.find((row: any) => ['5000'].includes(row.speciesCode.toString())) && ['thirdParty', 'nwfscAudit'].includes(tripCatch.source)) {
+            if (flattenedCatch.find((row: any) => ['5000'].includes(row.speciesCode.toString())) && ['thirdParty', 'nwfscAudit'].includes(currCatch.source)) {
                 console.log('review general grouping found');
+                const mixedGroupings = await getMixedGroupingInfo();
                 const selectiveDiscardsExp: selectiveDiscards = new selectiveDiscards();
-                expansionParams = { currCatch: tripCatch, logbook };
-                tripCatch = cloneDeep(selectiveDiscardsExp.expand(expansionParams));
+                expansionParams = { currCatch, logbook };
+                currCatch = cloneDeep(selectiveDiscardsExp.expand(expansionParams));
             }
-
-            return tripCatch;
+            return currCatch;
         }
 
         // evaluate catch docs
