@@ -20,13 +20,13 @@ export const head = '<html lang="en">\
                     <head>\
                     <meta charset="utf-8">\
                     <meta name="viewport" content="width=device-width, initial-scale=1">\
-                    <link href="/static/bootstrap-4.5.2-dist/css/bootstrap.min.css" rel="stylesheet"/>\
-                    <script src="/static/jquery/jquery-3.5.1.min.js"></script>\
-                    <script src="/static/bootstrap-4.5.2-dist/js/bootstrap.min.js"></script>\
+                    <link href="./static/bootstrap-4.5.2-dist/css/bootstrap.min.css" rel="stylesheet"/>\
+                    <script src="./static/jquery/jquery-3.5.1.min.js"></script>\
+                    <script src="./static/bootstrap-4.5.2-dist/js/bootstrap.min.js"></script>\
                     </head>';
 
 export const header = '<body class="container"><header> \
-                    <img src="/static/images/noaa-50th-logo.png" alt="noaa-logo" style="width: 200px"/> \
+                    <img src="./static/images/noaa-50th-logo.png" alt="noaa-logo" style="width: 200px"/> \
                     <h3>Northwest Fisheries Science Center Trips Api Documentation</h3> \
                     </header>';
 
@@ -98,7 +98,7 @@ export const programContent = () => {
 
 export const docsContent = () => {
     // return '<div id="includeDocs"></div>';
-    return '<iframe src="/api-docs/#/" style="width: 100%; height: 100%"></iframe>'
+    return '<iframe src="./api-docs/#/" style="width: 100%; height: 100%"></iframe>'
 }
 
 export const end = '</body></html>';

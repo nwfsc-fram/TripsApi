@@ -2,7 +2,7 @@
 openapi: "3.0.0"
 info:
   title: "trips Api"
-  description: "a service to provide unique trip identifiers, and receive trip catch (logbook and em review) submissions"
+  description: "a service to provide unique trip identifiers, cruise identifiers, and receive trip catch (logbook and em review) submissions"
   contact:
     name: "Fram Data Team"
     url: "https://www.fisheries.noaa.gov/region/west-coast"
@@ -310,6 +310,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Trip"
+        "400":
+          description: "Invalid Request"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_401"
+              example:
+                status: 400
+                message: "Invalid Request"
+      security:
+      - bearerAuth: []
+  /cruise/:
+    post:
+      tags:
+      - "Cruise"
+      summary: "create a new cruise"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewCruise"
+        required: true
+      responses:
+        "200":
+          description: "successful response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_200_3"
         "400":
           description: "Invalid Request"
           content:
@@ -741,6 +770,33 @@ components:
         permits:
         - "GF9999"
         captain: "Bill Wilson"
+    NewCruise:
+      required:
+      - "departureDate"
+      - "returnDate"
+      - "vesselId"
+      type: "object"
+      properties:
+        vesselId:
+          type: "string"
+        vesselName:
+          type: "string"
+        departureDate:
+          type: "string"
+        returnDate:
+          type: "string"
+        permits:
+          type: "array"
+          items:
+            type: "string"
+        createdBy:
+          type: "string"
+        createdDate:
+          type: "string"
+        updatedBy:
+          type: "string"
+        updatedDate:
+          type: "string"
     inline_response_200:
       type: "object"
       properties:
