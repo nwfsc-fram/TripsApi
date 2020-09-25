@@ -4,7 +4,7 @@ const masterDev = couchDB.db.use('master-dev');
 const jp = require('jsonpath');
 import { cloneDeep, flattenDeep, set } from 'lodash';
 import { getFishTicket } from './oracle_routines';
-import { unsortedCatch, lostCodend, selectiveDiscards, ExpansionParameters, discardMortalityRates } from '@boatnet/bn-expansions';
+import { unsortedCatch, lostCodend, selectiveDiscards, ExpansionParameters, discardMortalityRates, missingWeight, lostFixedGear } from '@boatnet/bn-expansions';
 import { Catches } from '@boatnet/bn-models';
 import { format } from './formatter';
 import * as moment from 'moment';
@@ -50,16 +50,16 @@ export async function catchEvaluator(tripNum: string) {
             if (logbook) {
                 if (logbook.fishTickets) {
                     for (const row of logbook.fishTickets) {
-                        //    fishTickets.push.apply(fishTickets, await getFishTicket(row.fishTicketNumber));
+                        fishTickets.push.apply(fishTickets, await getFishTicket(row.fishTicketNumber));
                     }
                 }
-                logbook = cloneDeep(await evaluateTripCatch(logbook));
+                logbook = cloneDeep(await evaluatecurrCatch(logbook));
             }
             if (thirdParty) {
-                thirdParty = cloneDeep(await evaluateTripCatch(thirdParty));
+                thirdParty = cloneDeep(await evaluatecurrCatch(thirdParty));
             }
             if (nwfscAudit) {
-                nwfscAudit = cloneDeep(await evaluateTripCatch(nwfscAudit));
+                nwfscAudit = cloneDeep(await evaluatecurrCatch(nwfscAudit));
             }
             // then write all tripCatch docs to results doc
             let result: any = await format(logbook, thirdParty, nwfscAudit);
@@ -90,7 +90,7 @@ export async function catchEvaluator(tripNum: string) {
                 console.log('length or count without weight found.');
                 //currCatch = weightFromLengthOrCount(currCatch);
                 const missingWeightsExp: missingWeight = new missingWeight();
-                currCatch = cloneDeep(missingWeightsExp.expand({currCatch, fishTickets, logbook}));
+                currCatch = cloneDeep(missingWeightsExp.expand({ currCatch, fishTickets, logbook }));
             }
 
             // does catch contain pacific halibut, lingcod, or sablefish?
@@ -113,10 +113,10 @@ export async function catchEvaluator(tripNum: string) {
             }
 
             // any fixed-gear haul have lost gear (gearLost > 0 )?
-            if (currCatch.hauls.find( (row: any) => row.gearLost && row.gearLost > 0 && ['10', '19', '20'].includes(row.gearTypeCode)) ) {
+            if (currCatch.hauls.find((row: any) => row.gearLost && row.gearLost > 0 && ['10', '19', '20'].includes(row.gearTypeCode))) {
                 console.log('lost fixed gear found');
                 const lostFixedGearExp: lostFixedGear = new lostFixedGear();
-                currCatch = lostFixedGearExp.expand({currCatch});
+                currCatch = lostFixedGearExp.expand({ currCatch });
             }
 
             // any haul have lost codend (isCodendLost = true)?
