@@ -48,6 +48,7 @@ async function catchToHaul(catchVals: Catches) {
             const count = catchVal.speciesCount ? catchVal.speciesCode : null;
 
             const speciesCode = parseInt(catchVal.speciesCode) ? parseInt(catchVal.speciesCode) : catchVal.speciesCode;
+            // lookup code to get pacfinSpeciesCode, wcgopSpeciesCode, and docId
             const codeLookup = await masterDev.view('em-views', 'groupings-and-alias-by-wcem',
                 { "key": speciesCode, "include_docs": false });
             if (typeof codeLookup.rows[0].key === 'string') {
@@ -83,11 +84,31 @@ async function catchToHaul(catchVals: Catches) {
 }
 
 async function setIFQHaulLevelData(catchResults: any[]) {
-    // get ifq grouping name for each record
+    // get ifq grouping name for each record based speciesCode and lat and long
     for (let i = 0; i < catchResults.length; i++) {
-        const ifqGrouping = await masterDev.view('Ifq', 'wcgop-codes-to-ifq-grouping',
-            { "key": catchResults[i].wcgopSpeciesCode, "include_docs": false });
-        set(catchResults[i], 'ifqGrouping', ifqGrouping.rows[0].value);
+        const ifqGroupings = await masterDev.view('Ifq', 'wcgop-codes-to-ifq-grouping',
+            { "key": catchResults[i].wcgopSpeciesCode, "include_docs": true });
+        if (ifqGroupings.rows.length > 1) {
+            let groupName: string = '';
+            for (const ifqGrouping of ifqGroupings.rows) {
+                const lowerLat = ifqGrouping.doc.regulationAreas[0].lowerLatitude;
+                const upperLat = ifqGrouping.doc.regulationAreas[0].upperLatitude;
+                const startLat = catchResults[i].startLatitude;
+                const endLat = catchResults[i].endLatitude;
+                
+                if (lowerLat && upperLat && startLat > lowerLat && endLat > lowerLat && startLat < upperLat && endLat < upperLat) {
+                    groupName = ifqGrouping.value;
+                } else if (lowerLat && !upperLat && startLat > lowerLat && endLat > lowerLat) {
+                    groupName = ifqGrouping.value;
+                } else if (!lowerLat && upperLat && startLat < upperLat && endLat < upperLat) {
+                    groupName = ifqGrouping.value;
+                }
+            }
+            groupName = groupName.length === 0 ? 'No ifq group found' : groupName;
+            set(catchResults[i], 'ifqGrouping', groupName);
+        } else {
+            set(catchResults[i], 'ifqGrouping', ifqGroupings.rows[0].value);
+        }
     }
 
     // agg at haul level by ifqGrouping and disposition
