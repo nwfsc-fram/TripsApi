@@ -37,7 +37,6 @@ export async function getMixedGroupingInfo() {
         }
         mixedGroupingsMap[speciesCode] = species;
     }
-    console.log(JSON.stringify(mixedGroupingsMap))
     return mixedGroupingsMap;
 }
 
