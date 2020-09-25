@@ -9,6 +9,7 @@ import { unsortedCatch, lostCodend, selectiveDiscards, missingWeight, lostFixedG
 import { Catches } from '@boatnet/bn-models';
 import { format } from './formatter';
 import * as moment from 'moment';
+import { getMixedGroupingInfo } from './getMixedGroupings';
 
 export async function catchEvaluator(tripNum: string) {
     //  wait for a while to be sure data is fully submitted to couch
@@ -124,8 +125,9 @@ export async function catchEvaluator(tripNum: string) {
             // any review/audit catch in a general grouping that needs to be expanded to specific members?
             if (flattenedCatch.find( (row: any) => ['5000'].includes(row.speciesCode.toString())) && ['thirdParty', 'nwfscAudit'].includes(currCatch.source)) {
                 console.log('review general grouping found');
+                const mixedGroupings = await getMixedGroupingInfo();
                 const selectiveDiscardsExp: selectiveDiscards = new selectiveDiscards();
-                currCatch = cloneDeep(selectiveDiscardsExp.expand({logbook, currCatch}));
+                currCatch = cloneDeep(selectiveDiscardsExp.expand({logbook, currCatch, mixedGroupings}));
             }
 
             console.log(jp.query(currCatch, '$..catch'));
