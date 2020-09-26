@@ -107,7 +107,10 @@ async function setIFQHaulLevelData(catchResults: any[]) {
             groupName = groupName.length === 0 ? 'No ifq group found' : groupName;
             set(catchResults[i], 'ifqGrouping', groupName);
         } else {
-            set(catchResults[i], 'ifqGrouping', ifqGroupings.rows[0].value);
+            // TODO figure out how to handle cases when species don't match up
+            // to an ifq group
+            const ifqGroupName = ifqGroupings.rows[0] && ifqGroupings.rows[0].value ? ifqGroupings.rows[0].value : 'No ifq group found';
+            set(catchResults[i], 'ifqGrouping', ifqGroupName);
         }
     }
 
