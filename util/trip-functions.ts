@@ -123,17 +123,17 @@ export async function catchEvaluator(tripNum: string) {
             if (currCatch.hauls.find((row: any) => row.isCodendLost && ['1', '2', '3', '4', '5'].includes(row.gearTypeCode))) {
                 console.log('lost trawl gear codend found');
                 const lostCodendExp: lostCodend = new lostCodend();
-                expansionParams = { currCatch };
-                currCatch = cloneDeep(lostCodendExp.expand(expansionParams));
+                // expansionParams = { currCatch };
+                currCatch = cloneDeep(lostCodendExp.expand({ currCatch }));
             }
 
             // any review/audit catch in a general grouping that needs to be expanded to specific members?
             if (flattenedCatch.find((row: any) => ['5000'].includes(row.speciesCode.toString())) && ['thirdParty', 'nwfscAudit'].includes(currCatch.source)) {
                 console.log('review general grouping found');
-                const mixedGroupings = await getMixedGroupingInfo();
+                // const mixedGroupings = await getMixedGroupingInfo();
                 const selectiveDiscardsExp: selectiveDiscards = new selectiveDiscards();
-                expansionParams = { currCatch, logbook };
-                currCatch = cloneDeep(selectiveDiscardsExp.expand(expansionParams));
+                // expansionParams = { currCatch, logbook };
+                currCatch = cloneDeep(selectiveDiscardsExp.expand({ currCatch, logbook }));
             }
             return currCatch;
         }
