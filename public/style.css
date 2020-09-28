@@ -1,0 +1,17 @@
+h3 {
+    font-family: arial
+}
+
+table, th, td {
+    border: 1px solid black;
+    border-collapse: collapse;
+    font-family: arial
+}
+
+th, td {
+    padding: 5px;
+}
+
+.inst-desc {
+    margin-left: 30px
+}

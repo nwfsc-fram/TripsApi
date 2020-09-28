@@ -18,6 +18,7 @@ const port = 3000;
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
 const swaggerDocument = YAML.load(path.resolve(__dirname, 'openapi.yaml'));
+const cruiseSwaggerDocument = YAML.load(path.resolve(__dirname, 'openapi-cruise.yaml'));
 
 const OpenApiValidator = require('express-openapi-validator').OpenApiValidator;
 
@@ -40,13 +41,15 @@ app.all('/*', (req, res, next) => {
 
 app.use('/static', express.static('public'));
 
+app.set('views', path.resolve(__dirname, 'views'));
+app.set('view engine', 'pug');
+
 app.use(express.json());
 app.use(cors());
 app.disable('x-powered-by'); // Disable express version sharing
 
 app.use('/spec', express.static(path.resolve(__dirname, 'openapi.yaml')));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-
 // new OpenApiValidator({
 //     apiSpec: './openapi.yaml'
 //   }).install(app);

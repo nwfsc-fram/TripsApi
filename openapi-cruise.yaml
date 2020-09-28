@@ -1,0 +1,199 @@
+---
+openapi: "3.0.0"
+info:
+  title: "trips Api"
+  description: "a service to provide unique trip identifiers, cruise identifiers, and receive trip catch (logbook and em review) submissions"
+  contact:
+    name: "Fram Data Team"
+    url: "https://www.fisheries.noaa.gov/region/west-coast"
+    email: "nmfs.nwfsc.fram.data.team@noaa.gov"
+  version: "0.0.1"
+tags:
+- name: "Trips"
+  description: "all trips"
+- name: "Trip"
+  description: "an individual trip"
+paths:
+  /login:
+    post:
+      tags:
+      - "Login"
+      summary: "Perform login to get JWT token"
+      operationId: "postLogin"
+      requestBody:
+        description: "Need username and password"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Login"
+            examples:
+              Encoded:
+                value:
+                  username: "test"
+                  passwordEnc: "dGVzdA=="
+                  applicationName: "BOATNET_OBSERVER"
+              Basic:
+                value:
+                  username: "test"
+                  password: "test"
+        required: true
+      responses:
+        "200":
+          description: "User Authorized"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_200"
+              example:
+                username: "test"
+                token: "(JWT Token - decode at jwt.io)"
+        "401":
+          description: "Authorization information is missing or invalid."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_401"
+              example:
+                status: 401
+                message: "You have not been granted access to this application."
+  /cruise/:
+    post:
+      tags:
+      - "Cruise"
+      summary: "create a new cruise"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewCruise"
+        required: true
+      responses:
+        "200":
+          description: "successful response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_200_3"
+        "400":
+          description: "Invalid Request"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_401"
+              example:
+                status: 400
+                message: "Invalid Request"
+      security:
+      - bearerAuth: []
+components:
+  schemas:
+    Login:
+      required:
+      - "username"
+      type: "object"
+      properties:
+        username:
+          type: "string"
+        password:
+          type: "string"
+          description: "Required if passwordEnc not specified"
+        passwordEnc:
+          type: "string"
+          description: "Required if password not specified"
+        applicationName:
+          type: "string"
+          description: "Application name, determines which roles are returned in JWT"
+          default: "BOATNET_OBSERVER"
+    NewCruise:
+      required:
+      - "departureDate"
+      - "returnDate"
+      - "vesselId"
+      type: "object"
+      properties:
+        vesselId:
+          type: "string"
+        vesselName:
+          type: "string"
+        departureDate:
+          type: "string"
+        returnDate:
+          type: "string"
+        permits:
+          type: "array"
+          items:
+            type: "string"
+        createdBy:
+          type: "string"
+        createdDate:
+          type: "string"
+        updatedBy:
+          type: "string"
+        updatedDate:
+          type: "string"
+    inline_response_200:
+      type: "object"
+      properties:
+        username:
+          type: "string"
+        token:
+          type: "string"
+          description: "JWT encoded token"
+    inline_response_401:
+      type: "object"
+      properties:
+        status:
+          type: "integer"
+          format: "int64"
+        message:
+          type: "string"
+    inline_response_200_1:
+      type: "object"
+      properties:
+        tripCatch:
+          $ref: "#/components/schemas/TripCatch"
+    inline_response_200_2:
+      type: "object"
+      properties:
+        trip:
+          $ref: "#/components/schemas/Trip"
+    inline_response_200_3:
+      type: "object"
+      properties:
+        tripNum:
+          type: "integer"
+        trip:
+          type: "object"
+    inline_response_200_4:
+      type: "object"
+      properties:
+        vesselId:
+          type: "string"
+        vesselName:
+          type: "string"
+        startPort:
+          type: "string"
+  responses:
+    NotFoundError:
+      description: "No data found"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/inline_response_401"
+          example:
+            status: 404
+            message: "Not Found"
+    InvalidRequestError:
+      description: "Invalid Request"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/inline_response_401"
+          example:
+            status: 400
+            message: "Invalid Request"
+  securitySchemes:
+    bearerAuth:
+      type: "http"
+      scheme: "bearer"
+      bearerFormat: "JWT"
