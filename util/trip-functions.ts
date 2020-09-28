@@ -128,13 +128,13 @@ export async function catchEvaluator(tripNum: string) {
             }
 
             // any review/audit catch in a general grouping that needs to be expanded to specific members?
-            const mixedGroupings = await getMixedGroupingInfo();
-            const mixGroupingKeys = Object.keys(mixedGroupings);
+            const mixedGroupings: any = await getMixedGroupingInfo();
+            const mixGroupingKeys: any = Object.keys(mixedGroupings);
             if (flattenedCatch.find((row: any) => mixGroupingKeys.includes(row.speciesCode.toString())) && ['thirdParty', 'nwfscAudit'].includes(currCatch.source)) {
                 console.log('selective discards');
                 const selectiveDiscardsExp: selectiveDiscards = new selectiveDiscards();
-                expansionParams = { currCatch, logbook, mixedGroupings };
-                currCatch = cloneDeep(selectiveDiscardsExp.expand(expansionParams));
+                // expansionParams = { currCatch, logbook, mixedGroupings };
+                currCatch = cloneDeep(selectiveDiscardsExp.expand({ currCatch, logbook, mixedGroupings }));
             }
             return currCatch;
         }
