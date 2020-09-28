@@ -67,29 +67,37 @@ export const lookupTables = async () => {
 };
 
 export const instructionsContent = () => {
-    return '<h5>Instructions<h5>\
-            <ul>\
-                <li>https required</li>\
-                <li>dates and times</li>\
-                <li>review summary structure</li>\
-                <li>lost gear</li>\
-                <li>screenshot submission</li>\
-                <li>observer web</li>\
-                    <ul>\
-                        <li>task management</li>\
-                        <li>e-logbook</li>\
-                        <li>api submission portal</li>\
-                    </ul>\
-                <li>logging in</li>\
-                <ul>\
-                    <li>getting a login</li>\
-                </ul>\
-                <li>query for trip number</li>\
-                <li>submit new logbook data</li>\
-                <li>update logbook data</li>\
-                <li>submit a new review</li>\
-                <li>update a review</li>\
-            </ul>';
+    return '<h5>Instructions<h5><br>\
+            <h6 id="httpsRequired">https required</h6>\
+            <p class="inst-desc">The Trips API will not respond to http requests, please be sure all requests are prefixed with https.</p>\
+            <h6 id="summary-structure">submission structure</h6>\
+            <p class="inst-desc">EM review and logbook submissions share a common structure:<br>\
+            trip details including a hauls (sets) array,<br>\
+            each haul containing haul details and a catch array,<br>\
+            with each catch containing catch details.</p>\
+            <p class="inst-desc">\
+                trip details<br>\
+                hauls [<br>\
+                    &nbsp;&nbsp;haul details<br>\
+                    &nbsp;&nbsp;catch [<br>\
+                        &nbsp;&nbsp;&nbsp;&nbsp;catch details<br>\
+                        &nbsp;&nbsp;]<br>\
+                    ]\
+                </p>\
+            <h6>dates and times</h6>\
+            <h6>lost gear</h6>\
+            <h6>screenshot submission</h6>\
+            <h6>observer web</h6>\
+                    <h6>task management</h6>\
+                    <h6>e-logbook</h6>\
+                    <h6>api submission portal</h6>\
+            <h6>logging in</h6>\
+                <h6>getting a login</h6>\
+            <h6>query for trip number</h6>\
+            <h6>submit new logbook data</h6>\
+            <h6>update logbook data</h6>\
+            <h6>submit a new review</h6>\
+            <h6>update a review</h6>';
 };
 
 export const programContent = () => {
@@ -103,4 +111,4 @@ export const docsContent = () => {
 
 export const end = '</body></html>';
 
-export const css = '<style> h3 {font-family: arial} table, th, td {border: 1px solid black; border-collapse: collapse; font-family: arial} th, td { padding: 5px;}</style>';
+export const css = '<style> h3 {font-family: arial} table, th, td {border: 1px solid black; border-collapse: collapse; font-family: arial} th, td {padding: 5px;} .inst-desc {margin-left: 30px}</style>';

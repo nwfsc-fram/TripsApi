@@ -285,23 +285,20 @@ const updateCatch = async (req, res) => {
 }
 
 const getLookups = async (req, res) => {
-    let response = head + header + nav + await lookupTables() + end + css;
-    res.status(200).send(response);
+    const lookupResults = await masterDev.view('TripsApi', 'all_em_lookups', {include_docs: false, reduce: false });
+    res.render('lookups', {lookupResults});
 }
 
 const getInstructions = async (req, res) => {
-    let response = head + header + nav + instructionsContent() + end + css;
-    res.status(200).send(response);
+    res.render('instructions');
 };
 
 const getProgram = async (req, res) => {
-    let response = head + header + nav + programContent() + end + css;
-    res.status(200).send(response);
+    res.render('program');
 };
 
 const getDocs = async (req, res ) => {
-    let response = head + header + nav + docsContent() + end + css;
-    res.status(200).send(response);
+    res.render('docs');
 }
 
 const emailCoordinator = async (req, res) => {
