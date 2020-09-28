@@ -123,8 +123,8 @@ export async function catchEvaluator(tripNum: string) {
             if (currCatch.hauls.find((row: any) => row.isCodendLost && ['1', '2', '3', '4', '5'].includes(row.gearTypeCode))) {
                 console.log('lost trawl gear codend found');
                 const lostCodendExp: lostCodend = new lostCodend();
-                expansionParams = { currCatch };
-                currCatch = cloneDeep(lostCodendExp.expand(expansionParams));
+                // expansionParams = { currCatch };
+                currCatch = cloneDeep(lostCodendExp.expand({ currCatch }));
             }
 
             // any review/audit catch in a general grouping that needs to be expanded to specific members?
