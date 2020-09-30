@@ -63,8 +63,9 @@ export async function catchEvaluator(tripNum: string) {
             }
             // then write all tripCatch docs to results doc
             let result: any = await format(logbook, thirdParty, nwfscAudit);
+            const tripNumVal = parseInt(tripNum);
             const existingDoc = await masterDev.view('TripsApi', 'expansion_results',
-                { "key": tripNum, "include_docs": true });
+                { "key": tripNumVal, "include_docs": true });
 
             if (existingDoc.rows.length !== 0) {
                 let currDoc = existingDoc.rows[0].doc;
@@ -72,6 +73,7 @@ export async function catchEvaluator(tripNum: string) {
                 set(result, '_id', currDoc._id);
                 set(result, '_rev', currDoc._rev);
                 set(result, 'updateDate', moment().format());
+                set(result, 'createDate', currDoc.createDate);
             } else {
                 set(result, 'createDate', moment().format());
             }
@@ -127,7 +129,7 @@ export async function catchEvaluator(tripNum: string) {
             const mixedGroupings: any = await getMixedGroupingInfo();
             const mixGroupingKeys: string[] = Object.keys(mixedGroupings);
             if (flattenedCatch.find((row: any) => mixGroupingKeys.includes(row.speciesCode.toString())) && ['thirdParty', 'nwfscAudit'].includes(currCatch.source)) {
-                console.log('selective discards');
+                console.log('selective discards found');
                 const selectiveDiscardsExp: selectiveDiscards = new selectiveDiscards();
                 currCatch = cloneDeep(selectiveDiscardsExp.expand({ currCatch, logbook, mixedGroupings }));
             }

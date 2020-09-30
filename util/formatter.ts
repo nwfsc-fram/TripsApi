@@ -49,7 +49,7 @@ async function catchToHaul(catchVals: Catches) {
 
             const speciesCode = parseInt(catchVal.speciesCode) ? parseInt(catchVal.speciesCode) : catchVal.speciesCode;
             // lookup code to get pacfinSpeciesCode, wcgopSpeciesCode, and docId
-            const codeLookup = await masterDev.view('em-views', 'groupings-and-alias-by-wcem',
+            const codeLookup = await masterDev.view('em-views', 'wcgopCode-to-pacfinCode-map',
                 { "key": speciesCode, "include_docs": false });
             if (typeof codeLookup.rows[0].key === 'string') {
                 pacfinSpeciesCode = codeLookup.rows[0].key;
@@ -85,16 +85,17 @@ async function catchToHaul(catchVals: Catches) {
 
 async function setIFQHaulLevelData(catchResults: any[]) {
     // get ifq grouping name for each record based speciesCode and lat and long
-    for (let i = 0; i < catchResults.length; i++) {
-        const ifqGroupings = await masterDev.view('Ifq', 'wcgop-codes-to-ifq-grouping',
-            { "key": catchResults[i].wcgopSpeciesCode, "include_docs": true });
+    const ifqHaulLevelData: any[] = [];
+    for (const catchResult of catchResults) {
+        const ifqGroupings = await masterDev.view('Ifq', 'speciesCode-to-ifq-grouping',
+            { "key": catchResult.wcgopSpeciesCode, "include_docs": true });
         if (ifqGroupings.rows.length > 1) {
             let groupName: string = '';
             for (const ifqGrouping of ifqGroupings.rows) {
                 const lowerLat = ifqGrouping.doc.regulationAreas[0].lowerLatitude;
                 const upperLat = ifqGrouping.doc.regulationAreas[0].upperLatitude;
-                const startLat = catchResults[i].startLatitude;
-                const endLat = catchResults[i].endLatitude;
+                const startLat = catchResult.startLatitude;
+                const endLat = catchResult.endLatitude;
                 
                 if (lowerLat && upperLat && startLat > lowerLat && endLat > lowerLat && startLat < upperLat && endLat < upperLat) {
                     groupName = ifqGrouping.value;
@@ -104,24 +105,26 @@ async function setIFQHaulLevelData(catchResults: any[]) {
                     groupName = ifqGrouping.value;
                 }
             }
-            groupName = groupName.length === 0 ? 'No ifq group found' : groupName;
-            set(catchResults[i], 'ifqGrouping', groupName);
+            if (groupName.length !== 0) {
+                catchResult.ifqGrouping = groupName;
+                ifqHaulLevelData.push(catchResult);
+            }
         } else {
-            // TODO figure out how to handle cases when species don't match up
-            // to an ifq group
-            const ifqGroupName = ifqGroupings.rows[0] && ifqGroupings.rows[0].value ? ifqGroupings.rows[0].value : 'No ifq group found';
-            set(catchResults[i], 'ifqGrouping', ifqGroupName);
+            if (ifqGroupings.rows[0] && ifqGroupings.rows[0].value) {
+                catchResult.ifqGrouping = ifqGroupings.rows[0].value;
+                ifqHaulLevelData.push(catchResult);
+            }
         }
     }
 
     // agg at haul level by ifqGrouping and disposition
-    const uniqHauls = uniqBy(catchResults, (catchResult) => {
+    const uniqHauls = uniqBy(ifqHaulLevelData, (catchResult) => {
         return catchResult.ifqGrouping + catchResult.disposition + catchResult.haulNum
     })
     const resultHauls = [];
     for (const haul of uniqHauls) {
         let initWeight = 0;
-        const grouping = catchResults.filter((haulVal) =>
+        const grouping = ifqHaulLevelData.filter((haulVal) =>
             haulVal.ifqGrouping === haul.ifqGrouping && haulVal.disposition === haul.disposition && haulVal.haulNum === haul.haulNum
         );
         const totalWeight = grouping.reduce((accumulator, currentValue) => {
