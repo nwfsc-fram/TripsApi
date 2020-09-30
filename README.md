@@ -34,7 +34,7 @@ The model is stored in the openapi.yaml file.
 
 Dev endpoint: https://nwcdevmeow1.nwfsc.noaa.gov:9004/api/v1/trips
 
-Prod endpoint: https://www.nwfsc.noaa.gov/trips/api/v1/login
+Prod endpoint: https://www.webapps.nwfsc.noaa.gov/trips/api/v1/login
 
 3. Make a post request to the login api `https://localhost:3000/api/v1/login` to get a auth token for future requests. In the body section select raw and format should be set to JSON then fill in the following:
 ```
