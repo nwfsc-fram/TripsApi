@@ -10,12 +10,12 @@ import { format } from './formatter';
 import * as moment from 'moment';
 import { getMixedGroupingInfo } from './getMixedGroupings';
 
-export async function catchEvaluator(tripNum: string) {
+export async function catchEvaluator(tripNum: number) {
     //  wait for a while to be sure data is fully submitted to couch
     setTimeout(async () => {
 
         // get trip
-        const trip = await masterDev.view('TripsApi', 'all_api_trips', { "reduce": false, "key": parseInt(tripNum, 10), "include_docs": true }).then((body) => {
+        const trip = await masterDev.view('TripsApi', 'all_api_trips', { "reduce": false, "key": tripNum, "include_docs": true }).then((body) => {
             if (body.rows.length > 0) {
                 return body.rows.map((row) => row.doc)[0];
             } else {
@@ -29,7 +29,7 @@ export async function catchEvaluator(tripNum: string) {
         let fishTickets = [];
 
         // get catch docs
-        await masterDev.view('TripsApi', 'all_api_catch', { "reduce": false, "key": parseInt(tripNum, 10), "include_docs": true }).then((body) => {
+        await masterDev.view('TripsApi', 'all_api_catch', { "reduce": false, "key": tripNum, "include_docs": true }).then((body) => {
             if (body.rows.length > 0) {
                 const docs = body.rows.map((row) => row.doc);
                 for (const doc of docs) {
@@ -63,9 +63,8 @@ export async function catchEvaluator(tripNum: string) {
             }
             // then write all tripCatch docs to results doc
             let result: any = await format(logbook, thirdParty, nwfscAudit);
-            const tripNumVal = parseInt(tripNum);
             const existingDoc = await masterDev.view('TripsApi', 'expansion_results',
-                { "key": tripNumVal, "include_docs": true });
+                { "key": tripNum, "include_docs": true });
 
             if (existingDoc.rows.length !== 0) {
                 let currDoc = existingDoc.rows[0].doc;
