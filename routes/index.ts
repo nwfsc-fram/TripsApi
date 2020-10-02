@@ -28,13 +28,10 @@ import { resolve } from 'path';
 import { validateJwtRequest } from '../get-user.middleware';
 import { getFishTicket, fakeDBTest } from '../util/oracle_routines';
 import { catchEvaluator } from '../util/trip-functions';
-import { Catches, sourceType, ResponseCatchTypeName } from '@boatnet/bn-models';
-import { runInNewContext } from 'vm';
+import { Catches, sourceType } from '@boatnet/bn-models';
 import { set } from 'lodash';
 
 import { stringParser } from '../util/string-parser';
-
-import { head, header, nav, lookupTables, instructionsContent, programContent, docsContent, css, end } from './docs-content';
 
 let token = '';
 export let key = '';
@@ -202,24 +199,25 @@ const newTrip = async (req, res) => {
 }
 
 const getTrip = async (req, res) => {
-    await masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "key": parseInt(req.params.tripNum, 10), "include_docs": true}).then((body) => {
+    const tripNum = parseInt(req.params.tripNum, 10)
+    await masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "key": tripNum, "include_docs": true}).then((body) => {
         if ( body.rows.length > 0 ) {
             res.json(body.rows[0].doc);
         } else {
-            res.send('Doc with specified tripNum not found')
+            res.send('Doc with tripNum: ' + tripNum + ' not found')
         }
     })
 }
 
 const updateTrip = async (req, res) => {
     if (req.headers['content-type'] == "application/xml") { stringParser(req); }
-    const existing = await masterDev.get(req.body._id)
-    if (existing.tripNum === req.body.tripNum ) {
+    const existing = await masterDev.get(req.body._id);
+    if (existing.tripNum === parseInt(req.params.tripNum, 10) ) {
         masterDev.bulk({docs: [req.body]}).then( (body) => {
             res.json(body);
         })
     } else {
-        res.status(500).send('Trip ID can not be changed.')
+        res.status(500).send('Trip ID:' + req.body._id + ' not found.')
     }
 }
 
@@ -237,28 +235,35 @@ const getCatch = async (req, res) => {
 const newCatch = async (req, res) => {
     if (req.headers['content-type'] == "application/xml") { stringParser(req); }
     setTimeout(async () => {
-        if (req.params.tripNum && req.body.tripNum && req.body.source && req.body.hauls) {
+        const tripNum = parseInt(req.params.tripNum, 10);
+        if (tripNum && req.body.source && req.body.hauls) {
             const newTrip = req.body;
             newTrip.type = 'trips-api-catch';
             newTrip.createdDate = moment().format();
 
-            const tripDocs = await masterDev.view('TripsApi', 'all_api_trips', { "key": parseInt(req.params.tripNum, 10) });
+            const tripDocs = await masterDev.view('TripsApi', 'all_api_trips', { "key": tripNum });
             if (tripDocs.rows.length === 0 ) {
-                res.status(500).send('a trip with the supplied tripNum does not exist, please submit trip before submitting catch');
+                res.status(500).send('Trip doc with tripNum: ' + tripNum + ' does not exist. ' +
+                    'Please create a valid tripDoc before submitting catchDoc.');
             } else {
-                const catchDocs = await masterDev.view('TripsApi', 'all_api_catch', { "key": parseInt(req.params.tripNum, 10), "include_docs": true });
-                console.log(catchDocs)
-                const sourceTypes: string[] = jp.query(catchDocs, '$..source');
-                if (sourceTypes.includes(req.body.source)) {
-                    res.status(500).send('trip num ' + req.params.tripNum + ' catch of type ' + req.body.source + ' already exists. ' +
-                        'Please submit updated data via PUT tripCatch request');
+                const catchDocs = await masterDev.view('TripsApi', 'all_api_catch', { "key": tripNum, "include_docs": true });
+                const source: string[] = jp.query(catchDocs, '$..source');
+                if (source.includes(req.body.source)) {
+                    res.status(500).send('Catch doc with tripNum:' + tripNum + ' already exists. ' +
+                        'Please submit updated data via tripCatch PUT request');
                 } else {
-                    masterDev.bulk({ docs: [newTrip] }).then(
-                        () => {
-                            catchEvaluator(req.params.tripNum);
-                            res.status('200').send('catch data saved');
-                        }
-                    );
+                    if ([sourceType.thirdParty, sourceType.nwfscAudit, sourceType.logbook].includes(req.body.source)) {
+                        masterDev.bulk({ docs: [newTrip] }).then(
+                            () => {
+                                catchEvaluator(tripNum);
+                                res.status('200').send('Catch doc with tripNum:' + tripNum + ' saved successfully.');
+                            }
+                        );
+                    } else {
+                        res.status(500).send('Invalid source: ' + req.body.source + '. Accepted source values are:' +
+                            'thirdParty, nwfscAudit, and logbook. Please correct source and try again.')
+                    }
+
                 }
             }
         } else {
@@ -269,11 +274,11 @@ const newCatch = async (req, res) => {
 
 const updateCatch = async (req, res) => {
     if (req.headers['content-type'] == "application/xml") { stringParser(req); }
-    const tripNum = req.body.tripNum;
-    const catchDocs = await masterDev.view('TripsApi', 'all_api_catch', { "key": parseInt(tripNum, 10), "include_docs": true });
+    const tripNum = parseInt(req.params.tripNum, 10);
+    const catchDocs = await masterDev.view('TripsApi', 'all_api_catch', { "key": tripNum, "include_docs": true });
     if (catchDocs.rows.length === 0) {
-        res.status(500).send('Catch doc with tripNum ' + tripNum + ' does not exist.');
-    } else {
+        res.status(500).send('Catch doc with tripNum ' + tripNum + ' does not exist.' +
+            'Please create a valid tripDoc before submitting catchDoc.');    } else {
         // loop through matching catchDocs and get the one with the same sourceType
         for (const row of catchDocs.rows) {
             if (req.body.source === row.doc.source) {
@@ -282,10 +287,11 @@ const updateCatch = async (req, res) => {
                 set(updateDoc, '_id', currDoc._id);
                 set(updateDoc, '_rev', currDoc._rev);
                 set(updateDoc, 'type', 'trips-api-catch');
+                set(updateDoc, 'createdDate', currDoc.createdDate);
                 set(updateDoc, 'updateDate', moment().format());
                 masterDev.bulk({ docs: [updateDoc] }).then((body) => {
-                    catchEvaluator(req.params.tripNum);
-                    res.status(200).send('catch data updated');
+                    catchEvaluator(tripNum);
+                    res.status(200).send('Catch doc with tripNum:' + tripNum + ' successfully updated!');
                 })
             }
         }

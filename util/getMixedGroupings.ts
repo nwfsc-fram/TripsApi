@@ -39,5 +39,3 @@ export async function getMixedGroupingInfo() {
     }
     return mixedGroupingsMap;
 }
-
-getMixedGroupingInfo();

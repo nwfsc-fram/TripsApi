@@ -4,18 +4,18 @@ const masterDev = couchDB.db.use('master-dev');
 const jp = require('jsonpath');
 import { cloneDeep, flattenDeep, set } from 'lodash';
 import { getFishTicket } from './oracle_routines';
-import { unsortedCatch, lostCodend, selectiveDiscards, ExpansionParameters, discardMortalityRates, missingWeight, lostFixedGear } from '@boatnet/bn-expansions';
+import { unsortedCatch, lostCodend, selectiveDiscards, discardMortalityRates, missingWeight, lostFixedGear } from '@boatnet/bn-expansions';
 import { Catches } from '@boatnet/bn-models';
 import { format } from './formatter';
 import * as moment from 'moment';
 import { getMixedGroupingInfo } from './getMixedGroupings';
 
-export async function catchEvaluator(tripNum: string) {
+export async function catchEvaluator(tripNum: number) {
     //  wait for a while to be sure data is fully submitted to couch
     setTimeout(async () => {
 
         // get trip
-        const trip = await masterDev.view('TripsApi', 'all_api_trips', { "reduce": false, "key": parseInt(tripNum, 10), "include_docs": true }).then((body) => {
+        const trip = await masterDev.view('TripsApi', 'all_api_trips', { "reduce": false, "key": tripNum, "include_docs": true }).then((body) => {
             if (body.rows.length > 0) {
                 return body.rows.map((row) => row.doc)[0];
             } else {
@@ -29,7 +29,7 @@ export async function catchEvaluator(tripNum: string) {
         let fishTickets = [];
 
         // get catch docs
-        await masterDev.view('TripsApi', 'all_api_catch', { "reduce": false, "key": parseInt(tripNum, 10), "include_docs": true }).then((body) => {
+        await masterDev.view('TripsApi', 'all_api_catch', { "reduce": false, "key": tripNum, "include_docs": true }).then((body) => {
             if (body.rows.length > 0) {
                 const docs = body.rows.map((row) => row.doc);
                 for (const doc of docs) {
@@ -72,6 +72,7 @@ export async function catchEvaluator(tripNum: string) {
                 set(result, '_id', currDoc._id);
                 set(result, '_rev', currDoc._rev);
                 set(result, 'updateDate', moment().format());
+                set(result, 'createDate', currDoc.createDate);
             } else {
                 set(result, 'createDate', moment().format());
             }
@@ -83,7 +84,6 @@ export async function catchEvaluator(tripNum: string) {
         async function evaluatecurrCatch(currCatch: Catches) {
             let flattenedCatch: any[] = jp.query(currCatch, '$..catch');
             flattenedCatch = flattenDeep(flattenedCatch);
-            let expansionParams: ExpansionParameters = { currCatch };
 
             // does any catch have a length and or a count but not a weight?
             if (flattenedCatch.find((row: any) => (row.length || row.count) && !row.weight)) {
@@ -97,8 +97,7 @@ export async function catchEvaluator(tripNum: string) {
             if (flattenedCatch.find((row: any) => ['PHLB', '101', 'LCOD', '603', 'SABL', '203'].includes(row.speciesCode.toString()))) {
                 console.log('mortality rate species found');
                 const dmr: discardMortalityRates = new discardMortalityRates();
-                expansionParams = { currCatch };
-                currCatch = cloneDeep(dmr.expand(expansionParams));
+                currCatch = cloneDeep(dmr.expand({ currCatch }));
             };
 
             // is any catch unsorted catch? ('UNST' or '999' speciesCode) (Net Bleed)?
@@ -108,8 +107,7 @@ export async function catchEvaluator(tripNum: string) {
             ) {
                 console.log('unsorted catch (net bleed) found');
                 const unsortedCatchExp: unsortedCatch = new unsortedCatch();
-                expansionParams = { currCatch, fishTickets };
-                currCatch = cloneDeep(unsortedCatchExp.expand(expansionParams));
+                currCatch = cloneDeep(unsortedCatchExp.expand({ currCatch, fishTickets }));
             }
 
             // any fixed-gear haul have lost gear (gearLost > 0 )?
@@ -123,17 +121,15 @@ export async function catchEvaluator(tripNum: string) {
             if (currCatch.hauls.find((row: any) => row.isCodendLost && ['1', '2', '3', '4', '5'].includes(row.gearTypeCode))) {
                 console.log('lost trawl gear codend found');
                 const lostCodendExp: lostCodend = new lostCodend();
-                // expansionParams = { currCatch };
                 currCatch = cloneDeep(lostCodendExp.expand({ currCatch }));
             }
 
             // any review/audit catch in a general grouping that needs to be expanded to specific members?
             const mixedGroupings: any = await getMixedGroupingInfo();
-            const mixGroupingKeys: any = Object.keys(mixedGroupings);
+            const mixGroupingKeys: string[] = Object.keys(mixedGroupings);
             if (flattenedCatch.find((row: any) => mixGroupingKeys.includes(row.speciesCode.toString())) && ['thirdParty', 'nwfscAudit'].includes(currCatch.source)) {
-                console.log('selective discards');
+                console.log('selective discards found');
                 const selectiveDiscardsExp: selectiveDiscards = new selectiveDiscards();
-                // expansionParams = { currCatch, logbook, mixedGroupings };
                 currCatch = cloneDeep(selectiveDiscardsExp.expand({ currCatch, logbook, mixedGroupings }));
             }
             return currCatch;
