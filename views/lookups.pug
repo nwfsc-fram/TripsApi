@@ -23,11 +23,19 @@ html(lang='en')
 body(class='container')
     include header.pug
     include nav.pug
-    h5 Lookups
+    div(style="background-color: #007EC6; padding: 10px")
+        h5(class="inst-desc" style="color: white") Lookups
+        ul(style="list-style: none; color: white; text-decoration: none" class="row")
+            each val in emLookupTypes
+                li
+                    a(href="#" + val.lookup style="color: white; margin: 10px")
+                        span=val.title
 
     each val in emLookupTypes
         - var rowLookups = lookups.rows.filter( (couchRow) => couchRow.key === val.lookup ).sort((a,b) => (a.value[0]).localeCompare(b.value[0]))
-        h5= 'field: ' + val.title
+        h5(id=val.lookup)
+            span field:&nbsp;
+            span=val.title
         table(style="width: 70%; border: 2px solid black; border-collapse: collapse")
             tr
                 th Lookup
@@ -41,3 +49,5 @@ body(class='container')
                     td=val.usage
                     td=val.level
         br
+
+

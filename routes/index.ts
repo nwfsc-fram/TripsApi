@@ -22,6 +22,9 @@ const DEFAULT_APPLICATION_NAME = 'BOATNET_OBSERVER';
 
 const moment = require('moment');
 
+const path = require('path');
+import { resolve } from 'path';
+
 import { validateJwtRequest } from '../get-user.middleware';
 import { getFishTicket, fakeDBTest } from '../util/oracle_routines';
 import { catchEvaluator } from '../util/trip-functions';
@@ -71,12 +74,16 @@ const login = async (req, res) => {
         if (err) {
             console.log(err);
         }
-        token = body.token;
 
-        res.send({
-            "token": token
-        })
+        if (body.token.length > 0) {
+            token = body.token;
 
+            res.send({
+                "token": token
+            })
+        } else {
+            res.status(500).send(err);
+        }
     })
 
 }
@@ -160,7 +167,7 @@ const newCruise = async (req, res) => {
             )
           });
     } else {
-        res.status(500).send('vesselID is required to create a new trip.')
+        res.status(500).send('vesselID is required to create a new cruise.')
     }
 }
 
@@ -228,7 +235,7 @@ const getCatch = async (req, res) => {
 const newCatch = async (req, res) => {
     if (req.headers['content-type'] == "application/xml") { stringParser(req); }
     setTimeout(async () => {
-        const tripNum = parseInt(req.params.tripNum, 10);
+        const tripNum: number = parseInt(req.params.tripNum, 10);
         if (tripNum && req.body.source && req.body.hauls) {
             const newTrip = req.body;
             newTrip.type = 'trips-api-catch';
@@ -243,7 +250,7 @@ const newCatch = async (req, res) => {
                 const source: string[] = jp.query(catchDocs, '$..source');
                 if (source.includes(req.body.source)) {
                     res.status(500).send('Catch doc with tripNum:' + tripNum + ' already exists. ' +
-                        'Please submit updated data via tripCatch put request');
+                        'Please submit updated data via tripCatch PUT request');
                 } else {
                     if ([sourceType.thirdParty, sourceType.nwfscAudit, sourceType.logbook].includes(req.body.source)) {
                         masterDev.bulk({ docs: [newTrip] }).then(
@@ -267,7 +274,7 @@ const newCatch = async (req, res) => {
 
 const updateCatch = async (req, res) => {
     if (req.headers['content-type'] == "application/xml") { stringParser(req); }
-    const tripNum = parseInt(req.params.tripNum, 10);
+    const tripNum: number = parseInt(req.params.tripNum, 10);
     const catchDocs = await masterDev.view('TripsApi', 'all_api_catch', { "key": tripNum, "include_docs": true });
     if (catchDocs.rows.length === 0) {
         res.status(500).send('Catch doc with tripNum ' + tripNum + ' does not exist.' +
@@ -297,7 +304,8 @@ const getLookups = async (req, res) => {
 }
 
 const getInstructions = async (req, res) => {
-    res.render('instructions');
+    const exampleLogbook = await masterDev.view('TripsApi', 'all_api_catch', {include_docs: true, reduce: false, key: 100001})
+    res.render('instructions-main', {path: path.resolve(__dirname.replace('\\routes', '')), exampleLogbook: exampleLogbook.rows[0].doc});
 };
 
 const getProgram = async (req, res) => {

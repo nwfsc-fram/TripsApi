@@ -1,0 +1,50 @@
+h6(id="catchDataStructure") Catch Data Structure
+
+p(class="inst-desc")
+    | EM review and logbook submissions share a common structure:
+    | trip details including a hauls (sets) array,
+    | each haul containing haul details and a catch array,
+    | with each catch containing catch details:
+
+p(class="inst-desc" style="background-color: lightblue; padding: 10px")
+    | trip details
+    br
+    | &nbsp;&nbsp;hauls [
+    br
+    | &nbsp;&nbsp;&nbsp;&nbsp;haul details
+    br
+    | &nbsp;&nbsp;&nbsp;&nbsp;catch [
+    br
+    | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;catch details
+    br
+    | &nbsp;&nbsp;&nbsp;&nbsp;]
+    br
+    | ]
+
+h6(id="submitLogbook") Submit Logbook Data
+p(class="inst-desc") Transcribed logbook data is submitted via POST request to&nbsp;
+    b /tripCatch[tripNum]&nbsp;
+    | Note: tripNum is required in the path.  Logbook data belongs in the request body (ideally in JSON format, but XML is also supported).  The value of "source" the request body should be "logbook".  Alternately, logbook data can be entered via the Boatnet E Logbook - see e logbook section.
+    br
+    iframe(scrolling="no" src="./api-docs/#/Catch/post_tripCatch__tripNum_" style="width: 100%; height: 850px")
+
+h6(id="updateLogbook") Update Logbook Data
+p(class="inst-desc") Updated logbook data is submitted via PUT request to&nbsp;
+    b /tripCatch[tripNum]&nbsp;
+    br
+    span Note: updated submissions should include "resubmission": true
+    iframe(scrolling="no" src="./api-docs/#/Catch/put_tripCatch__tripNum_" style="width: 100%; height: 850px")
+
+h6(id="submitReview") Submit EM Review
+p(class="inst-desc") EM review summary data is submitted via POST request to&nbsp;
+    b /tripCatch[tripNum]&nbsp;
+    | Note: tripNum is required in the path.  Logbook data belongs in the request body (ideally in JSON format, but XML is also supported).  The value of "source" the request body should be "thirdParty".
+    br
+    iframe(scrolling="no" src="./api-docs/#/Catch/post_tripCatch__tripNum_" style="width: 100%; height: 850px")
+
+h6(id="updateReview") Update EM Review
+p(class="inst-desc") Updated review data is submitted via PUT request to&nbsp;
+    b /tripCatch[tripNum]&nbsp;
+    br
+    span Note: updated submissions should include "resubmission": true
+    iframe(scrolling="no" src="./api-docs/#/Catch/put_tripCatch__tripNum_" style="width: 100%; height: 850px")
