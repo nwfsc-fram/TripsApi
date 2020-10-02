@@ -235,7 +235,7 @@ const getCatch = async (req, res) => {
 const newCatch = async (req, res) => {
     if (req.headers['content-type'] == "application/xml") { stringParser(req); }
     setTimeout(async () => {
-        const tripNum = parseInt(req.params.tripNum, 10);
+        const tripNum: number = parseInt(req.params.tripNum, 10);
         if (tripNum && req.body.source && req.body.hauls) {
             const newTrip = req.body;
             newTrip.type = 'trips-api-catch';
@@ -274,7 +274,7 @@ const newCatch = async (req, res) => {
 
 const updateCatch = async (req, res) => {
     if (req.headers['content-type'] == "application/xml") { stringParser(req); }
-    const tripNum = parseInt(req.params.tripNum, 10);
+    const tripNum: number = parseInt(req.params.tripNum, 10);
     const catchDocs = await masterDev.view('TripsApi', 'all_api_catch', { "key": tripNum, "include_docs": true });
     if (catchDocs.rows.length === 0) {
         res.status(500).send('Catch doc with tripNum ' + tripNum + ' does not exist.' +
