@@ -1,0 +1,17 @@
+h6(id="datesAndTimes") dates and times
+p(class="inst-desc") dates and times are always bundled as dateTime values in ISO8601 format (YYYY-MM-DDThh:mm:ssZ)
+    | eg. 2020-09-11T15:00:00Z. Seconds may always be 00.  When time is unknown, time value should be 00:00:00.
+
+h6(id="lostGear") Lost Gear
+P(class="inst-desc") Lost Trawl gear
+    br
+    | &nbsp;&nbsp;&nbsp;&nbsp;include "isLostCodend": true
+    br
+    | Lost Fixed Gear:
+    br
+    | &nbsp;&nbsp;&nbsp;&nbsp;include "gearSet": [number of hooks or pots set], include "gearLost":[number of hooks or pots lost]
+    br
+    | &nbsp;&nbsp;&nbsp;&nbsp;if entire set/string is lost, "gearSet": [number of hooks or pots set], "gearLost": [number of hooks or pots set]
+
+h6(id="screenshotSubmission") Screenshot Submission
+p(class="inst-desc") TBD

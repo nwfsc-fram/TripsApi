@@ -1,0 +1,18 @@
+h6(id="tripNumber") Get Trip Number (tripNum)
+
+p(class="inst-desc") All em trips receive a 6 digit trip number which must be included with any catch (logbook data or em review summary) sumbission.
+    br
+    | In virtually all cases, em providers will already be aware of the trip number via information obtained from the Boatnet Observer-Web app (described INSERT LINK here).
+    br
+    p(class="inst-desc") In the rare event it's necessary to search for a trip number, the Trips API exposes GET /trips which accepts a vesselId query string.  The response will contain an array of brief trip summaries for the given vesselId.  From this, the user should be able to locate the trip number for the trip that took place on the dates in question.
+    iframe(class="inst-desc" scrolling="no" src="./api-docs/#/Trips/get_trips_" style="width: 100%; height: 1250px")
+
+h6(id="submitTrip") Submit Trip
+
+p(class="inst-desc") If a trip number (tripNum) for a given vessel Id and date range can not be found, a trip must be created before logbook data and EM review data can be submitted.  It's anticipated that vessel captains will create a trip, and attach a logbook capture to that trip to submit - so the trip and trip number really should already exist - it's important to note though for testing purposes - logbook and em review data can not be submitted without a valid trip existing.
+
+p(class="inst-desc") i.e. if an em review is submitted with tripNum: 123456, and no trip record containing that tripNum exists, the Trips API will reject the em review submission with the 500 error "a trip with the supplied tripNum does not exist, please submit trip before submitting catch".
+
+p(class="inst-desc") Trips are submitted via POST request to /trips.  The response will include a tripNum now associated with the submitted trip.
+
+iframe(class="inst-desc" scrolling="no" src="https://localhost:3000/api-docs/#/Trips/post_trips_" style="width: 100%; height: 1070px")

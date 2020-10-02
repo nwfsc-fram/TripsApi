@@ -22,6 +22,9 @@ const DEFAULT_APPLICATION_NAME = 'BOATNET_OBSERVER';
 
 const moment = require('moment');
 
+const path = require('path');
+import { resolve } from 'path';
+
 import { validateJwtRequest } from '../get-user.middleware';
 import { getFishTicket, fakeDBTest } from '../util/oracle_routines';
 import { catchEvaluator } from '../util/trip-functions';
@@ -74,12 +77,16 @@ const login = async (req, res) => {
         if (err) {
             console.log(err);
         }
-        token = body.token;
 
-        res.send({
-            "token": token
-        })
+        if (body.token.length > 0) {
+            token = body.token;
 
+            res.send({
+                "token": token
+            })
+        } else {
+            res.status(500).send(err);
+        }
     })
 
 }
@@ -163,7 +170,7 @@ const newCruise = async (req, res) => {
             )
           });
     } else {
-        res.status(500).send('vesselID is required to create a new trip.')
+        res.status(500).send('vesselID is required to create a new cruise.')
     }
 }
 
@@ -235,15 +242,16 @@ const newCatch = async (req, res) => {
             newTrip.type = 'trips-api-catch';
             newTrip.createdDate = moment().format();
 
-            const tripDocs = await masterDev.view('TripsApi', 'all_api_trips', { "key": req.params.tripNum });
+            const tripDocs = await masterDev.view('TripsApi', 'all_api_trips', { "key": parseInt(req.params.tripNum, 10) });
             if (tripDocs.rows.length === 0 ) {
-                res.status(500).send('tripNum does not exist');
+                res.status(500).send('a trip with the supplied tripNum does not exist, please submit trip before submitting catch');
             } else {
-                const catchDocs = await masterDev.view('TripsApi', 'all_api_catch', { "key": req.params.tripNum, "include_docs": true });
+                const catchDocs = await masterDev.view('TripsApi', 'all_api_catch', { "key": parseInt(req.params.tripNum, 10), "include_docs": true });
+                console.log(catchDocs)
                 const sourceTypes: string[] = jp.query(catchDocs, '$..source');
                 if (sourceTypes.includes(req.body.source)) {
-                    res.status(500).send('trip num ' + req.params.tripNum + ' already exists. ' +
-                        'Please submit updated data via put tripCatch request');
+                    res.status(500).send('trip num ' + req.params.tripNum + ' catch of type ' + req.body.source + ' already exists. ' +
+                        'Please submit updated data via PUT tripCatch request');
                 } else {
                     masterDev.bulk({ docs: [newTrip] }).then(
                         () => {
@@ -262,7 +270,7 @@ const newCatch = async (req, res) => {
 const updateCatch = async (req, res) => {
     if (req.headers['content-type'] == "application/xml") { stringParser(req); }
     const tripNum = req.body.tripNum;
-    const catchDocs = await masterDev.view('TripsApi', 'all_api_catch', { "key": tripNum, "include_docs": true });
+    const catchDocs = await masterDev.view('TripsApi', 'all_api_catch', { "key": parseInt(tripNum, 10), "include_docs": true });
     if (catchDocs.rows.length === 0) {
         res.status(500).send('Catch doc with tripNum ' + tripNum + ' does not exist.');
     } else {
@@ -290,7 +298,8 @@ const getLookups = async (req, res) => {
 }
 
 const getInstructions = async (req, res) => {
-    res.render('instructions');
+    const exampleLogbook = await masterDev.view('TripsApi', 'all_api_catch', {include_docs: true, reduce: false, key: 100001})
+    res.render('instructions-main', {path: path.resolve(__dirname.replace('\\routes', '')), exampleLogbook: exampleLogbook.rows[0].doc});
 };
 
 const getProgram = async (req, res) => {
