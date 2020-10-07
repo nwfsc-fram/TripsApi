@@ -1,23 +1,21 @@
 h6(id="httpsRequired") https Required
 p(class="inst-desc") The Trips API will not respond to http requests, please be sure all requests are prefixed with https.</p \
 h6(id="login") Login
-p(class="inst-desc") A Boatnet login is required to login to the Trips API.  If you don't have one yet, you can&nbsp;
+p(class="inst-desc") A Boatnet login is required to login to the Trips API. If you don't have one yet, you can&nbsp;
     a(href="mailto:nmfs.nwfsc.fram.data.team@noaa.gov" rel="noopener noreferrer" class="link") send an email to the Fram Data Team
-    | . note: you'll need to have at least applied to be an EM provider to be granted a Boatnet login.
+    | .
+    br
+    | note: you'll need to have at least applied to be an EM provider to be granted a Boatnet login.
     br
     br
-    | Login via POST to&nbsp;
-    a(href='./login')
-        span=path
-        span /login&nbsp;
-    span with your username and password as a JSON object in the request body:
+    | Login via POST to /login - with your username and password as a JSON object in the request body:
     br
     iframe(scrolling="no" src="./api-docs/#/Login/postLogin" style="width: 100%; height: 840px")
 
     p(class="inst-desc") Successful login will return a JWT (JSON Web Token).
         |  Use the received token as authorization for subsequent requests
         | to the Trips Api:
-    div(class="inst-desc" style="background-color: lightgrey; padding: 10px; width: 300px")
+    div(class="inst-desc" style="background-color: lightblue; padding: 10px;")
         span {
         br
         | &nbsp;&nbsp;...
