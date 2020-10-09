@@ -30,7 +30,7 @@ The model is stored in the openapi.yaml file.
 ## Run
 1. Run `yarn start`
 
-2. Make sure the dev-auth-server is up. To launch navigate to the boatnet/app/dev-auth-server directory and type 'yarn serve'
+2. Make sure the dev-auth-server is up. To launch navigate to the boatnet/app/dev-auth-server directory and type `yarn serve`
 
 3. Download [Postman](https://www.postman.com/) you will use this to make API requests. Note: if you go to the localhost:xxx on your browser you'll see `Unable to locate the requested resource` this is normal, your requests must go through postman
 
