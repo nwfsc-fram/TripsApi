@@ -1,10 +1,5 @@
-const dbConfig = require('../dbConfig.json').dbConfig;
-
 const express = require('express');
 const router = express.Router();
-
-const couchDB = require('nano')(dbConfig.login);
-const masterDev = couchDB.db.use('master-dev');
 
 const utils = require('../security.utils.ts');
 const axios = require('axios');
@@ -30,8 +25,10 @@ import { getFishTicket, fakeDBTest } from '../util/oracle_routines';
 import { catchEvaluator } from '../util/trip-functions';
 import { Catches, sourceType } from '@boatnet/bn-models';
 import { set } from 'lodash';
+import { masterDev, dbConfig } from '../util/couchDB';
 
 import { stringParser } from '../util/string-parser';
+import { validateCatch } from '../util/validator';
 
 let token = '';
 export let key = '';
@@ -241,61 +238,79 @@ const newCatch = async (req, res) => {
             newTrip.type = 'trips-api-catch';
             newTrip.createdDate = moment().format();
 
+            // check trip doc for tripNum exists
             const tripDocs = await masterDev.view('TripsApi', 'all_api_trips', { "key": tripNum });
             if (tripDocs.rows.length === 0 ) {
                 res.status(500).send('Trip doc with tripNum: ' + tripNum + ' does not exist. ' +
                     'Please create a valid tripDoc before submitting catchDoc.');
-            } else {
-                const catchDocs = await masterDev.view('TripsApi', 'all_api_catch', { "key": tripNum, "include_docs": true });
-                const source: string[] = jp.query(catchDocs, '$..source');
-                if (source.includes(req.body.source)) {
-                    res.status(500).send('Catch doc with tripNum:' + tripNum + ' already exists. ' +
-                        'Please submit updated data via tripCatch PUT request');
-                } else {
-                    if ([sourceType.thirdParty, sourceType.nwfscAudit, sourceType.logbook].includes(req.body.source)) {
-                        masterDev.bulk({ docs: [newTrip] }).then(
-                            () => {
-                                catchEvaluator(tripNum);
-                                res.status('200').send('Catch doc with tripNum:' + tripNum + ' saved successfully.');
-                            }
-                        );
-                    } else {
-                        res.status(500).send('Invalid source: ' + req.body.source + '. Accepted source values are:' +
-                            'thirdParty, nwfscAudit, and logbook. Please correct source and try again.')
-                    }
-
-                }
+                return;
             }
+
+            // check whether catch doc already exists
+            const catchDocs = await masterDev.view('TripsApi', 'all_api_catch', { "key": tripNum, "include_docs": true });
+            const source: string[] = jp.query(catchDocs, '$..source');
+            if (source.includes(req.body.source)) {
+                res.status(500).send('Catch doc with tripNum:' + tripNum + ' already exists. ' +
+                    'Please submit updated data via tripCatch put request');
+                return;
+            }
+
+            // additional validation checks
+            const validationResults = await validateCatch(newTrip);
+            if (validationResults.status != 200) {
+                res.status(validationResults.status).send(validationResults.message);
+            }
+
+            // everything is good, evaluate catch doc
+            masterDev.bulk({ docs: [validationResults.catchVal] }).then(
+                () => {
+                    catchEvaluator(tripNum);
+                    res.status('200').send('Catch doc with tripNum:' + tripNum + ' saved successfully.');
+            });
         } else {
-            res.status(500).send('missing required parameters.')
+            res.status(500).send('missing required parameters.');
         }
     }, 300)
 }
 
 const updateCatch = async (req, res) => {
     if (req.headers['content-type'] == "application/xml") { stringParser(req); }
-    const tripNum: number = parseInt(req.params.tripNum, 10);
+    const tripNum = parseInt(req.params.tripNum, 10);
+
+    // check catch doc with same tripNum exist
     const catchDocs = await masterDev.view('TripsApi', 'all_api_catch', { "key": tripNum, "include_docs": true });
     if (catchDocs.rows.length === 0) {
-        res.status(500).send('Catch doc with tripNum ' + tripNum + ' does not exist.' +
-            'Please create a valid tripDoc before submitting catchDoc.');    } else {
-        // loop through matching catchDocs and get the one with the same sourceType
-        for (const row of catchDocs.rows) {
-            if (req.body.source === row.doc.source) {
-                const currDoc = row.doc;
-                const updateDoc: any = req.body;
-                set(updateDoc, '_id', currDoc._id);
-                set(updateDoc, '_rev', currDoc._rev);
-                set(updateDoc, 'type', 'trips-api-catch');
-                set(updateDoc, 'createdDate', currDoc.createdDate);
-                set(updateDoc, 'updateDate', moment().format());
-                masterDev.bulk({ docs: [updateDoc] }).then((body) => {
-                    catchEvaluator(tripNum);
-                    res.status(200).send('Catch doc with tripNum:' + tripNum + ' successfully updated!');
-                })
-            }
-        }
+        res.status(500).send('Catch doc with tripNum: ' + tripNum + ' does not exist.' +
+            'Exiting.');
+        return;
     }
+
+    // check catch doc with same tripNum and sourceCode exist
+    let couchDoc = catchDocs.rows.filter((row) => req.body.source === row.doc.source);
+    if (couchDoc.length === 0) {
+        res.status(500).send('Catch doc with tripNum: ' + tripNum + ' and source: ' + req.body.source + 
+            ' does not exist. Exiting');
+        return;
+    }
+
+    // additional validation checks
+    const validationResults = await validateCatch(req.body);
+    if (validationResults.status != 200) {
+        res.status(validationResults.status).send(validationResults.message);
+    }
+
+    // doc valid, save to couch
+    couchDoc = couchDoc[0].doc;
+    const reqDoc: any = validationResults.catchVal;
+    set(reqDoc, '_id', couchDoc._id);
+    set(reqDoc, '_rev', couchDoc._rev);
+    set(reqDoc, 'type', 'trips-api-catch');
+    set(reqDoc, 'createdDate', couchDoc.createdDate);
+    set(reqDoc, 'updateDate', moment().format());
+    masterDev.bulk({ docs: [reqDoc] }).then((body) => {
+        catchEvaluator(tripNum);
+        res.status(200).send('Catch doc with tripNum:' + tripNum + ' successfully updated!');
+    })
 }
 import * as jsonexport from "jsonexport/dist";
 

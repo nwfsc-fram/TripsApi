@@ -1,9 +1,6 @@
 import { Catches, CatchResults, ResponseCatchTypeName, Disposition, sourceType } from '@boatnet/bn-models';
 import { set, get, uniqBy } from 'lodash';
-
-const dbConfig = require('../dbConfig.json').dbConfig;
-const couchDB = require('nano')(dbConfig.login);
-const masterDev = couchDB.db.use('master-dev');
+import { masterDev } from './couchDB';
 
 export async function format(logbook: Catches, review: Catches, audit: Catches) {
     let result: CatchResults = {
