@@ -43,9 +43,9 @@ async function priorityAndProtectedChecks(currCatch: any) {
     lookupInfo = lookupInfo.rows[0].doc;
     let errors = [];
 
-    if (lookupInfo.isProtected || lookupInfo.isPriority) {
+    if (lookupInfo.isProtected || lookupInfo.isWcgopEmPriority) {
         currCatch.isProtected = lookupInfo.isProtected ? true : false;
-        currCatch.isPriority = lookupInfo.isPriority ? true : false;
+        currCatch.isWcgopEmPriority = lookupInfo.isWcgopEmPriority ? true : false;
         if (!currCatch.speciesCount) {
             errors.push({
                 type: 'Missing count',
