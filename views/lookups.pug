@@ -15,16 +15,21 @@
         {lookup: 'review-species', title: '(Review) speciesCode', usage: 'review', level: 'catch'}
     ];
 
-    var lookups=lookupResults;
+    var lookups = lookupResults;
 
 doctype html
 html(lang='en')
     head
         include head.pug
+        script.
+            var csv = !{JSON.stringify(csv)}
+        script(src='./static/helpers.js')
 
 body(class='container')
     include header.pug
+    a(class="btn btn-primary" onClick="saveFile()" style="margin: 15px; float: right") export em-lookups.csv
     include nav.pug
+
     div(style="background-color: #007EC6; padding: 10px")
         h5(class="inst-desc" style="color: white") Lookups
         ul(style="list-style: none; color: white; text-decoration: none" class="row")
@@ -32,6 +37,7 @@ body(class='container')
                 li
                     a(href="#" + val.lookup style="color: white; margin: 10px")
                         span=val.title
+
 
     each val in emLookupTypes
         - var rowLookups = lookups.rows.filter( (couchRow) => couchRow.key === val.lookup ).sort((a,b) => (a.value[0]).localeCompare(b.value[0]))
@@ -51,5 +57,3 @@ body(class='container')
                     td=val.usage
                     td=val.level
         br
-
-

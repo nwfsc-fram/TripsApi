@@ -297,10 +297,36 @@ const updateCatch = async (req, res) => {
         }
     }
 }
+import * as jsonexport from "jsonexport/dist";
 
 const getLookups = async (req, res) => {
     const lookupResults = await masterDev.view('TripsApi', 'all_em_lookups', {include_docs: false, reduce: false });
-    res.render('lookups', {lookupResults});
+    let lookupTranslations: any = {
+        'em-source': 'source',
+        'port': 'departurePort / returnPort',
+        'us-state': 'departureState / returnState',
+        'calc-weight-type': 'calcWeightType',
+        'catch-disposition': 'disposition',
+        'fishery-sector': 'fisherySector',
+        'gear-type': 'gearTypeCode',
+        'catch-handling-performance': 'catchHandlingPerformance',
+        'system-performance': 'systemPerformance',
+        'review-species': 'speciesCode (review)',
+        'logbook-species': 'speciesCode (logbook)'
+    }
+    let formatted = [];
+    for (const row of lookupResults.rows) {
+        formatted.push(
+            {
+                "type":  Object.keys(lookupTranslations).includes(row.key) ? lookupTranslations[row.key] : row.key ,
+                "description": row.value[0].replace(/,/g, ' -'),
+                "lookup": row.value[1]
+            }
+        )
+    }
+    const csv = await jsonexport(formatted);
+
+    res.render('lookups', {lookupResults, csv});
 }
 
 const getInstructions = async (req, res) => {
