@@ -30,13 +30,15 @@ The model is stored in the openapi.yaml file.
 ## Run
 1. Run `yarn start`
 
-2. Download [Postman](https://www.postman.com/) you will use this to make API requests. Note: if you go to the localhost:xxx on your browser you'll see `Unable to locate the requested resource` this is normal, your requests must go through postman
+2. Make sure the dev-auth-server is up. To launch navigate to the boatnet/app/dev-auth-server directory and type 'yarn serve'
+
+3. Download [Postman](https://www.postman.com/) you will use this to make API requests. Note: if you go to the localhost:xxx on your browser you'll see `Unable to locate the requested resource` this is normal, your requests must go through postman
 
 Dev endpoint: https://nwcdevmeow1.nwfsc.noaa.gov:9004/api/v1/trips
 
 Prod endpoint: https://www.webapps.nwfsc.noaa.gov/trips/api/v1/login
 
-3. Make a post request to the login api `https://localhost:3000/api/v1/login` to get a auth token for future requests. In the body section select raw and format should be set to JSON then fill in the following:
+4. Make a post request to the login api `https://localhost:3000/api/v1/login` to get a auth token for future requests. In the body section select raw and format should be set to JSON then fill in the following:
 ```
   {
      "username": "xxx",
@@ -45,7 +47,7 @@ Prod endpoint: https://www.webapps.nwfsc.noaa.gov/trips/api/v1/login
 ```
 <img src="./login.PNG" alt="Login">
 
-4. Before making future requests, navigate tothe Authorization section and select type: bearer token. Paste the token there and your future requests will be properly authenticated
+5. Before making future requests, navigate tothe Authorization section and select type: bearer token. Paste the token there and your future requests will be properly authenticated
 
 <img src="./token.PNG" alt="Login">
 
