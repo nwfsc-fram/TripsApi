@@ -2,7 +2,7 @@
 openapi: "3.0.0"
 info:
   title: "trips Api"
-  description: "a service to provide unique trip identifiers, and to receive trip catch (logbook and em review) submissions"
+  description: "a service to provide unique trip identifiers, and receive trip catch (logbook and em review) submissions"
   contact:
     name: "Fram Data Team"
     url: "https://www.fisheries.noaa.gov/region/west-coast"
@@ -17,8 +17,6 @@ tags:
   description: "all trips"
 - name: "Catch"
   description: "logbook data or em review"
-- name: "Screenshot"
-  description: "upload screenshots from em review"
 paths:
   /login:
     post:
@@ -40,7 +38,7 @@ paths:
               Encoded:
                 value:
                   username: "your username"
-                  passwordEnc: "dyour base64 encoded password"
+                  passwordEnc: "your base64 encoded password"
                   applicationName: "BOATNET_OBSERVER"
         required: true
       responses:
@@ -315,89 +313,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Trip"
-        "400":
-          description: "Invalid Request"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/inline_response_401"
-              example:
-                status: 400
-                message: "Invalid Request"
-      security:
-      - bearerAuth: []
-  /screenshot/{tripNum}:
-    post:
-      tags:
-      - "Screenshot"
-      description: "submit image file(s)"
-      parameters:
-      - name: "tripNum"
-        in: "path"
-        required: true
-        style: "simple"
-        explode: false
-        schema:
-          type: "number"
-        example: 100000
-      - name: "haulNum"
-        in: "query"
-        required: true
-        style: "form"
-        explode: true
-        schema:
-          type: "number"
-        example: 3
-      - name: "timeStamp"
-        in: "query"
-        required: true
-        style: "form"
-        explode: true
-        schema:
-          type: "string"
-        example: "2019-11-09T15:58:49-08:00"
-      - name: "speciesCode"
-        in: "query"
-        required: false
-        style: "form"
-        explode: true
-        schema:
-          type: "string"
-        example: "132"
-      - name: "description"
-        in: "query"
-        required: false
-        style: "form"
-        explode: true
-        schema:
-          type: "string"
-        example: "Unknown species for additional review"
-      - name: "sumbissionReason"
-        in: "query"
-        required: true
-        style: "form"
-        explode: true
-        schema:
-          type: "string"
-        example: "Species ID confirmation"
-      requestBody:
-        content:
-          multipart/form-data:
-            schema:
-              type: "object"
-              properties:
-                files:
-                  type: "array"
-                  items:
-                    type: "string"
-                    format: "binary"
-      responses:
-        "200":
-          description: "successful response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/inline_response_200_5"
         "400":
           description: "Invalid Request"
           content:
@@ -713,7 +628,7 @@ components:
           description: "Retained vs Discarded"
         fate:
           type: "string"
-          description: "Observer Discard Reason -- 11 Accidental, Incidental, 12  Drop-off, 13  Market, 14  Other, 15  Predation, 18  Market- At Dock,19 Utilized on board,16  Regulation, 17  Safety, 20  Survival"
+          description: "Observer Discard Reason -- 11 Accidental, Incidental, 12  Drop-off, 13  Market, 14  Other, 15  Predation, 18  Market- At Dock,19  Utilized on board,16  Regulation, 17  Safety, 20  Survival"
         speciesCode:
           type: "string"
           description: "WCGOP species code (3 or 4 digits)"
@@ -861,6 +776,18 @@ components:
           type: "integer"
         trip:
           type: "object"
+      example:
+        tripNum: 123456,
+        trip:
+          vesselId: 544123
+          vesselName: "Fish Master 3000"
+          departurePort: "SEQ"
+          returnPort: "SEQ"
+          departureDate: "2020-09-1T15:00:00Z"
+          returnDate: "2020-09-3T15:00:00Z"
+          fishery: "EM EFP"
+          permits: ["GF999"]
+          captain: "Bill Wilson"
     inline_response_200_4:
       type: "object"
       properties:
@@ -870,16 +797,6 @@ components:
           type: "string"
         startPort:
           type: "string"
-    inline_response_200_5:
-      type: "object"
-      properties:
-        message:
-          type: "string"
-        status:
-          type: "string"
-      example:
-        status: 200
-        message: "screenshot(s) uploaded"
   responses:
     NotFoundError:
       description: "No data found"
@@ -917,15 +834,6 @@ components:
           example:
             status: 200
             message: "catch data updated"
-    ScreenshotsUploaded:
-      description: "upload success"
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/inline_response_200_5"
-          example:
-            status: 200
-            message: "screenshots uploaded"
   securitySchemes:
     bearerAuth:
       type: "http"

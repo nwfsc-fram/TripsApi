@@ -10,6 +10,9 @@ const mailConfig = require('../dbConfig.json').mailConfig;
 
 const https = require('https');
 
+const fs = require('fs');
+const multiparty = require('multiparty');
+
 import * as pemjwk from 'pem-jwk';
 import { Request, Response, NextFunction } from 'express';
 
@@ -312,6 +315,66 @@ const updateCatch = async (req, res) => {
         res.status(200).send('Catch doc with tripNum:' + tripNum + ' successfully updated!');
     })
 }
+
+const saveScreenshot = async (req, res) => {
+    if (!req.params.tripNum || !req.query.haulNum || !req.query.timeStamp || !req.query.submissionReason) {
+        res.status(500).send('submission rejected - missing required data');
+    }
+
+    const tripNum: number = parseInt(req.params.tripNum, 10);
+    let uploads = [];
+
+    const tripDocs = await masterDev.view('TripsApi', 'all_api_trips', { "key": tripNum });
+    if (tripDocs.rows.length === 0 ) {
+        res.status(500).send('Trip doc with tripNum: ' + tripNum + ' does not exist. ' +
+            'Please create a valid tripDoc before submitting screenshot(s).');
+    } else {
+        const newScreenshot: any = {
+            type: 'emReviewScreenshot',
+            tripNum,
+            _attachments: {},
+            createdDate: moment().format(),
+            createdBy: req.res && req.res.user ? req.res.user.username : '',
+            haulNum: req.query.haulNum,
+            timeStamp: req.query.timeStamp,
+            submissionReason: req.query.submissionReason
+        };
+
+        if (req.query.speciesCode) { newScreenshot.speciesCode = req.query.speciesCode };
+        if (req.query.description) { newScreenshot.description = req.query.description };
+
+        new Promise( ( resolve, reject) => {
+            var form = new multiparty.Form();
+            form.parse(req, function(err, fields, files) {
+                for (const item of files.files) {
+                    uploads.push({filename: item.originalFilename, path: item.path, type: item.headers['content-type']})
+                }
+                resolve(1)
+            })
+        }).then(
+            () => {
+            new Promise( (resolve, reject) => {
+                for (const upload of uploads) {
+                    newScreenshot._attachments[upload.filename] =
+                        {
+                            content_type: upload.type,
+                            data: fs.readFileSync(upload.path).toString('base64')
+                        }
+                }
+                resolve(2)
+            }).then( async () => {
+                    await masterDev.bulk({ docs: [newScreenshot] }).then(
+                        () => {
+                            res.status('200').send('Screenshot(s) for tripNum:' + tripNum + ' EM review saved successfully.');
+                        })
+                })
+            }
+        )
+        return;
+    }
+}
+
+
 import * as jsonexport from "jsonexport/dist";
 
 const getLookups = async (req, res) => {
@@ -452,6 +515,10 @@ router.use('/api/' + API_VERSION + '/tripCatch/:tripNum', validateJwtRequest);
 router.get('/api/' + API_VERSION + '/tripCatch/:tripNum', getCatch);
 router.post('/api/' + API_VERSION + '/tripCatch/:tripNum', newCatch);
 router.put('/api/' + API_VERSION + '/tripCatch/:tripNum', updateCatch);
+
+router.use('/api/' + API_VERSION + '/screenshot/:tripNum', getPubKey);
+router.use('/api/' + API_VERSION + '/screenshot/:tripNum', validateJwtRequest);
+router.post('/api/' + API_VERSION + '/screenshot/:tripNum', saveScreenshot);
 
 router.use('/api/' + API_VERSION + '/email', getPubKey);
 router.use('/api/' + API_VERSION + '/email', validateJwtRequest);
