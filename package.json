@@ -25,7 +25,7 @@
     "jsonexport": "^3.0.1",
     "jsonpath": "^1.0.2",
     "jsonwebtoken": "^8.5.1",
-    "lodash": "^4.17.20",
+    "lodash": "^4.17.19",
     "moment": "^2.27.0",
     "multiparty": "^4.2.2",
     "nano": "^8.1.0",
