@@ -293,6 +293,7 @@ const updateCatch = async (req, res) => {
     if (catchDocs.rows.length === 0) {
         res.status(500).send('Catch doc with tripNum ' + tripNum + ' does not exist.' +
             'Please use POST to /tripCatch/:tripNum to submit new catch data.');
+        return;
     }
 
     // loop through matching catchDocs and get the one with the same sourceType
@@ -305,6 +306,7 @@ const updateCatch = async (req, res) => {
             const validationResults = await validateCatch(updateDoc);
             if (validationResults.status != 200) {
                 res.status(validationResults.status).send(validationResults.message);
+                return;
             }
 
             // doc valid, save to couch
@@ -318,11 +320,13 @@ const updateCatch = async (req, res) => {
                 catchEvaluator(tripNum);
                 res.status(200).send('Catch doc with tripNum:' + tripNum + ' successfully updated!');
             })
-        } else {
-            res.status(500).send('Catch doc with tripNum: ' + tripNum + ' and source: ' + req.body.source +
-                ' does not exist please submit new catch via POST to /tripCatch/:tripNum');
+            return;
         }
     }
+
+    res.status(500).send('Catch doc with tripNum: ' + tripNum + ' and source: ' + req.body.source +
+    ' does not exist please submit new catch via POST to /tripCatch/:tripNum');
+    return;
 }
 
 const saveScreenshot = async (req, res) => {

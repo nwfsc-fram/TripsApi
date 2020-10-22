@@ -37,28 +37,35 @@ export async function validateCatch(catchVal: Catches) {
 async function priorityAndProtectedChecks(currCatch: any) {
     const options = {
         include_docs: true,
-        key: currCatch.speciesCode
+        key: parseInt(currCatch.speciesCode, 10) ? parseInt(currCatch.speciesCode, 10) : currCatch.speciesCode
     };
     let lookupInfo = await masterDev.view('em-views', 'wcgopCode-to-pacfinCode-map', options);
-    lookupInfo = lookupInfo.rows[0].doc;
+    console.log(lookupInfo)
     let errors = [];
+    if (lookupInfo.rows.length > 0) {
+        lookupInfo = lookupInfo.rows[0].doc;
 
-    if (lookupInfo.isProtected || lookupInfo.isWcgopEmPriority) {
-        currCatch.isProtected = lookupInfo.isProtected ? true : false;
-        currCatch.isWcgopEmPriority = lookupInfo.isWcgopEmPriority ? true : false;
-        if (!currCatch.speciesCount) {
-            errors.push({
-                type: 'Missing count',
-                message: 'CatchId ' + currCatch.catchId + ' missing count'
-            });
+        if (lookupInfo.isProtected || lookupInfo.isWcgopEmPriority) {
+            currCatch.isProtected = lookupInfo.isProtected ? true : false;
+            currCatch.isWcgopEmPriority = lookupInfo.isWcgopEmPriority ? true : false;
+            if (!currCatch.speciesCount) {
+                errors.push({
+                    type: 'Missing count',
+                    message: 'CatchId ' + currCatch.catchId + ' missing count'
+                });
+            }
+            if (!currCatch.weight) {
+                errors.push({
+                    type: 'Missing weight',
+                    message: 'CatchId ' + currCatch.catchId + ' missing weight'
+                });
+            }
         }
-        if (!currCatch.weight) {
-            errors.push({
-                type: 'Missing weight',
-                message: 'CatchId ' + currCatch.catchId + ' missing weight'
-            });
-        }
-        
+    } else {
+        errors.push({
+            type: 'Unlisted Species Code (invalid?)',
+            message: 'CatchId ' + currCatch.catchId + ' unlisted species code (invalid?)'
+        });
     }
     return { currCatch, errors };
 }
