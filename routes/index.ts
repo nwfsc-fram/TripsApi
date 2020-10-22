@@ -264,7 +264,7 @@ const newCatch = async (req, res) => {
                         );
                     } else {
                         res.status(500).send('Invalid source: ' + req.body.source + '. Accepted source values are:' +
-                            'thirdParty, nwfscAudit, and logbook. Please correct source and try again.')
+                            'thirdParty, nwfscAudit, and logbook. Please correct source and resubmit.')
                     }
 
                 }
@@ -281,7 +281,8 @@ const updateCatch = async (req, res) => {
     const catchDocs = await masterDev.view('TripsApi', 'all_api_catch', { "key": tripNum, "include_docs": true });
     if (catchDocs.rows.length === 0) {
         res.status(500).send('Catch doc with tripNum ' + tripNum + ' does not exist.' +
-            'Please create a valid tripDoc before submitting catchDoc.');    } else {
+            'Please use POST to /tripCatch/:tripNum to submit new catch data.');
+    } else {
         // loop through matching catchDocs and get the one with the same sourceType
         for (const row of catchDocs.rows) {
             if (req.body.source === row.doc.source) {
