@@ -1,6 +1,4 @@
-const dbConfig = require('../dbConfig.json').dbConfig;
-const couchDB = require('nano')(dbConfig.login);
-const masterDev = couchDB.db.use('master-dev');
+import { masterDev } from '../util/couchDB';
 
 const emLookupTypes = [
     {lookup: 'em-source', title: 'source', usage: 'logbook, review', level: 'trip'},

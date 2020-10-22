@@ -1,6 +1,6 @@
-const dbConfig = require('../dbConfig.json').dbConfig;
-const couchDB = require('nano')(dbConfig.login);
-const masterDev = couchDB.db.use('master-dev');
+import { TaxonomyAlias } from "@boatnet/bn-models/lib";
+import { masterDev } from './couchDB';
+
 const jp = require('jsonpath');
 
 async function getSpeciesCodesForGrouping(children: string[], speciesCodes: string[]) {
@@ -22,6 +22,19 @@ async function getSpeciesCodesForGrouping(children: string[], speciesCodes: stri
     return speciesCodes;
 }
 
+function getMembershipSpeciesCodes(members: TaxonomyAlias[]) {
+    const speciesCodes = [];
+    for (const member of members) {
+        if (member.wcgopSpeciesCode) {
+            speciesCodes.push(member.wcgopSpeciesCode);
+        }
+        if (member.pacfinSpeciesCode) {
+            speciesCodes.push(member.pacfinSpeciesCode);
+        }
+    }
+    return speciesCodes;
+}
+
 export async function getMixedGroupingInfo() {
     const mixedGroupings = await masterDev.view('em-views', 'mixed-groupings', { include_docs: true });
     const mixedGroupingsMap = {};
@@ -33,7 +46,10 @@ export async function getMixedGroupingInfo() {
             speciesCode = speciesCode.toString();
         }
         if (mixedGrouping.doc.taxonomy && mixedGrouping.doc.taxonomy.children) {
-            species = await getSpeciesCodesForGrouping(mixedGrouping.doc.taxonomy.children, [])
+            species = await getSpeciesCodesForGrouping(mixedGrouping.doc.taxonomy.children, []);
+        }
+        if (mixedGrouping.doc.members && mixedGrouping.doc.members.length > 0) {
+            species = getMembershipSpeciesCodes(mixedGrouping.doc.members)
         }
         mixedGroupingsMap[speciesCode] = species;
     }

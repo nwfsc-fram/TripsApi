@@ -1,6 +1,3 @@
-const dbConfig = require('../dbConfig.json').dbConfig;
-const couchDB = require('nano')(dbConfig.login);
-const masterDev = couchDB.db.use('master-dev');
 const jp = require('jsonpath');
 import { cloneDeep, flattenDeep, set } from 'lodash';
 import { getFishTicket } from './oracle_routines';
@@ -9,6 +6,7 @@ import { Catches } from '@boatnet/bn-models';
 import { format } from './formatter';
 import * as moment from 'moment';
 import { getMixedGroupingInfo } from './getMixedGroupings';
+import { masterDev } from './couchDB';
 
 export async function catchEvaluator(tripNum: number) {
     //  wait for a while to be sure data is fully submitted to couch
