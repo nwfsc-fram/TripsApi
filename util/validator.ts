@@ -21,7 +21,7 @@ export async function validateCatch(catchVal: Catches) {
         for (let j = 0; j < catches.length; j++) {
             let currCatchVal = catchVal.hauls[i].catch[j];
 
-            let results = await priorityAndProtectedChecks(currCatchVal);
+            let results = await priorityAndProtectedChecks(currCatchVal, catchVal.source);
             currCatchVal = results.currCatch;
             errors = errors.concat(results.errors);
         }
@@ -34,15 +34,14 @@ export async function validateCatch(catchVal: Catches) {
 }
 
 // priority and protected species must have weight and count
-async function priorityAndProtectedChecks(currCatch: any) {
+async function priorityAndProtectedChecks(currCatch: any, source: sourceType) {
     const options = {
         include_docs: true,
-        key: parseInt(currCatch.speciesCode, 10) ? parseInt(currCatch.speciesCode, 10) : currCatch.speciesCode
+        key: parseInt(currCatch.speciesCode, 10) ? parseInt(currCatch.speciesCode, 10) : currCatch.speciesCode // wcgop species codes are on reviews as strings, but are stored as numerical values in couch lookup docs.
     };
     let lookupInfo = await masterDev.view('em-views', 'wcgopCode-to-pacfinCode-map', options);
-    console.log(lookupInfo)
     let errors = [];
-    if (lookupInfo.rows.length > 0) {
+    if (lookupInfo.rows.length > 0) {  // handles the possibility that the species code isn't returned by the codes-map view
         lookupInfo = lookupInfo.rows[0].doc;
 
         if (lookupInfo.isProtected || lookupInfo.isWcgopEmPriority) {
@@ -60,6 +59,18 @@ async function priorityAndProtectedChecks(currCatch: any) {
                     message: 'CatchId ' + currCatch.catchId + ' missing weight'
                 });
             }
+        }
+        // add error when species code is not format expected by source
+        if (source === 'logbook' && parseInt(currCatch.speciesCode, 10)) {
+            errors.push({
+                type: 'Unexpected code',
+                message: 'expected Pacfin code, but got numeric code: ' + currCatch.speciesCode
+            })
+        } else if (source === 'thirdParty' && !parseInt(currCatch.speciesCode, 10)) {
+            errors.push({
+                type: 'Unexpected code',
+                message: 'expected WCGOP code, but got alpha code: ' + currCatch.speciesCode
+            })
         }
     } else {
         errors.push({

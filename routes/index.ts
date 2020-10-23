@@ -246,40 +246,44 @@ const newCatch = async (req, res) => {
             if (tripDocs.rows.length === 0 ) {
                 res.status(500).send('Trip doc with tripNum: ' + tripNum + ' does not exist. ' +
                     'Please create a valid tripDoc before submitting catchDoc.');
+                return;
             }
+
             const catchDocs = await masterDev.view('TripsApi', 'all_api_catch', { "key": tripNum, "include_docs": true });
             const source: string[] = jp.query(catchDocs, '$..source');
+
             if (source.includes(req.body.source)) {
                 res.status(500).send('Catch doc with tripNum:' + tripNum + ' already exists. ' +
                     'Please submit updated data via PUT to /tripCatch/:tripNum');
+                return;
             } else {
                 if ([sourceType.thirdParty, sourceType.nwfscAudit, sourceType.logbook].includes(req.body.source)) {
-                    masterDev.bulk({ docs: [newTrip] }).then(
+
+                    // additional validation checks
+                    const validationResults = await validateCatch(newTrip);
+                    if (validationResults.status != 200) {
+                        res.status(validationResults.status).send(validationResults.message);
+                        return;
+                    }
+
+                    // everything is good, write to db and evaluate catch doc
+                    masterDev.bulk({ docs: [validationResults.catchVal] }).then(
                         () => {
                             catchEvaluator(tripNum);
                             res.status('200').send('Catch doc with tripNum:' + tripNum + ' saved successfully.');
-                        }
-                    );
+                            return;
+                    });
+
                 } else {
                     res.status(500).send('Invalid source: ' + req.body.source + '. Accepted source values are:' +
                         'thirdParty, nwfscAudit, and logbook. Please correct source and resubmit.')
+                        return;
                 }
             }
 
-            // additional validation checks
-            const validationResults = await validateCatch(newTrip);
-            if (validationResults.status != 200) {
-                res.status(validationResults.status).send(validationResults.message);
-            }
-
-            // everything is good, evaluate catch doc
-            masterDev.bulk({ docs: [validationResults.catchVal] }).then(
-                () => {
-                    catchEvaluator(tripNum);
-                    res.status('200').send('Catch doc with tripNum:' + tripNum + ' saved successfully.');
-            });
         } else {
             res.status(500).send('missing required parameters.');
+            return;
         }
     }, 300)
 }
