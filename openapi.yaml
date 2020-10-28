@@ -713,7 +713,7 @@ components:
           description: "Retained vs Discarded"
         fate:
           type: "string"
-          description: "Observer Discard Reason -- 11 Accidental, Incidental, 12  Drop-off, 13  Market, 14  Other, 15  Predation, 18  Market- At Dock,19 Utilized on board,16  Regulation, 17  Safety, 20  Survival"
+          description: "Observer Discard Reason -- 1 (Unintentional Discard), 2 (Unkown), 3 (Discarded - General), 4 (Discarded - Damaged), 5 - (Throwback), 6 - (Utilized on-board)"
         speciesCode:
           type: "string"
           description: "WCGOP species code (3 or 4 digits)"
