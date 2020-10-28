@@ -6,7 +6,7 @@ const emLookupTypes = [
     {lookup: 'us-state', title: 'departureState" / "returnState', usage: 'logbook, review', level: 'trip'},
     {lookup: 'fishery', title: 'fishery', usage: 'logbook', level: 'trip'},
     {lookup: 'fishery-sector', title: 'fisherySector', usage: 'review', level: 'trip'},
-    {lookup: 'catch-handling-performance', title: 'catchHandlinePerformance', usage: 'review', level: 'haul'},
+    {lookup: 'catch-handling-performance', title: 'catchHandlingPerformance', usage: 'review', level: 'haul'},
     {lookup: 'gear-type', title: 'gearTypeCode', usage: 'logbook, review', level: 'haul'},
     {lookup: 'system-performance', title: 'systemPerformance', usage: 'review', level: 'haul'},
     {lookup: 'catch-disposition', title: 'disposition', usage: 'logbook, review', level: 'catch'},
