@@ -2,11 +2,10 @@ import { Catches, CatchResults, ResponseCatchTypeName, Disposition, sourceType }
 import { set, get, uniqBy } from 'lodash';
 import { masterDev } from './couchDB';
 
-export async function format(logbook: Catches, review: Catches, audit: Catches) {
+export async function format(tripNum: number, logbook: Catches, review: Catches, audit: Catches) {
     let result: CatchResults = {
         type: ResponseCatchTypeName,
-        tripNum: logbook.tripNum,
-        updatedBy: logbook.updatedBy
+        tripNum: tripNum
     };
     const logbookCatch: any[] = await catchToHaul(logbook);
     const reviewCatch: any[] = await catchToHaul(review);
@@ -42,7 +41,7 @@ async function catchToHaul(catchVals: Catches) {
 
     for (const haul of get(catchVals, 'hauls', [])) {
         for (const catchVal of get(haul, 'catch', [])) {
-            const count = catchVal.speciesCount ? catchVal.speciesCode : null;
+            const count = catchVal.speciesCount ? catchVal.speciesCount : null;
 
             const speciesCode = parseInt(catchVal.speciesCode) ? parseInt(catchVal.speciesCode) : catchVal.speciesCode;
             // lookup code to get pacfinSpeciesCode, wcgopSpeciesCode, and docId

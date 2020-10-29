@@ -71,7 +71,7 @@ export async function catchEvaluator(tripNum: number) {
                 nwfscAudit = cloneDeep(await evaluatecurrCatch(nwfscAudit));
             }
             // then write all tripCatch docs to results doc
-            let result: any = await format(logbook, thirdParty, nwfscAudit);
+            let result: any = await format(tripNum, logbook, thirdParty, nwfscAudit);
             const existingDoc = await masterDev.view('TripsApi', 'expansion_results',
                 { "key": tripNum, "include_docs": true });
 

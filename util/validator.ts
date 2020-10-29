@@ -1,31 +1,223 @@
-import { Catches, sourceType } from "@boatnet/bn-models/lib";
+import { Catches, Disposition, sourceType } from "@boatnet/bn-models/lib";
 import { get, set } from 'lodash';
 import { masterDev } from './couchDB';
+const moment = require('moment');
+var validate = require("validate.js");
+const jp = require('jsonpath');
+
+async function getLookupList(view: String) {
+    const lookups = await masterDev.view('TripsApi', 'all_em_lookups', { key: view, include_docs: true });
+    return jp.query(lookups, '$..lookupValue')
+}
 
 export async function validateCatch(catchVal: Catches) {
     let errors: any[] = [];
+    let validationResults: string = '';
 
-    // validate sourceType
-    if (![sourceType.thirdParty, sourceType.nwfscAudit, sourceType.logbook].includes(catchVal.source)) {
-        return {
-            catchVal,
-            status: 500,
-            message: 'Invalid source: ' + catchVal.source + '. Accepted source values are:' +
-                'thirdParty, nwfscAudit, and logbook. Please correct source and try again.'
-        };
+    validate.extend(validate.validators.datetime, {
+        // The value is guaranteed not to be null or undefined but otherwise it
+        // could be anything.
+        parse: function (value, options) {
+            return +moment.utc(value);
+        },
+        // Input is a unix timestamp
+        format: function (value, options) {
+            var format = options.dateOnly ? "YYYY-MM-DD" : "YYYY-MM-DD hh:mm:ss";
+            return moment.utc(value).format(format);
+        }
+    });
+
+    const sourceLookups = await getLookupList('em-source');
+    const gearLookups = await getLookupList('gear-type');
+    const fisheryLookups = await getLookupList('fishery');
+    const fisherySectorLookups = await getLookupList('fishery-sector');
+    const dispositionLookups = await getLookupList('catch-disposition');
+
+    const gearGroup1 = ["10", "19", "20"];
+    const gearGroup2 = ["1", "2", "3", "4", "5"];
+
+    const tripLevelChecks = {
+        tripNum: {
+            presence: true
+        },
+        source: {
+            presence: true,
+            inclusion: {
+                within: sourceLookups,
+                message: 'of type ' + catchVal.source + ' invalid, accepted values: ' + sourceLookups
+            }
+        },
+        fishery: function (value, attributes) {
+            if (attributes.source === sourceType.logbook) {
+                return {
+                    presence: true,
+                    inclusion: {
+                        within: fisheryLookups,
+                        message: 'invalid, valid fisheries include ' + fisheryLookups
+                    }
+                }
+            }
+        },
+        fisherySector: function (value, attributes) {
+            if (attributes.source === sourceType.thirdParty) {
+                return {
+                    presence: true,
+                    inclusion: {
+                        within: fisherySectorLookups,
+                        message: 'invalid, valid fishery sectors include ' + fisherySectorLookups
+                    }
+                }
+            }
+        },
+        provider: {
+            presence: true
+        },
+        departureDateTime: {
+            datetime: {
+                latest: catchVal.returnDateTime,
+                message: 'must occur before Return Date'
+            }
+        }
+    };
+
+    const tripResults = validate(catchVal, tripLevelChecks);
+    if (tripResults) {
+        validationResults += 'trip level errors: ' + JSON.stringify(tripResults)
     }
 
     let hauls = get(catchVal, 'hauls', []);
     for (let i = 0; i < hauls.length; i++) {
+        const haulLevelChecks = {
+            haulNum: {
+                presence: true
+            },
+            gearTypeCode: {
+                presence: true,
+                inclusion: {
+                    within: gearLookups,
+                    message: 'of ' + hauls[i].gearTypeCode + ' is invalid, accepted values are ' + gearLookups
+                }
+            },
+            gearPerSet: function (value, attributes) {
+                if (gearGroup1.includes(attributes.gearTypeCode)) {
+                    return {
+                        presence: true
+                    }
+                }
+            },
+            gearLost: function (value, attributes) {
+                if (gearGroup1.includes(attributes.gearTypeCode)) {
+                    return {
+                        presence: true
+                    }
+                }
+            },
+            avgHooksPerSeg: function (value, attributes) {
+                if (gearGroup1.includes(attributes.gearTypeCode)) {
+                    return {
+                        presence: true
+                    }
+                }
+            },
+            netType: function (value, attributes) {
+                if (gearGroup2.includes(attributes.gearTypeCode)) {
+                    return {
+                        presence: true
+                    }
+                }
+            },
+            codendCapacity: function (value, attributes) {
+                if (gearGroup2.includes(attributes.gearTypeCode)) {
+                    return {
+                        presence: true
+                    }
+                }
+            },
+            isCodendLost: function (value, attributes) {
+                if (gearGroup2.includes(attributes.gearTypeCode)) {
+                    return {
+                        presence: true
+                    }
+                }
+            },
+            startDepth: function (value, attributes) {
+                if (attributes.source === sourceType.logbook) {
+                    return {
+                        presence: true
+                    }
+                }
+            },
+            startLongitude: {
+                presence: true
+            },
+            startLatitude: {
+                presence: true,
+                numericality: {
+                    lessThan: 49
+                }
+            },
+            endDepth: function (value, attributes) {
+                if (attributes.source === sourceType.logbook) {
+                    return {
+                        presence: true
+                    }
+                }
+            },
+            endLongitude: {
+                presence: true
+            },
+            endLatitude: {
+                presence: true,
+                numericality: {
+                    lessThan: 49
+                }
+            }
+        };
+        const haulResults = validate(hauls[i], haulLevelChecks);
+        if (haulResults) {
+            validationResults += '\nHaul level errors: ' + hauls[i].haulNum + ' ' + JSON.stringify(haulResults);
+        }
+
         let catches = get(hauls[i], 'catch', []);
         for (let j = 0; j < catches.length; j++) {
             let currCatchVal = catchVal.hauls[i].catch[j];
+            const catchLevelChecks = {
+                disposition: {
+                    presence: true,
+                    inclusion: {
+                        within: dispositionLookups,
+                        message: 'invalid, disposition must be either ' + dispositionLookups
+                    }
+                },
+                speciesCode: {
+                    presence: true
+                },
+                timeOnDeck: function (value, attributes) {
+                    if (["PHLB", 101].includes(attributes.speciesCode)) {
+                        return {
+                            presence: true
+                        }
+                    }
+                },
+            };
 
-            let results = await priorityAndProtectedChecks(currCatchVal, catchVal.source);
-            currCatchVal = results.currCatch;
+            const catchResults = validate(currCatchVal, catchLevelChecks);
+            if (catchResults) {
+                validationResults += '\nCatch level errors: ' + hauls[i].haulNum + ' catch: ' + catches[j].catchId + ' ' + JSON.stringify(catchResults);
+            }
+            let results = await priorityAndProtectedChecks(catchVal.hauls[i], currCatchVal);
+            set(catchVal, 'hauls[' + i + '].catch[' + j + ']', results.currCatch);
             errors = errors.concat(results.errors);
         }
     }
+    if (validationResults.length > 0) {
+        return {
+            catchVal,
+            status: 500,
+            message: validationResults
+        }
+    }
+
     set(catchVal, 'errors', errors);
     return {
         catchVal,
@@ -34,31 +226,27 @@ export async function validateCatch(catchVal: Catches) {
 }
 
 // priority and protected species must have weight and count
-async function priorityAndProtectedChecks(currCatch: any, source: sourceType) {
+async function priorityAndProtectedChecks(haul: any, currCatch: any) {
     const options = {
         include_docs: true,
-        key: parseInt(currCatch.speciesCode, 10) ? parseInt(currCatch.speciesCode, 10) : currCatch.speciesCode // wcgop species codes are on reviews as strings, but are stored as numerical values in couch lookup docs.
+        key: currCatch.speciesCode
     };
+    const source = currCatch.source;
     let lookupInfo = await masterDev.view('em-views', 'wcgopCode-to-pacfinCode-map', options);
     let errors = [];
     if (lookupInfo.rows.length > 0) {  // handles the possibility that the species code isn't returned by the codes-map view
         lookupInfo = lookupInfo.rows[0].doc;
+    }
 
-        if (lookupInfo.isProtected || lookupInfo.isWcgopEmPriority) {
-            currCatch.isProtected = lookupInfo.isProtected ? true : false;
-            currCatch.isWcgopEmPriority = lookupInfo.isWcgopEmPriority ? true : false;
-            if (!currCatch.speciesCount) {
-                errors.push({
-                    type: 'Missing count',
-                    message: 'CatchId ' + currCatch.catchId + ' missing count'
-                });
-            }
-            if (!currCatch.weight) {
-                errors.push({
-                    type: 'Missing weight',
-                    message: 'CatchId ' + currCatch.catchId + ' missing weight'
-                });
-            }
+    if (lookupInfo.isProtected || lookupInfo.isWcgopEmPriority) {
+        currCatch.isProtected = lookupInfo.isProtected ? true : false;
+        currCatch.isWcgopEmPriority = lookupInfo.isWcgopEmPriority ? true : false;
+        if (!currCatch.speciesCount) {
+            errors.push({
+                type: 'Missing count',
+                haulNum: haul.haulNum,
+                catchId: currCatch.catchId
+            });
         }
         // add error when species code is not format expected by source
         if (source === 'logbook' && parseInt(currCatch.speciesCode, 10)) {
@@ -68,15 +256,12 @@ async function priorityAndProtectedChecks(currCatch: any, source: sourceType) {
             })
         } else if (source === 'thirdParty' && !parseInt(currCatch.speciesCode, 10)) {
             errors.push({
-                type: 'Unexpected code',
-                message: 'expected WCGOP code, but got alpha code: ' + currCatch.speciesCode
-            })
+                type: 'Missing weight',
+                haulNum: haul.haulNum,
+                catchId: currCatch.catchId
+            });
         }
-    } else {
-        errors.push({
-            type: 'Unlisted Species Code (invalid?)',
-            message: 'CatchId ' + currCatch.catchId + ' unlisted species code (invalid?)'
-        });
+
     }
     return { currCatch, errors };
 }
