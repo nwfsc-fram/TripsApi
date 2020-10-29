@@ -47,8 +47,19 @@ export async function catchEvaluator(tripNum: number) {
         try {
             if (logbook) {
                 if (logbook.fishTickets) {
+                    const nomDecoderSrc: any = await masterDev.view('obs_web', 'all_doc_types', {"reduce": false, "key": "nom-2-pacfin-decoder", "include_docs": true});
+                    const nomDecoder = {}
+                    for (const decoderRow of nomDecoderSrc.rows[0].doc.decoder) {
+                        nomDecoder[decoderRow['nom-code']] = decoderRow['pacfin-code'];
+                    }
                     for (const row of logbook.fishTickets) {
-                        fishTickets.push.apply(fishTickets, await getFishTicket(row.fishTicketNumber));
+                        let fishTicketRows = await getFishTicket(row.fishTicketNumber);
+                        fishTicketRows.map( (row: any) => {
+                            row.PACFIN_SPECIES_CODE = nomDecoder[row.PACFIN_SPECIES_CODE] ?  nomDecoder[row.PACFIN_SPECIES_CODE] : row.PACFIN_SPECIES_CODE;
+                        } )
+                        // fishTickets.push.apply(fishTickets, await getFishTicket(row.fishTicketNumber));
+                        fishTickets.push.apply(fishTickets, fishTicketRows);
+                        console.log(fishTickets);
                     }
                 }
                 logbook = cloneDeep(await evaluatecurrCatch(logbook));
