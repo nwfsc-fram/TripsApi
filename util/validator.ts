@@ -53,7 +53,7 @@ async function priorityAndProtectedChecks(currCatch: any, source: sourceType) {
                     message: 'CatchId ' + currCatch.catchId + ' missing count'
                 });
             }
-            if (!currCatch.weight) {
+            if (!currCatch.speciesWeight) {
                 errors.push({
                     type: 'Missing weight',
                     message: 'CatchId ' + currCatch.catchId + ' missing weight'
