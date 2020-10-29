@@ -21,11 +21,6 @@ export async function validateCatch(catchVal: Catches) {
         }
     });
 
-    validate.validators.custom = function (value, options, key, attributes) {
-        console.log('attt')
-        console.log(attributes)
-    }
-
     const tripLevelChecks = {
         tripNum: {
             presence: true
@@ -229,9 +224,9 @@ export async function validateCatch(catchVal: Catches) {
             if (catchResults) {
                 validationResults += '\nCatch level errors: ' + hauls[i].haulNum + ' catch: ' + catches[j].catchId + ' ' + JSON.stringify(catchResults);
             }
-           // let results = await priorityAndProtectedChecks(catchVal.hauls[i], currCatchVal);
-           // set(catchVal, 'hauls[' + i + '].catch[' + j + ']', results.currCatch);
-           // errors = errors.concat(results.errors);
+           let results = await priorityAndProtectedChecks(catchVal.hauls[i], currCatchVal);
+           set(catchVal, 'hauls[' + i + '].catch[' + j + ']', results.currCatch);
+           errors = errors.concat(results.errors);
         }
     }
     if (validationResults.length > 0) {
@@ -253,11 +248,10 @@ export async function validateCatch(catchVal: Catches) {
 async function priorityAndProtectedChecks(haul: any, currCatch: any) {
     const options = {
         include_docs: true,
-        key: parseInt(currCatch.speciesCode, 10)
+        key: currCatch.speciesCode
     };
     const source = currCatch.source;
     let lookupInfo = await masterDev.view('em-views', 'wcgopCode-to-pacfinCode-map', options);
-    lookupInfo = lookupInfo.rows[0].doc;
     let errors = [];
     if (lookupInfo.rows.length > 0) {  // handles the possibility that the species code isn't returned by the codes-map view
         lookupInfo = lookupInfo.rows[0].doc;
