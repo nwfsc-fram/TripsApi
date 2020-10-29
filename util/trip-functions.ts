@@ -48,7 +48,7 @@ export async function catchEvaluator(tripNum: number) {
             if (logbook) {
                 if (logbook.fishTickets) {
                     const nomDecoderSrc: any = await masterDev.view('obs_web', 'all_doc_types', {"reduce": false, "key": "nom-2-pacfin-decoder", "include_docs": true});
-                    const nomDecoder = {}
+                    const nomDecoder = {};
                     for (const decoderRow of nomDecoderSrc.rows[0].doc.decoder) {
                         nomDecoder[decoderRow['nom-code']] = decoderRow['pacfin-code'];
                     }
@@ -57,9 +57,7 @@ export async function catchEvaluator(tripNum: number) {
                         fishTicketRows.map( (row: any) => {
                             row.PACFIN_SPECIES_CODE = nomDecoder[row.PACFIN_SPECIES_CODE] ?  nomDecoder[row.PACFIN_SPECIES_CODE] : row.PACFIN_SPECIES_CODE;
                         } )
-                        // fishTickets.push.apply(fishTickets, await getFishTicket(row.fishTicketNumber));
                         fishTickets.push.apply(fishTickets, fishTicketRows);
-                        console.log(fishTickets);
                     }
                 }
                 logbook = cloneDeep(await evaluatecurrCatch(logbook));
@@ -95,7 +93,7 @@ export async function catchEvaluator(tripNum: number) {
             flattenedCatch = flattenDeep(flattenedCatch);
 
             // does any catch have a length and or a count but not a weight?
-            if (flattenedCatch.find((row: any) => (row.length || row.count) && !row.weight)) {
+            if (flattenedCatch.find((row: any) => (row.speciesLength || row.speciesCount) && !row.speciesWeight)) {
                 console.log('length or count without weight found.');
                 //currCatch = weightFromLengthOrCount(currCatch);
                 const missingWeightsExp: missingWeight = new missingWeight();

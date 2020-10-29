@@ -610,12 +610,14 @@ components:
             disposition: "Discarded"
             fate: "11"
             speciesCode: "614"
-            weight: 320
+            speciesWeight: 320
+            speciesCount: 23
           - catchId: 2
             disposition: "Discarded"
             fate: "11"
-            speciesCode: "200"
-            weight: 200
+            speciesCode: "20"
+            speciesWeight: 200
+            speciesLength: 27
     Haul:
       required:
       - "catchHandlingPerformance"
@@ -712,7 +714,7 @@ components:
         speciesCode:
           type: "string"
           description: "WCGOP species code (3 or 4 digits)"
-        weight:
+        speciesWeight:
           type: "number"
           description: "Total estimated weight (lbs)"
         speciesCount:
@@ -721,7 +723,7 @@ components:
         calcWeightType:
           type: "string"
           description: "Description of how the catch was calculated (EstWeight, FromAverageWt, FromLength, CaclField)"
-        length:
+        speciesLength:
           type: "number"
           description: "Length (in cm) of individual fish (Pacific Halibut)"
         timeOnDeck:
