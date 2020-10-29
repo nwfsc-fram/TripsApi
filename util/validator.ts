@@ -5,6 +5,11 @@ const moment = require('moment');
 var validate = require("validate.js");
 const jp = require('jsonpath');
 
+async function getLookupList(view: String) {
+    const lookups = await masterDev.view('TripsApi', 'all_em_lookups', { key: view, include_docs: true });
+    return jp.query(lookups, '$..lookupValue')
+}
+
 export async function validateCatch(catchVal: Catches) {
     let errors: any[] = [];
     let validationResults: string = '';
@@ -22,10 +27,11 @@ export async function validateCatch(catchVal: Catches) {
         }
     });
 
-    let sourceLookups = await masterDev.view('TripsApi', 'all_em_lookups', { key: 'em-source', include_docs: true });
-    sourceLookups = jp.query(sourceLookups, '$..lookupValue')
-    let gearLookups = await masterDev.view('TripsApi', 'all_em_lookups', { key: 'gear-type', include_docs: true });
-    gearLookups = jp.query(gearLookups, '$..lookupValue');
+    const sourceLookups = await getLookupList('em-source');
+    const gearLookups = await getLookupList('gear-type');
+    const fisheryLookups = await getLookupList('fishery');
+    const fisherySectorLookups = await getLookupList('fishery-sector');
+    const dispositionLookups = await getLookupList('catch-disposition');
 
     const gearGroup1 = ["10", "19", "20"];
     const gearGroup2 = ["1", "2", "3", "4", "5"];
@@ -44,14 +50,22 @@ export async function validateCatch(catchVal: Catches) {
         fishery: function (value, attributes) {
             if (attributes.source === sourceType.logbook) {
                 return {
-                    presence: true
+                    presence: true,
+                    inclusion: {
+                        within: fisheryLookups,
+                        message: 'invalid, valid fisheries include ' + fisheryLookups
+                    }
                 }
             }
         },
         fisherySector: function (value, attributes) {
             if (attributes.source === sourceType.thirdParty) {
                 return {
-                    presence: true
+                    presence: true,
+                    inclusion: {
+                        within: fisherySectorLookups,
+                        message: 'invalid, valid fishery sectors include ' + fisherySectorLookups
+                    }
                 }
             }
         },
@@ -171,8 +185,8 @@ export async function validateCatch(catchVal: Catches) {
                 disposition: {
                     presence: true,
                     inclusion: {
-                        within: [Disposition.DISCARDED, Disposition.RETAINED],
-                        message: 'Invalid disposition must be either Discarded or Retained'
+                        within: dispositionLookups,
+                        message: 'invalid, disposition must be either ' + dispositionLookups
                     }
                 },
                 speciesCode: {
