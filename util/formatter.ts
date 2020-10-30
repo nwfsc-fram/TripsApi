@@ -2,11 +2,10 @@ import { Catches, CatchResults, ResponseCatchTypeName, Disposition, sourceType }
 import { set, get, uniqBy } from 'lodash';
 import { masterDev } from './couchDB';
 
-export async function format(logbook: Catches, review: Catches, audit: Catches) {
+export async function format(tripNum: number, logbook: Catches, review: Catches, audit: Catches) {
     let result: CatchResults = {
         type: ResponseCatchTypeName,
-        tripNum: logbook.tripNum,
-        updatedBy: logbook.updatedBy
+        tripNum: tripNum
     };
     const logbookCatch: any[] = await catchToHaul(logbook);
     const reviewCatch: any[] = await catchToHaul(review);
