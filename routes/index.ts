@@ -270,7 +270,7 @@ const newCatch = async (req, res) => {
                     masterDev.bulk({ docs: [validationResults.catchVal] }).then(
                         () => {
                             catchEvaluator(tripNum);
-                            res.status('200').send('Catch doc with tripNum:' + tripNum + ' saved successfully.');
+                            res.status('200').send('Catch doc with tripNum:' + tripNum + ' saved successfully. Errors ' + JSON.stringify(validationResults.catchVal.errors));
                             return;
                     });
 
@@ -302,7 +302,7 @@ const updateCatch = async (req, res) => {
 
     // loop through matching catchDocs and get the one with the same sourceType
     for (const row of catchDocs.rows) {
-        if (req.body.source === row.doc.source) {
+        
             const couchDoc = row.doc;
             const updateDoc: any = req.body;
 
@@ -313,6 +313,7 @@ const updateCatch = async (req, res) => {
                 return;
             }
 
+            if (req.body.source === row.doc.source) {
             // doc valid, save to couch
             const reqDoc: any = validationResults.catchVal;
             set(reqDoc, '_id', couchDoc._id);
@@ -322,7 +323,7 @@ const updateCatch = async (req, res) => {
             set(reqDoc, 'updateDate', moment().format());
             masterDev.bulk({ docs: [reqDoc] }).then((body) => {
                 catchEvaluator(tripNum);
-                res.status(200).send('Catch doc with tripNum:' + tripNum + ' successfully updated!');
+                res.status(200).send('Catch doc with tripNum:' + tripNum + ' successfully updated! Errors: ' + JSON.stringify(reqDoc.errors));
             })
             return;
         }
