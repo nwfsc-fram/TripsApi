@@ -57,8 +57,8 @@ async function catchToHaul(catchVals: Catches) {
             results.push({
                 disposition: catchVal.disposition,
                 haulNum: haul.haulNum,
-                weight: catchVal.weight,
-                count,
+                speciesWeight: catchVal.speciesWeight,
+                speciesCount: count,
                 pacfinSpeciesCode,
                 wcgopSpeciesCode,
                 docId: codeLookup.rows[0].id,
@@ -92,7 +92,7 @@ async function setIFQHaulLevelData(catchResults: any[]) {
                 const upperLat = ifqGrouping.doc.regulationAreas[0].upperLatitude;
                 const startLat = catchResult.startLatitude;
                 const endLat = catchResult.endLatitude;
-                
+
                 if (lowerLat && upperLat && startLat > lowerLat && endLat > lowerLat && startLat < upperLat && endLat < upperLat) {
                     groupName = ifqGrouping.value;
                 } else if (lowerLat && !upperLat && startLat > lowerLat && endLat > lowerLat) {
@@ -124,14 +124,14 @@ async function setIFQHaulLevelData(catchResults: any[]) {
             haulVal.ifqGrouping === haul.ifqGrouping && haulVal.disposition === haul.disposition && haulVal.haulNum === haul.haulNum
         );
         const totalWeight = grouping.reduce((accumulator, currentValue) => {
-            if (typeof currentValue.weight === 'number') {
-                return accumulator + currentValue.weight;
+            if (typeof currentValue.speciesWeight === 'number') {
+                return accumulator + currentValue.speciesWeight;
             }
         }, initWeight);
         resultHauls.push({
             ifqGrouping: haul.ifqGrouping,
             disposition: haul.disposition,
-            weight: totalWeight,
+            speciesWeight: totalWeight,
             haulNum: haul.haulNum
         })
     }
@@ -149,14 +149,14 @@ function setTripLevelData(catchResults: any[]) {
             haulVal.ifqGrouping === group.ifqGrouping && haulVal.disposition === group.disposition
         );
         const totalWeight = grouping.reduce((accumulator, currentValue) => {
-            if (typeof currentValue.weight === 'number') {
-                return accumulator + currentValue.weight;
+            if (typeof currentValue.speciesWeight === 'number') {
+                return accumulator + currentValue.speciesWeight;
             }
         }, initWeight);
         tripLevelData.push({
             ifqGrouping: group.ifqGrouping,
             disposition: group.disposition,
-            weight: totalWeight
+            speciesWeight: totalWeight
         })
     }
     return tripLevelData;
@@ -192,8 +192,8 @@ function setIFQTripReporting(catchResult: CatchResults) {
 
 // TODO still need to implemented all the logic as specified in business rules
 function selectDebitSource(emCatch, logbookCatch) {
-    const emWeight = emCatch && emCatch.weight ? emCatch.weight : 0;
-    const logbookWeight = logbookCatch && logbookCatch.weight ? logbookCatch.weight : 0;
+    const emWeight = emCatch && emCatch.speciesWeight ? emCatch.speciesWeight : 0;
+    const logbookWeight = logbookCatch && logbookCatch.speciesWeight ? logbookCatch.speciesWeight : 0;
 
     const difference = Math.abs(emWeight - logbookWeight);
     const tenPercentOfEM = .1 * emWeight;
