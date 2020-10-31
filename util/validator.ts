@@ -57,7 +57,7 @@ export async function validateCatch(catchVal: Catches) {
 }
 
 async function getTripErrors(catchVal: Catches) {
-    // get cpatains associated with vesselNum
+    // get captains associated with vesselNum
     const queryOptions = {
         reduce: false,
         include_docs: true,
