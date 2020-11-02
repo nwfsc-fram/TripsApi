@@ -18,6 +18,13 @@ validate.extend(validate.validators.datetime, {
     }
 });
 
+validate.validators.isEmpty = function(value, options) {
+    if (value) {
+        return options;
+    }
+    return undefined;
+  };
+
 export async function validateCatch(catchVal: Catches) {
     let errors: any[] = [];
     const source = catchVal.source;
@@ -328,6 +335,10 @@ async function validateCatchVal(catches: any) {
             if (["PHLB", 101].includes(attributes.speciesCode)) {
                 return {
                     presence: true
+                }
+            } else {
+                return {
+                    isEmpty: ' field should be left empty except when species is of type PHLB'
                 }
             }
         },
