@@ -77,7 +77,7 @@ async function getTripErrors(catchVal: Catches) {
         skipperName: {
             inclusion: {
                 within: captainNames,
-                message: 'Skipper name does not match a valid skipper for vessel ' + catchVal.vesselNumber
+                message: catchVal.skipperName + ' does not match one of the valid skipper names: ' + captainNames
             }
         },
         fishTickets: function (value, attributes) {
@@ -123,7 +123,7 @@ async function getTripErrors(catchVal: Catches) {
             }
         }
         const fishTicketErrors = validate(fishTicket, fishTicketChecks);
-        errors = Object.assign(errors, fishTicketErrors);
+        errors = fishTicketErrors ? Object.assign(errors, fishTicketErrors) : errors;
     }
     return logErrors(errors);
 }
@@ -345,6 +345,9 @@ async function getLookupList(view: String) {
 
 function logErrors(errors: any, haulNum?: number, catchId?: number) {
     const formattedErrors: any[] = [];
+    if (!errors) {
+        return [];
+    }
 
     for (const [key, value] of Object.entries(errors)) {
         formattedErrors.push({
