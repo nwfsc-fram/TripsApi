@@ -23,7 +23,7 @@ validate.validators.isEmpty = function(value, options) {
         return options;
     }
     return undefined;
-  };
+};
 
 export async function validateCatch(catchVal: Catches) {
     let errors: any[] = [];
@@ -289,7 +289,10 @@ async function validateHaul(haul: any) {
             }
         },
         startLongitude: {
-            presence: true
+            presence: true,
+            numericality: {
+                lessThan: 0
+            }
         },
         startLatitude: {
             presence: true,
@@ -305,7 +308,10 @@ async function validateHaul(haul: any) {
             }
         },
         endLongitude: {
-            presence: true
+            presence: true,
+            numericality: {
+                lessThan: 0
+            }
         },
         endLatitude: {
             presence: true,
