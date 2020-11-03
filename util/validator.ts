@@ -52,7 +52,7 @@ export async function validateCatch(catchVal: Catches) {
     if (validationResults.length > 0) {
         return {
             catchVal,
-            status: 500,
+            status: 400,
             message: validationResults
         }
     }
