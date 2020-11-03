@@ -167,7 +167,7 @@ const newCruise = async (req, res) => {
             )
           });
     } else {
-        res.status(500).send('vesselID is required to create a new cruise.')
+        res.status(400).send('vesselID is required to create a new cruise.')
     }
 }
 
@@ -194,7 +194,7 @@ const newTrip = async (req, res) => {
             )
             });
     } else {
-        res.status(500).send('vesselID is required to create a new trip.')
+        res.status(400).send('vesselID is required to create a new trip.')
     }
 }
 
@@ -217,7 +217,7 @@ const updateTrip = async (req, res) => {
             res.json(body);
         })
     } else {
-        res.status(500).send('Trip ID:' + req.body._id + ' not found.')
+        res.status(400).send('Trip ID:' + req.body._id + ' not found.')
     }
 }
 
@@ -227,7 +227,7 @@ const getCatch = async (req, res) => {
             const docs = body.rows.map((row) => row.doc)
             res.json(docs)
         } else {
-            res.status(200).send('not found')
+            res.status(400).send('not found')
         }
     })
 }
@@ -244,7 +244,7 @@ const newCatch = async (req, res) => {
             // check trip doc for tripNum exists
             const tripDocs = await masterDev.view('TripsApi', 'all_api_trips', { "key": tripNum });
             if (tripDocs.rows.length === 0 ) {
-                res.status(500).send('Trip doc with tripNum: ' + tripNum + ' does not exist. ' +
+                res.status(400).send('Trip doc with tripNum: ' + tripNum + ' does not exist. ' +
                     'Please create a valid tripDoc before submitting catchDoc.');
                 return;
             }
@@ -253,7 +253,7 @@ const newCatch = async (req, res) => {
             const source: string[] = jp.query(catchDocs, '$..source');
 
             if (source.includes(req.body.source)) {
-                res.status(500).send('Catch doc with tripNum:' + tripNum + ' already exists. ' +
+                res.status(400).send('Catch doc with tripNum:' + tripNum + ' already exists. ' +
                     'Please submit updated data via PUT to /tripCatch/:tripNum');
                 return;
             } else {
@@ -275,14 +275,14 @@ const newCatch = async (req, res) => {
                     });
 
                 } else {
-                    res.status(500).send('Invalid source: ' + req.body.source + '. Accepted source values are:' +
+                    res.status(400).send('Invalid source: ' + req.body.source + '. Accepted source values are:' +
                         'thirdParty, nwfscAudit, and logbook. Please correct source and resubmit.')
                         return;
                 }
             }
 
         } else {
-            res.status(500).send('missing required parameters.');
+            res.status(400).send('missing required parameters.');
             return;
         }
     }, 300)
@@ -295,14 +295,14 @@ const updateCatch = async (req, res) => {
     // check catch doc with same tripNum exist
     const catchDocs = await masterDev.view('TripsApi', 'all_api_catch', { "key": tripNum, "include_docs": true });
     if (catchDocs.rows.length === 0) {
-        res.status(500).send('Catch doc with tripNum ' + tripNum + ' does not exist.' +
+        res.status(400).send('Catch doc with tripNum ' + tripNum + ' does not exist.' +
             'Please use POST to /tripCatch/:tripNum to submit new catch data.');
         return;
     }
 
     // loop through matching catchDocs and get the one with the same sourceType
     for (const row of catchDocs.rows) {
-        
+
             const couchDoc = row.doc;
             const updateDoc: any = req.body;
 
@@ -329,14 +329,14 @@ const updateCatch = async (req, res) => {
         }
     }
 
-    res.status(500).send('Catch doc with tripNum: ' + tripNum + ' and source: ' + req.body.source +
+    res.status(400).send('Catch doc with tripNum: ' + tripNum + ' and source: ' + req.body.source +
     ' does not exist please submit new catch via POST to /tripCatch/:tripNum');
     return;
 }
 
 const saveScreenshot = async (req, res) => {
     if (!req.params.tripNum || !req.query.haulNum || !req.query.timeStamp || !req.query.submissionReason) {
-        res.status(500).send('submission rejected - missing required data');
+        res.status(400).send('submission rejected - missing required data');
     }
 
     const tripNum: number = parseInt(req.params.tripNum, 10);
@@ -344,7 +344,7 @@ const saveScreenshot = async (req, res) => {
 
     const tripDocs = await masterDev.view('TripsApi', 'all_api_trips', { "key": tripNum });
     if (tripDocs.rows.length === 0 ) {
-        res.status(500).send('Trip doc with tripNum: ' + tripNum + ' does not exist. ' +
+        res.status(400).send('Trip doc with tripNum: ' + tripNum + ' does not exist. ' +
             'Please create a valid tripDoc before submitting screenshot(s).');
     } else {
         const newScreenshot: any = {

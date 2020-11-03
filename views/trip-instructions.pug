@@ -11,7 +11,7 @@ h6(id="submitTrip") Submit Trip
 
 p(class="inst-desc") If a trip number (tripNum) for a given vessel Id and date range can not be found, a trip must be created before logbook data and EM review data can be submitted. It's anticipated that vessel captains will create a trip, and attach a logbook capture to that trip to submit - so the trip and trip number really should already exist - it's important to note though for testing purposes - logbook and em review data can not be submitted without a valid trip existing.
 
-p(class="inst-desc") i.e. if an em review is submitted with tripNum: 123456, and no trip record containing that tripNum exists, the Trips API will reject the em review submission with the 500 error "a trip with the supplied tripNum does not exist, please submit trip before submitting catch".
+p(class="inst-desc") i.e. if an em review is submitted with tripNum: 123456, and no trip record containing that tripNum exists, the Trips API will reject the em review submission with the 400 error "a trip with the supplied tripNum does not exist, please submit trip before submitting catch".
 
 p(class="inst-desc") Trips are submitted via POST request to /trips. The response will include a tripNum now associated with the submitted trip.
 
