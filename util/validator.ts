@@ -1,5 +1,5 @@
 import { Catches, sourceType } from "@boatnet/bn-models/lib";
-import { get, set, flattenDeep } from 'lodash';
+import { get, set, flattenDeep, merge } from 'lodash';
 import { masterDev } from './couchDB';
 const moment = require('moment');
 var validate = require("validate.js");
@@ -115,26 +115,28 @@ async function getTripErrors(catchVal: Catches) {
     }
     let errors = validate(catchVal, errorsChecks);
 
-    // validate fish tickets, check each has a datea and # associated with it
-    for (let fishTicket of catchVal.fishTickets) {
-        const index = catchVal.fishTickets.indexOf(fishTicket)
-        const fishTicketChecks = {
-            fishTicketNumber: {
-                presence: {
-                    message: 'missing from ticket with date ' + fishTicket.fishTicketDate
-                }
-            },
-            fishTicketDate: {
-                presence: {
-                    message: 'missing from ticket# ' + fishTicket.fishTicketNumber
+    // validate fish tickets, check each has a date and # associated with it
+    if (catchVal.source === sourceType.logbook && catchVal.fishTickets) {
+        for (let fishTicket of catchVal.fishTickets) {
+            const index = catchVal.fishTickets.indexOf(fishTicket);
+            const fishTicketChecks = {
+                fishTicketNumber: {
+                    presence: {
+                        message: 'missing from ticket with date ' + fishTicket.fishTicketDate
+                    }
                 },
-                datetime: {
-                    message: fishTicket.fishTicketDate + ' is an invalid date'
+                fishTicketDate: {
+                    presence: {
+                        message: 'missing from ticket# ' + fishTicket.fishTicketNumber
+                    },
+                    datetime: {
+                        message: fishTicket.fishTicketDate + ' is an invalid date'
+                    }
                 }
             }
+            const fishTicketErrors = validate(fishTicket, fishTicketChecks);
+            errors = fishTicketErrors ? merge(errors, fishTicketErrors) : errors;
         }
-        const fishTicketErrors = validate(fishTicket, fishTicketChecks);
-        errors = fishTicketErrors ? Object.assign(errors, fishTicketErrors) : errors;
     }
     return logErrors(errors);
 }
