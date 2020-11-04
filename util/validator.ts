@@ -18,7 +18,7 @@ validate.extend(validate.validators.datetime, {
     }
 });
 
-validate.validators.isEmpty = function(value, options) {
+validate.validators.isEmpty = function (value, options) {
     if (value) {
         return options;
     }
@@ -64,29 +64,7 @@ export async function validateCatch(catchVal: Catches) {
 }
 
 async function getTripErrors(catchVal: Catches) {
-    // get captains associated with vesselNum
-    const queryOptions = {
-        reduce: false,
-        include_docs: true,
-        key: 'vessel-permissions'
-    };
-    const vesselPermissions = await masterDev.view('obs_web', 'all_doc_types', queryOptions);
-    let vesselAuthorizations = jp.query(vesselPermissions, '$..vesselAuthorizations');
-    vesselAuthorizations = flattenDeep(vesselAuthorizations);
-    const vesselInfo: any = vesselAuthorizations.filter((auth) => auth.vesselIdNum === catchVal.vesselNumber);
-    const captains: any = await masterDev.fetch({ keys: vesselInfo[0].authorizedPeople });
-    let captainNames: string[] = [];
-    for (let captain of captains.rows) {
-        captainNames.push(captain.doc.firstName + ' ' + captain.doc.lastName)
-    }
-
-    const errorsChecks = {
-        skipperName: {
-            inclusion: {
-                within: captainNames,
-                message: catchVal.skipperName + ' does not match one of the valid skipper names: ' + captainNames
-            }
-        },
+    let errorsChecks = {
         fishTickets: function (value, attributes) {
             if (attributes.source === sourceType.logbook) {
                 return {
@@ -108,6 +86,32 @@ async function getTripErrors(catchVal: Catches) {
                 }
             }
         },
+    }
+
+    // get captains associated with vesselNum
+    const queryOptions = {
+        reduce: false,
+        include_docs: true,
+        key: 'vessel-permissions'
+    };
+    const vesselPermissions = await masterDev.view('obs_web', 'all_doc_types', queryOptions);
+    let vesselAuthorizations = jp.query(vesselPermissions, '$..vesselAuthorizations');
+    vesselAuthorizations = flattenDeep(vesselAuthorizations);
+    const vesselInfo: any = vesselAuthorizations.filter((auth) => auth.vesselIdNum === catchVal.vesselNumber);
+    if (vesselInfo[0]) {
+        const captains: any = await masterDev.fetch({ keys: vesselInfo[0].authorizedPeople });
+        let captainNames: string[] = [];
+        if (captains && captains.rows && captains.rows.length > 0) {
+            for (let captain of captains.rows) {
+                captainNames.push(captain.doc.firstName + ' ' + captain.doc.lastName)
+            }
+            errorsChecks['skipperName'] = {
+                inclusion: {
+                    within: captainNames,
+                    message: catchVal.skipperName + ' does not match one of the valid skipper names: ' + captainNames
+                }
+            }
+        }
     }
     let errors = validate(catchVal, errorsChecks);
 
