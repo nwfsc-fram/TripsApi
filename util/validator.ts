@@ -266,13 +266,6 @@ async function validateHaul(haul: any) {
                 }
             }
         },
-        netType: function (value, attributes) {
-            if (gearGroup2.includes(attributes.gearTypeCode)) {
-                return {
-                    presence: true
-                }
-            }
-        },
         codendCapacity: function (value, attributes) {
             if (gearGroup2.includes(attributes.gearTypeCode)) {
                 return {
@@ -344,7 +337,7 @@ async function validateCatchVal(catches: any) {
             presence: true
         },
         timeOnDeck: function (value, attributes) {
-            if (["PHLB", 101].includes(attributes.speciesCode)) {
+            if (["PHLB", '101'].includes(attributes.speciesCode)) {
                 return {
                     presence: true
                 }
