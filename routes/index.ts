@@ -271,7 +271,7 @@ const newCatch = async (req, res) => {
                     masterDev.bulk({ docs: [validationResults.catchVal] }).then(
                         () => {
                             catchEvaluator(tripNum);
-                            res.status('200').send('Catch doc with tripNum:' + tripNum + ' saved successfully. Errors ' + JSON.stringify(validationResults.catchVal.errors));
+                            res.status('200').send('Catch doc with tripNum:' + tripNum + ' saved successfully. ' + (validationResults.catchVal.errors && validationResults.catchVal.errors.length > 0 ? ' Errors: ' + JSON.stringify(validationResults.catchVal.errors) : ''));
                             return;
                     });
 
@@ -323,6 +323,7 @@ const updateCatch = async (req, res) => {
             set(reqDoc, 'createdDate', couchDoc.createdDate);
             set(reqDoc, 'updateDate', moment().format());
             set(reqDoc, 'revision', couchDoc.revision ? couchDoc.revision + 1 : 1);
+            set(reqDoc, 'resubmission', true);
             if (!reqDoc.history) {
                 set(reqDoc, 'history', []);
             }
