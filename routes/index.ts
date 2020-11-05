@@ -240,6 +240,7 @@ const newCatch = async (req, res) => {
             const newTrip = req.body;
             newTrip.type = 'trips-api-catch';
             newTrip.createdDate = moment().format();
+            newTrip.revision = 0;
 
             // check trip doc for tripNum exists
             const tripDocs = await masterDev.view('TripsApi', 'all_api_trips', { "key": tripNum });
@@ -321,9 +322,14 @@ const updateCatch = async (req, res) => {
             set(reqDoc, 'type', 'trips-api-catch');
             set(reqDoc, 'createdDate', couchDoc.createdDate);
             set(reqDoc, 'updateDate', moment().format());
+            set(reqDoc, 'revision', couchDoc.revision ? couchDoc.revision + 1 : 1);
+            if (!reqDoc.history) {
+                set(reqDoc, 'history', []);
+            }
+            reqDoc.history.unshift(couchDoc);
             masterDev.bulk({ docs: [reqDoc] }).then((body) => {
                 catchEvaluator(tripNum);
-                res.status(200).send('Catch doc with tripNum:' + tripNum + ' successfully updated! Errors: ' + JSON.stringify(reqDoc.errors));
+                res.status(200).send('Catch doc with tripNum:' + tripNum + ' successfully updated!' + (reqDoc.errors && reqDoc.errors.length > 0 ? ' Errors: ' + JSON.stringify(reqDoc.errors) : ''));
             })
             return;
         }
