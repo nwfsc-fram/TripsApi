@@ -323,6 +323,7 @@ const updateCatch = async (req, res) => {
             set(reqDoc, 'createdDate', couchDoc.createdDate);
             set(reqDoc, 'updateDate', moment().format());
             set(reqDoc, 'revision', couchDoc.revision ? couchDoc.revision + 1 : 1);
+            set(reqDoc, 'resubmission', true);
             if (!reqDoc.history) {
                 set(reqDoc, 'history', []);
             }
