@@ -1,4 +1,4 @@
-import { Catches, sourceType } from "@boatnet/bn-models/lib";
+import { Catches, sourceType, errorType } from "@boatnet/bn-models/lib";
 import { get, set, flattenDeep, merge } from 'lodash';
 import { masterDev } from './couchDB';
 const moment = require('moment');
@@ -375,7 +375,8 @@ function logErrors(errors: any, haulNum?: number, catchId?: number) {
     for (const [key, value] of Object.entries(errors)) {
         formattedErrors.push({
             field: key,
-            message: value,
+            message: value[0],
+            type: errorType.warning,
             haulNum,
             catchId
         })
