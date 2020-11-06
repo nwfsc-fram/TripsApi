@@ -32,7 +32,7 @@ export async function validateCatch(catchVal: Catches) {
     const emCodes = await masterDev.view('em-views', 'wcgopCode-to-pacfinCode-map', { include_docs: true });
 
     let validationResults: string = await validateTrip(catchVal);
-    //validationResults += await validateFishTickets(catchVal, emCodes);
+    validationResults += await validateFishTickets(catchVal, emCodes);
     errors = errors.concat(await getTripErrors(catchVal));
 
     let hauls = get(catchVal, 'hauls', []);
