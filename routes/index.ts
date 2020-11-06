@@ -266,12 +266,13 @@ const newCatch = async (req, res) => {
                         res.status(validationResults.status).send(validationResults.message);
                         return;
                     }
+                    const errors: string = validationResults.catchVal.errors && validationResults.catchVal.errors.length > 0 ? ' Errors: ' + JSON.stringify(validationResults.catchVal.errors) : '';
 
                     // everything is good, write to db and evaluate catch doc
                     masterDev.bulk({ docs: [validationResults.catchVal] }).then(
                         () => {
                             catchEvaluator(tripNum);
-                            res.status('200').send('Catch doc with tripNum:' + tripNum + ' saved successfully. ' + (validationResults.catchVal.errors && validationResults.catchVal.errors.length > 0 ? ' Errors: ' + JSON.stringify(validationResults.catchVal.errors) : ''));
+                            res.status('200').send('Catch doc with tripNum:' + tripNum + ' saved successfully. ' + errors);
                             return;
                     });
 
@@ -328,9 +329,10 @@ const updateCatch = async (req, res) => {
                 set(reqDoc, 'history', []);
             }
             reqDoc.history.unshift(couchDoc);
+            const errors: string = reqDoc.errors && reqDoc.errors.length > 0 ? ' Errors: ' + JSON.stringify(reqDoc.errors) : '';
             masterDev.bulk({ docs: [reqDoc] }).then((body) => {
                 catchEvaluator(tripNum);
-                res.status(200).send('Catch doc with tripNum:' + tripNum + ' successfully updated!' + (reqDoc.errors && reqDoc.errors.length > 0 ? ' Errors: ' + JSON.stringify(reqDoc.errors) : ''));
+                res.status(200).send('Catch doc with tripNum:' + tripNum + ' successfully updated!' + errors);
             })
             return;
         }

@@ -1,4 +1,5 @@
 import { Catches, sourceType, errorType } from "@boatnet/bn-models/lib";
+import { getFishTicket } from './oracle_routines';
 import { get, set, flattenDeep, merge } from 'lodash';
 import { masterDev } from './couchDB';
 const moment = require('moment');
@@ -28,7 +29,9 @@ validate.validators.isEmpty = function (value, options) {
 export async function validateCatch(catchVal: Catches) {
     let errors: any[] = [];
     const source = catchVal.source;
+    const emCodes = await masterDev.view('em-views', 'wcgopCode-to-pacfinCode-map', { include_docs: true });
     let validationResults: string = await validateTrip(catchVal);
+    validationResults += await validateFishTickets(catchVal, emCodes);
     errors = errors.concat(await getTripErrors(catchVal));
 
     let hauls = get(catchVal, 'hauls', []);
@@ -39,14 +42,11 @@ export async function validateCatch(catchVal: Catches) {
 
         for (let j = 0; j < catches.length; j++) {
             let currCatchVal = catches[j];
-            const catchValResults = await validateCatchVal(currCatchVal);
+            const catchValResults = await validateCatchVal(currCatchVal, emCodes.rows);
             errors = errors.concat(catchErrors(currCatchVal, source, hauls[i].haulNum));
             if (catchValResults.length > 0) {
                 validationResults += '\nCatch level errors: ' + hauls[i].haulNum + ' catch: ' + currCatchVal.catchId + catchValResults;
             }
-            let results = await priorityAndProtectedChecks(catchVal.hauls[i], currCatchVal);
-            set(catchVal, 'hauls[' + i + '].catch[' + j + ']', results.currCatch);
-            errors = errors.concat(results.errors);
         }
     }
     if (validationResults.length > 0) {
@@ -174,6 +174,31 @@ function catchErrors(catchVal: any, source: sourceType, haulNum: number) {
     }
     const validationErrors: any = validate(catchVal, errorChecks);
     return logErrors(validationErrors, haulNum, catchVal.catchId);
+}
+
+async function validateFishTickets(catchVal: Catches, speciesCodes: any) {
+    let errors: string = '';
+    if (catchVal.source === sourceType.logbook) {
+        const validCodes = jp.query(speciesCodes, '$..value');
+
+        for (const fishTicket of catchVal.fishTickets) {
+            let dbTickets = await getFishTicket(fishTicket.fishTicketNumber);
+            for (const dbTicket of dbTickets) {
+                const validationResults = validate(dbTicket, {
+                    PACFIN_SPECIES_CODE: {
+                        inclusion: {
+                            within: validCodes,
+                            message: '%{value} which maps to fish ticket ' + fishTicket.fishTicketNumber + ' is invalid'
+                        }
+                    }
+                });
+                if (validationResults) {
+                    errors = errors.concat(JSON.stringify(validationResults));
+                }
+            }
+        }
+    }
+    return errors ? 'fish ticket errors: ' + errors : '';
 }
 
 async function validateTrip(catchVal: Catches) {
@@ -323,8 +348,10 @@ async function validateHaul(haul: any) {
     return haulResults ? '\nHaul level errors: ' + haul.haulNum + ' ' + JSON.stringify(haulResults) : '';
 }
 
-async function validateCatchVal(catches: any) {
+async function validateCatchVal(catches: any, speciesCodes: any) {
+    // TODO in species code may want to check isNumber for logbook and isString for review 
     const dispositionLookups = await getLookupList('catch-disposition');
+    const validCodes = jp.query(speciesCodes, '$..value');
     const catchLevelChecks = {
         disposition: {
             presence: true,
@@ -334,7 +361,10 @@ async function validateCatchVal(catches: any) {
             }
         },
         speciesCode: {
-            presence: true
+            presence: true,
+            inclusion: {
+                within: validCodes
+            }
         },
         timeOnDeck: function (value, attributes) {
             if (["PHLB", '101'].includes(attributes.speciesCode)) {
@@ -348,17 +378,23 @@ async function validateCatchVal(catches: any) {
             }
         },
     };
+    // if priority or protected species verify count is present
+    const speciesInfo = speciesCodes.filter((species) => species.value === catches.speciesCode);
+    if (speciesInfo[0].doc.isProtected || speciesInfo[0].doc.isWcgopEmPriority) {
+        catchLevelChecks['speciesCount'] = {
+            presence: true
+        }
+    }
     const catchResults = validate(catches, catchLevelChecks);
     return catchResults ? JSON.stringify(catchResults) : '';
 }
-
-// common function to format errors then this will be called by trip, haul, and catch errors
 
 async function getLookupList(view: String) {
     const lookups = await masterDev.view('TripsApi', 'all_em_lookups', { key: view, include_docs: true });
     return jp.query(lookups, '$..lookupValue')
 }
 
+// common function to format errors then this will be called by trip, haul, and catch errors
 function logErrors(errors: any, haulNum?: number, catchId?: number) {
     const formattedErrors: any[] = [];
     if (!errors) {
@@ -375,45 +411,4 @@ function logErrors(errors: any, haulNum?: number, catchId?: number) {
         })
     }
     return formattedErrors;
-}
-
-// priority and protected species must have weight and count
-async function priorityAndProtectedChecks(haul: any, currCatch: any) {
-    const options = {
-        include_docs: true,
-        key: currCatch.speciesCode
-    };
-    const source = currCatch.source;
-    let lookupInfo = await masterDev.view('em-views', 'wcgopCode-to-pacfinCode-map', options);
-    let errors = [];
-    if (lookupInfo.rows.length > 0) {  // handles the possibility that the species code isn't returned by the codes-map view
-        lookupInfo = lookupInfo.rows[0].doc;
-    }
-
-    if (lookupInfo.isProtected || lookupInfo.isWcgopEmPriority) {
-        currCatch.isProtected = lookupInfo.isProtected ? true : false;
-        currCatch.isWcgopEmPriority = lookupInfo.isWcgopEmPriority ? true : false;
-        if (!currCatch.speciesCount) {
-            errors.push({
-                type: 'Missing count',
-                haulNum: haul.haulNum,
-                catchId: currCatch.catchId
-            });
-        }
-        // add error when species code is not format expected by source
-        if (source === 'logbook' && parseInt(currCatch.speciesCode, 10)) {
-            errors.push({
-                type: 'Unexpected code',
-                message: 'expected Pacfin code, but got numeric code: ' + currCatch.speciesCode
-            })
-        } else if (source === 'thirdParty' && !parseInt(currCatch.speciesCode, 10)) {
-            errors.push({
-                type: 'Missing weight',
-                haulNum: haul.haulNum,
-                catchId: currCatch.catchId
-            });
-        }
-
-    }
-    return { currCatch, errors };
 }
