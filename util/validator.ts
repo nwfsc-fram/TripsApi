@@ -29,9 +29,10 @@ validate.validators.isEmpty = function (value, options) {
 export async function validateCatch(catchVal: Catches) {
     let errors: any[] = [];
     const source = catchVal.source;
-    let validationResults: string = await validateTrip(catchVal);
-    errors = errors.concat(await getTripErrors(catchVal));
     const emCodes = await masterDev.view('em-views', 'wcgopCode-to-pacfinCode-map', { include_docs: true });
+    let validationResults: string = await validateTrip(catchVal);
+    validationResults += await validateFishTickets(catchVal, emCodes);
+    errors = errors.concat(await getTripErrors(catchVal));
 
     let hauls = get(catchVal, 'hauls', []);
     for (let i = 0; i < hauls.length; i++) {
@@ -140,43 +141,6 @@ async function getTripErrors(catchVal: Catches) {
     return logErrors(errors);
 }
 
-async function validateFishTickets(fishTickets: any[], speciesCodes: any[]) {
-    const validCodes = jp.query(speciesCodes, '$..value');
-    for (let fishTicket of fishTickets) {
-        const index = fishTickets.indexOf(fishTicket);
-        const fishTicketChecks = {
-            fishTicketNumber: {
-                presence: {
-                    message: 'missing from ticket with date ' + fishTicket.fishTicketDate
-                }
-            },
-            fishTicketDate: {
-                presence: {
-                    message: 'missing from ticket# ' + fishTicket.fishTicketNumber
-                },
-                datetime: {
-                    message: fishTicket.fishTicketDate + ' is an invalid date'
-                }
-            }
-        }
-        const fishTicketErrors = validate(fishTicket, fishTicketChecks);
-        //   errors = fishTicketErrors ? merge(errors, fishTicketErrors) : errors;
-    }
-
-    const nomDecoderSrc: any = await masterDev.view('obs_web', 'all_doc_types', { "reduce": false, "key": "nom-2-pacfin-decoder", "include_docs": true });
-    const nomDecoder = {};
-    for (const decoderRow of nomDecoderSrc.rows[0].doc.decoder) {
-        nomDecoder[decoderRow['nom-code']] = decoderRow['pacfin-code'];
-    }
-    for (const row of fishTickets) {
-        let fishTicketRows = await getFishTicket(row.fishTicketNumber, validCodes);
-        fishTicketRows.map((row: any) => {
-            row.PACFIN_SPECIES_CODE = nomDecoder[row.PACFIN_SPECIES_CODE] ? nomDecoder[row.PACFIN_SPECIES_CODE] : row.PACFIN_SPECIES_CODE;
-        })
-        fishTickets.push.apply(fishTickets, fishTicketRows);
-    }
-}
-
 function getHaulErrors(haul: any, source: sourceType) {
     const errorChecks = {
         catchHandlingPerformance: function (value, attributes) {
@@ -210,6 +174,31 @@ function catchErrors(catchVal: any, source: sourceType, haulNum: number) {
     }
     const validationErrors: any = validate(catchVal, errorChecks);
     return logErrors(validationErrors, haulNum, catchVal.catchId);
+}
+
+async function validateFishTickets(catchVal: Catches, speciesCodes: any) {
+    let errors: string = '';
+    if (catchVal.source === sourceType.logbook) {
+        const validCodes = jp.query(speciesCodes, '$..value');
+
+        for (const fishTicket of catchVal.fishTickets) {
+            let dbTickets = await getFishTicket(fishTicket.fishTicketNumber);
+            for (const dbTicket of dbTickets) {
+                const validationResults = validate(dbTicket, {
+                    PACFIN_SPECIES_CODE: {
+                        inclusion: {
+                            within: validCodes,
+                            message: '%{value} which maps to fish ticket ' + fishTicket.fishTicketNumber + ' is invalid'
+                        }
+                    }
+                });
+                if (validationResults) {
+                    errors = errors.concat(JSON.stringify(validationResults));
+                }
+            }
+        }
+    }
+    return errors ? 'fish ticket errors: ' + errors : '';
 }
 
 async function validateTrip(catchVal: Catches) {
