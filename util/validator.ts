@@ -30,8 +30,9 @@ export async function validateCatch(catchVal: Catches) {
     let errors: any[] = [];
     const source = catchVal.source;
     const emCodes = await masterDev.view('em-views', 'wcgopCode-to-pacfinCode-map', { include_docs: true });
+
     let validationResults: string = await validateTrip(catchVal);
-    validationResults += await validateFishTickets(catchVal, emCodes);
+    //validationResults += await validateFishTickets(catchVal, emCodes);
     errors = errors.concat(await getTripErrors(catchVal));
 
     let hauls = get(catchVal, 'hauls', []);
@@ -42,6 +43,12 @@ export async function validateCatch(catchVal: Catches) {
 
         for (let j = 0; j < catches.length; j++) {
             let currCatchVal = catches[j];
+            // convert speices codes supplied as string numbers to numbers
+            const speciesCodeStr = parseInt(currCatchVal.speciesCode, 10);
+            if (speciesCodeStr) {
+                set(currCatchVal, 'speciesCode', speciesCodeStr);
+                set(catchVal, 'hauls[' + i + '].catch[' + j + ']', currCatchVal);
+            }
             const catchValResults = await validateCatchVal(currCatchVal, emCodes.rows);
             errors = errors.concat(catchErrors(currCatchVal, source, hauls[i].haulNum));
             if (catchValResults.length > 0) {
@@ -63,6 +70,10 @@ export async function validateCatch(catchVal: Catches) {
     };
 }
 
+/**
+ * Gets errors logged in the catch document. This request is still
+ * accepted and marked as valid
+ */
 async function getTripErrors(catchVal: Catches) {
     let errorsChecks = {
         fishTickets: function (value, attributes) {
@@ -176,6 +187,10 @@ function catchErrors(catchVal: any, source: sourceType, haulNum: number) {
     return logErrors(validationErrors, haulNum, catchVal.catchId);
 }
 
+/**
+ * If an error is flagged here the request is rejected and no futher processing
+ * is completed
+ */
 async function validateFishTickets(catchVal: Catches, speciesCodes: any) {
     let errors: string = '';
     if (catchVal.source === sourceType.logbook) {
@@ -380,9 +395,11 @@ async function validateCatchVal(catches: any, speciesCodes: any) {
     };
     // if priority or protected species verify count is present
     const speciesInfo = speciesCodes.filter((species) => species.value === catches.speciesCode);
-    if (speciesInfo[0].doc.isProtected || speciesInfo[0].doc.isWcgopEmPriority) {
-        catchLevelChecks['speciesCount'] = {
-            presence: true
+    if (speciesInfo.length > 0 && speciesInfo[0] && speciesInfo[0].doc) {
+        if (speciesInfo[0].doc.isProtected || speciesInfo[0].doc.isWcgopEmPriority) {
+            catchLevelChecks['speciesCount'] = {
+                presence: true
+            }
         }
     }
     const catchResults = validate(catches, catchLevelChecks);

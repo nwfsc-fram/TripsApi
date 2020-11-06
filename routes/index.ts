@@ -302,45 +302,42 @@ const updateCatch = async (req, res) => {
         return;
     }
 
-    // loop through matching catchDocs and get the one with the same sourceType
-    for (const row of catchDocs.rows) {
-
-            const couchDoc = row.doc;
-            const updateDoc: any = req.body;
-
-            // additional validation checks
-            const validationResults = await validateCatch(updateDoc);
-            if (validationResults.status != 200) {
-                res.status(validationResults.status).send(validationResults.message);
-                return;
-            }
-
-            if (req.body.source === row.doc.source) {
-            // doc valid, save to couch
-            const reqDoc: any = validationResults.catchVal;
-            set(reqDoc, '_id', couchDoc._id);
-            set(reqDoc, '_rev', couchDoc._rev);
-            set(reqDoc, 'type', 'trips-api-catch');
-            set(reqDoc, 'createdDate', couchDoc.createdDate);
-            set(reqDoc, 'updateDate', moment().format());
-            set(reqDoc, 'revision', couchDoc.revision ? couchDoc.revision + 1 : 1);
-            set(reqDoc, 'resubmission', true);
-            if (!reqDoc.history) {
-                set(reqDoc, 'history', []);
-            }
-            reqDoc.history.unshift(couchDoc);
-            const errors: string = reqDoc.errors && reqDoc.errors.length > 0 ? ' Errors: ' + JSON.stringify(reqDoc.errors) : '';
-            masterDev.bulk({ docs: [reqDoc] }).then((body) => {
-                catchEvaluator(tripNum);
-                res.status(200).send('Catch doc with tripNum:' + tripNum + ' successfully updated!' + errors);
-            })
-            return;
-        }
+    // get catchDocs with same source type as one specified in the request
+    const catchDoc = catchDocs.rows.filter((row) => row.doc.source === req.body.source);
+    if (!catchDoc) {
+        res.status(400).send('Catch doc with tripNum: ' + tripNum + ' and source: ' + req.body.source +
+            ' does not exist please submit new catch via POST to /tripCatch/:tripNum');
+        return;
     }
 
-    res.status(400).send('Catch doc with tripNum: ' + tripNum + ' and source: ' + req.body.source +
-    ' does not exist please submit new catch via POST to /tripCatch/:tripNum');
-    return;
+    const couchDoc = catchDoc[0].doc;
+    const updateDoc: any = req.body;
+
+    // additional validation checks
+    const validationResults = await validateCatch(updateDoc);
+    if (validationResults.status != 200) {
+        res.status(validationResults.status).send(validationResults.message);
+        return;
+    }
+
+    // doc valid, save to couch
+    const reqDoc: any = validationResults.catchVal;
+    set(reqDoc, '_id', couchDoc._id);
+    set(reqDoc, '_rev', couchDoc._rev);
+    set(reqDoc, 'type', 'trips-api-catch');
+    set(reqDoc, 'createdDate', couchDoc.createdDate);
+    set(reqDoc, 'updateDate', moment().format());
+    set(reqDoc, 'revision', couchDoc.revision ? couchDoc.revision + 1 : 1);
+    set(reqDoc, 'resubmission', true);
+    if (!reqDoc.history) {
+        set(reqDoc, 'history', []);
+    }
+    reqDoc.history.unshift(couchDoc);
+    const errors: string = reqDoc.errors && reqDoc.errors.length > 0 ? ' Errors: ' + JSON.stringify(reqDoc.errors) : '';
+    masterDev.bulk({ docs: [reqDoc] }).then((body) => {
+        catchEvaluator(tripNum);
+        res.status(200).send('Catch doc with tripNum:' + tripNum + ' successfully updated!' + errors);
+    })
 }
 
 const saveScreenshot = async (req, res) => {
