@@ -734,10 +734,6 @@ components:
         comments:
           type: "string"
           description: "Notes pertaining to a specific catch record"
-        screenShotId:
-          type: "string"
-        screenShotDescription:
-          type: "string"
     Trip:
       required:
       - "departureDate"
