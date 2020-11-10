@@ -29,10 +29,17 @@ validate.validators.isEmpty = function (value, options) {
 export async function validateCatch(catchVal: Catches) {
     let errors: any[] = [];
     const source = catchVal.source;
-    const emCodes = await masterDev.view('em-views', 'wcgopCode-to-pacfinCode-map', { include_docs: true });
+    const emCodeDocs = await masterDev.view('em-views', 'wcgopCode-to-pacfinCode-map', { include_docs: true });
+    const validCodes = jp.query(emCodeDocs, '$..value');
+
+    // adds nominal species codes to list of accepted species codes
+    const nomDecoderSrc: any = await masterDev.view('obs_web', 'all_doc_types', { "reduce": false, "key": "nom-2-pacfin-decoder", "include_docs": true });
+    for (const nomCode of nomDecoderSrc.rows[0].doc.decoder) {
+        validCodes.push(nomCode['nom-code']);
+    }
 
     let validationResults: string = await validateTrip(catchVal);
-    validationResults += await validateFishTickets(catchVal, emCodes);
+    validationResults += await validateFishTickets(catchVal, validCodes);
     errors = errors.concat(await getTripErrors(catchVal));
 
     let hauls = get(catchVal, 'hauls', []);
@@ -49,7 +56,7 @@ export async function validateCatch(catchVal: Catches) {
                 set(currCatchVal, 'speciesCode', speciesCodeStr);
                 set(catchVal, 'hauls[' + i + '].catch[' + j + ']', currCatchVal);
             }
-            const catchValResults = await validateCatchVal(currCatchVal, emCodes.rows);
+            const catchValResults = await validateCatchVal(currCatchVal, emCodeDocs.rows);
             errors = errors.concat(catchErrors(currCatchVal, source, hauls[i].haulNum));
             if (catchValResults.length > 0) {
                 validationResults += '\nCatch level errors: ' + hauls[i].haulNum + ' catch: ' + currCatchVal.catchId + catchValResults;
@@ -191,18 +198,16 @@ function catchErrors(catchVal: any, source: sourceType, haulNum: number) {
  * If an error is flagged here the request is rejected and no futher processing
  * is completed
  */
-async function validateFishTickets(catchVal: Catches, speciesCodes: any) {
+async function validateFishTickets(catchVal: Catches, speciesCodes: string[]) {
     let errors: string = '';
     if (catchVal.source === sourceType.logbook) {
-        const validCodes = jp.query(speciesCodes, '$..value');
-
         for (const fishTicket of catchVal.fishTickets) {
             let dbTickets = await getFishTicket(fishTicket.fishTicketNumber);
             for (const dbTicket of dbTickets) {
                 const validationResults = validate(dbTicket, {
                     PACFIN_SPECIES_CODE: {
                         inclusion: {
-                            within: validCodes,
+                            within: speciesCodes,
                             message: '%{value} which maps to fish ticket ' + fishTicket.fishTicketNumber + ' is invalid'
                         }
                     }
@@ -381,8 +386,14 @@ async function validateCatchVal(catches: any, speciesCodes: any) {
                 within: validCodes
             }
         },
+        speciesCount: function (value, attributes) {
+            const index = validCodes.indexOf(attributes.speciesCode);
+            if (index > 0 && (speciesCodes[index].doc.isProtected || speciesCodes[index].doc.isWcgopEmPriority)) {
+                return { presence: { message: "is required for species code " + attributes.speciesCode } }
+            }
+        },
         timeOnDeck: function (value, attributes) {
-            if (["PHLB", '101'].includes(attributes.speciesCode)) {
+            if (["PHLB", 101].includes(attributes.speciesCode)) {
                 return {
                     presence: true
                 }
@@ -393,15 +404,6 @@ async function validateCatchVal(catches: any, speciesCodes: any) {
             }
         },
     };
-    // if priority or protected species verify count is present
-    const speciesInfo = speciesCodes.filter((species) => species.value === catches.speciesCode);
-    if (speciesInfo.length > 0 && speciesInfo[0] && speciesInfo[0].doc) {
-        if (speciesInfo[0].doc.isProtected || speciesInfo[0].doc.isWcgopEmPriority) {
-            catchLevelChecks['speciesCount'] = {
-                presence: true
-            }
-        }
-    }
     const catchResults = validate(catches, catchLevelChecks);
     return catchResults ? JSON.stringify(catchResults) : '';
 }
