@@ -50,12 +50,6 @@ export async function validateCatch(catchVal: Catches) {
 
         for (let j = 0; j < catches.length; j++) {
             let currCatchVal = catches[j];
-            // convert speices codes supplied as string numbers to numbers
-            const speciesCodeStr = parseInt(currCatchVal.speciesCode, 10);
-            if (speciesCodeStr) {
-                set(currCatchVal, 'speciesCode', speciesCodeStr);
-                set(catchVal, 'hauls[' + i + '].catch[' + j + ']', currCatchVal);
-            }
             const catchValResults = await validateCatchVal(currCatchVal, emCodeDocs.rows);
             errors = errors.concat(catchErrors(currCatchVal, source, hauls[i].haulNum));
             if (catchValResults.length > 0) {
@@ -383,7 +377,8 @@ async function validateCatchVal(catches: any, speciesCodes: any) {
         speciesCode: {
             presence: true,
             inclusion: {
-                within: validCodes
+                within: validCodes,
+                message: ' %{value} is invalid. (Note WCGOP codes must be numbers and PACFIN codes must be enclosed in quotes)'
             }
         },
         speciesCount: function (value, attributes) {
