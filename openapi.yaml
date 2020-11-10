@@ -609,13 +609,13 @@ components:
           - catchId: 1
             disposition: "Discarded"
             fate: "11"
-            speciesCode: "614"
+            speciesCode: 614
             speciesWeight: 320
             speciesCount: 23
           - catchId: 2
             disposition: "Discarded"
             fate: "11"
-            speciesCode: "20"
+            speciesCode: 200
             speciesWeight: 200
             speciesLength: 27
     Haul:
