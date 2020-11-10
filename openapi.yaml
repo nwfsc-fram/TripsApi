@@ -609,13 +609,13 @@ components:
           - catchId: 1
             disposition: "Discarded"
             fate: "11"
-            speciesCode: "614"
+            speciesCode: 614
             speciesWeight: 320
             speciesCount: 23
           - catchId: 2
             disposition: "Discarded"
             fate: "11"
-            speciesCode: "20"
+            speciesCode: 200
             speciesWeight: 200
             speciesLength: 27
     Haul:
@@ -712,8 +712,10 @@ components:
           type: "string"
           description: "Observer Discard Reason -- 1 (Unintentional Discard), 2 (Unkown), 3 (Discarded - General), 4 (Discarded - Damaged), 5 - (Throwback), 6 - (Utilized on-board)"
         speciesCode:
-          type: "string"
-          description: "WCGOP species code (3 or 4 digits)"
+          oneOf:
+            - type: string
+            - type: number
+          description: source = 'logbook' - string reqired. source = 'thirdParty' - number required.
         speciesWeight:
           type: "number"
           description: "Total estimated weight (lbs)"
