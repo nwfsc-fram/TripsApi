@@ -133,7 +133,7 @@ async function getTripErrors(catchVal: Catches) {
         for (let fishTicket of catchVal.fishTickets) {
             let ticketLookup = await getFishTicket(fishTicket.fishTicketNumber);
             if (ticketLookup.length === 0) {
-                errors["fishTicketNumber"] = ['No fish ticket ' + fishTicket.fishTicketNumber + ' is found in the database.']
+                errors["fishTicketNumber"] = ['No fish ticket for ticket: ' + fishTicket.fishTicketNumber + ' found in the database.']
             }
             const fishTicketChecks = {
                 fishTicketNumber: {
