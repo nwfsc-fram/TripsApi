@@ -125,12 +125,16 @@ async function getTripErrors(catchVal: Catches) {
             }
         }
     }
-    let errors = validate(catchVal, errorsChecks);
+    let errors = {};
+    errors = merge(errors, validate(catchVal, errorsChecks));
 
     // validate fish tickets, check each has a date and # associated with it
     if (catchVal.source === sourceType.logbook && catchVal.fishTickets) {
         for (let fishTicket of catchVal.fishTickets) {
-            const index = catchVal.fishTickets.indexOf(fishTicket);
+            let ticketLookup = await getFishTicket(fishTicket.fishTicketNumber);
+            if (ticketLookup.length === 0) {
+                errors["fishTicketNumber"] = ['No fish ticket ' + fishTicket.fishTicketNumber + ' is found in the database.']
+            }
             const fishTicketChecks = {
                 fishTicketNumber: {
                     presence: {
@@ -194,7 +198,7 @@ function catchErrors(catchVal: any, source: sourceType, haulNum: number) {
  */
 async function validateFishTickets(catchVal: Catches, speciesCodes: string[]) {
     let errors: string = '';
-    if (catchVal.source === sourceType.logbook) {
+    if (catchVal.source === sourceType.logbook && catchVal.fishTickets) {
         for (const fishTicket of catchVal.fishTickets) {
             let dbTickets = await getFishTicket(fishTicket.fishTicketNumber);
             for (const dbTicket of dbTickets) {
