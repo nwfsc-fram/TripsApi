@@ -395,11 +395,13 @@ async function validateCatchVal(catches: any, speciesCodes: any) {
         timeOnDeck: function (value, attributes) {
             if (["PHLB", 101].includes(attributes.speciesCode)) {
                 return {
-                    presence: true
+                    presence: {
+                        message: ' should not be empty when species is of type ' + attributes.speciesCode
+                    }
                 }
             } else {
                 return {
-                    isEmpty: ' field should be left empty except when species is of type PHLB'
+                    isEmpty: ' should be left empty except when species code is of type PHLB/101'
                 }
             }
         },
