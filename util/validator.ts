@@ -7,8 +7,6 @@ var validate = require("validate.js");
 const jp = require('jsonpath');
 
 validate.extend(validate.validators.datetime, {
-    // The value is guaranteed not to be null or undefined but otherwise it
-    // could be anything.
     parse: function (value, options) {
         return +moment.utc(value);
     },
@@ -19,6 +17,7 @@ validate.extend(validate.validators.datetime, {
     }
 });
 
+// checks whether an value is empty. Returns true if empty
 validate.validators.isEmpty = function (value, options) {
     if (value) {
         return options;
@@ -29,17 +28,21 @@ validate.validators.isEmpty = function (value, options) {
 export async function validateCatch(catchVal: Catches) {
     let errors: any[] = [];
     const source = catchVal.source;
+
+    // Getting list of accepted speices code
     const emCodeDocs = await masterDev.view('em-views', 'wcgopCode-to-pacfinCode-map', { include_docs: true });
     const validCodes = jp.query(emCodeDocs, '$..value');
 
-    // adds nominal species codes to list of accepted species codes
+    // Adding nominal species codes to list of accepted species codes
     const nomDecoderSrc: any = await masterDev.view('obs_web', 'all_doc_types', { "reduce": false, "key": "nom-2-pacfin-decoder", "include_docs": true });
     for (const nomCode of nomDecoderSrc.rows[0].doc.decoder) {
         validCodes.push(nomCode['nom-code']);
     }
 
+    // validate trip - find errors that would cause the request to be rejected
     let validationResults: string = await validateTrip(catchVal);
     validationResults += await validateFishTickets(catchVal, validCodes);
+    // find errors, the trip will still be accepted, but errors logged in the doc
     errors = errors.concat(await getTripErrors(catchVal));
 
     let hauls = get(catchVal, 'hauls', []);
@@ -328,6 +331,12 @@ async function validateHaul(haul: any) {
                 return {
                     presence: true
                 }
+            }
+        },
+        startDateTime: {
+            datetime: {
+                latest: haul.endDateTime,
+                message: 'must occur before end date time'
             }
         },
         startLongitude: {
