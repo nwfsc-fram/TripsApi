@@ -251,36 +251,28 @@ const newCatch = async (req, res) => {
             }
 
             const catchDocs = await masterDev.view('TripsApi', 'all_api_catch', { "key": tripNum, "include_docs": true });
-            const source: string[] = jp.query(catchDocs, '$..source');
+            const catchDoc = catchDocs.rows.filter((row) => row.doc.source === req.body.source);
 
-            if (source.includes(req.body.source)) {
+            if (catchDoc.length > 0) {
                 res.status(400).send('Catch doc with tripNum:' + tripNum + ' already exists. ' +
                     'Please submit updated data via PUT to /tripCatch/:tripNum');
                 return;
             } else {
-                if ([sourceType.thirdParty, sourceType.nwfscAudit, sourceType.logbook].includes(req.body.source)) {
-
-                    // additional validation checks
-                    const validationResults = await validateCatch(newTrip);
-                    if (validationResults.status != 200) {
-                        res.status(validationResults.status).send(validationResults.message);
-                        return;
-                    }
-                    const errors: string = validationResults.catchVal.errors && validationResults.catchVal.errors.length > 0 ? ' Errors: ' + JSON.stringify(validationResults.catchVal.errors) : '';
-
-                    // everything is good, write to db and evaluate catch doc
-                    masterDev.bulk({ docs: [validationResults.catchVal] }).then(
-                        () => {
-                            catchEvaluator(tripNum);
-                            res.status('200').send('Catch doc with tripNum:' + tripNum + ' saved successfully. ' + errors);
-                            return;
-                    });
-
-                } else {
-                    res.status(400).send('Invalid source: ' + req.body.source + '. Accepted source values are:' +
-                        'thirdParty, nwfscAudit, and logbook. Please correct source and resubmit.')
-                        return;
+                // additional validation checks
+                const validationResults = await validateCatch(newTrip);
+                if (validationResults.status != 200) {
+                    res.status(validationResults.status).send(validationResults.message);
+                    return;
                 }
+                const errors: string = validationResults.catchVal.errors && validationResults.catchVal.errors.length > 0 ? ' Errors: ' + JSON.stringify(validationResults.catchVal.errors) : '';
+
+                // everything is good, write to db and evaluate catch doc
+                masterDev.bulk({ docs: [validationResults.catchVal] }).then(
+                    () => {
+                        catchEvaluator(tripNum);
+                        res.status('200').send('Catch doc with tripNum:' + tripNum + ' saved successfully. ' + errors);
+                        return;
+                });
             }
 
         } else {
@@ -301,10 +293,9 @@ const updateCatch = async (req, res) => {
             'Please use POST to /tripCatch/:tripNum to submit new catch data.');
         return;
     }
-
     // get catchDocs with same source type as one specified in the request
     const catchDoc = catchDocs.rows.filter((row) => row.doc.source === req.body.source);
-    if (!catchDoc) {
+    if (catchDoc.length === 0) {
         res.status(400).send('Catch doc with tripNum: ' + tripNum + ' and source: ' + req.body.source +
             ' does not exist please submit new catch via POST to /tripCatch/:tripNum');
         return;
@@ -333,6 +324,7 @@ const updateCatch = async (req, res) => {
         set(reqDoc, 'history', []);
     }
     reqDoc.history.unshift(couchDoc);
+    console.log('updatingggggg')
     const errors: string = reqDoc.errors && reqDoc.errors.length > 0 ? ' Errors: ' + JSON.stringify(reqDoc.errors) : '';
     masterDev.bulk({ docs: [reqDoc] }).then((body) => {
         catchEvaluator(tripNum);
