@@ -31,7 +31,7 @@ export async function validateCatch(catchVal: Catches) {
 
     // Getting list of accepted speices code
     const emCodeDocs = await masterDev.view('em-views', 'wcgopCode-to-pacfinCode-map', { include_docs: true });
-    const validCodes = jp.query(emCodeDocs, '$..value');
+    const validCodes = jp.query(emCodeDocs, '$..key');
 
     // Adding nominal species codes to list of accepted species codes
     const nomDecoderSrc: any = await masterDev.view('obs_web', 'all_doc_types', { "reduce": false, "key": "nom-2-pacfin-decoder", "include_docs": true });
@@ -47,7 +47,7 @@ export async function validateCatch(catchVal: Catches) {
 
     let hauls = get(catchVal, 'hauls', []);
     for (let i = 0; i < hauls.length; i++) {
-        validationResults += await validateHaul(hauls[i]);
+        validationResults += await validateHaul(hauls[i], catchVal);
         errors = errors.concat(getHaulErrors(hauls[i], source));
         let catches = get(hauls[i], 'catch', []);
 
@@ -267,7 +267,11 @@ async function validateTrip(catchVal: Catches) {
             datetime: {
                 latest: catchVal.returnDateTime,
                 message: 'must occur before Return Date'
-            }
+            },
+            presence: true
+        },
+        returnDateTime: {
+            presence: true
         }
     };
     const tripResults = validate(catchVal, validationChecks);
@@ -275,7 +279,7 @@ async function validateTrip(catchVal: Catches) {
     return tripResults ? 'trip level errors: ' + JSON.stringify(tripResults) : '';
 }
 
-async function validateHaul(haul: any) {
+async function validateHaul(haul: any, tripInfo: Catches) {
     const gearLookups = await getLookupList('gear-type');
     const gearGroup1 = ["10", "19", "20"];
     const gearGroup2 = ["1", "2", "3", "4", "5"];
@@ -335,9 +339,11 @@ async function validateHaul(haul: any) {
         },
         startDateTime: {
             datetime: {
+                earliest: tripInfo.departureDateTime,
                 latest: haul.endDateTime,
-                message: 'must occur before end date time'
-            }
+                message: 'must occur after trip departure date time: ' + tripInfo.departureDateTime + ' and before haul end date ' + haul.endDateTime
+            },
+            presence: true
         },
         startLongitude: {
             presence: true,
@@ -369,16 +375,23 @@ async function validateHaul(haul: any) {
             numericality: {
                 lessThan: 49
             }
+        },
+        endDateTime: {
+            datetime: {
+                latest: tripInfo.returnDateTime,
+                message: 'must occur before trip return date time: ' + tripInfo.returnDateTime
+            },
+            presence: true
         }
     };
     const haulResults = validate(haul, haulLevelChecks);
-    return haulResults ? '\nHaul level errors: ' + haul.haulNum + ' ' + JSON.stringify(haulResults) : '';
+    return haulResults ? '\nHaul level errors: haul# ' + haul.haulNum + ' ' + JSON.stringify(haulResults) : '';
 }
 
 async function validateCatchVal(catches: any, speciesCodes: any) {
     // TODO in species code may want to check isNumber for logbook and isString for review 
     const dispositionLookups = await getLookupList('catch-disposition');
-    const validCodes = jp.query(speciesCodes, '$..value');
+    const validCodes = jp.query(speciesCodes, '$..key');
     const catchLevelChecks = {
         disposition: {
             presence: true,

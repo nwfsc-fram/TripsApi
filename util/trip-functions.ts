@@ -32,11 +32,14 @@ export async function catchEvaluator(tripNum: number) {
                 const docs = body.rows.map((row) => row.doc);
                 for (const doc of docs) {
                     if (doc.source === 'logbook') {
-                        logbook = cloneDeep(doc)
+                        logbook = cloneDeep(doc);
+                        jp.apply(logbook, '$.hauls..speciesCode', function(value) { return value.toString() });
                     } else if (doc.source === 'thirdParty') {
-                        thirdParty = cloneDeep(doc)
+                        thirdParty = cloneDeep(doc);
+                        jp.apply(thirdParty, '$.hauls..speciesCode', function(value) { return value.toString() });
                     } else if (doc.source === 'nwfscAudit') {
-                        nwfscAudit = cloneDeep(doc)
+                        nwfscAudit = cloneDeep(doc);
+                        jp.apply(nwfscAudit, '$.hauls..speciesCodee', function(value) { return value.toString() });
                     }
                 }
             } else {
@@ -89,7 +92,7 @@ export async function catchEvaluator(tripNum: number) {
         }
 
         async function evaluatecurrCatch(currCatch: Catches) {
-            let flattenedCatch: any[] = jp.query(currCatch, '$..catch');
+            let flattenedCatch: any[] = jp.query(currCatch, '$.hauls..catch');
             flattenedCatch = flattenDeep(flattenedCatch);
 
             // does any catch have a length and or a count but not a weight?
@@ -102,7 +105,7 @@ export async function catchEvaluator(tripNum: number) {
 
             // does catch contain pacific halibut, lingcod, or sablefish?
             if (flattenedCatch.find((row: any) => ['PHLB', '101', 'LCOD', '603', 'SABL', '203'].includes(row.speciesCode.toString()))) {
-                console.log('mortality rate species found');
+                console.log('discard mortality rate species found');
                 const dmr: discardMortalityRates = new discardMortalityRates();
                 currCatch = cloneDeep(dmr.expand({ currCatch }));
             };
