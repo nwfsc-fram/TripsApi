@@ -324,7 +324,6 @@ const updateCatch = async (req, res) => {
         set(reqDoc, 'history', []);
     }
     reqDoc.history.unshift(couchDoc);
-    console.log('updatingggggg')
     const errors: string = reqDoc.errors && reqDoc.errors.length > 0 ? ' Errors: ' + JSON.stringify(reqDoc.errors) : '';
     masterDev.bulk({ docs: [reqDoc] }).then((body) => {
         catchEvaluator(tripNum);
