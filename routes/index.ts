@@ -259,7 +259,7 @@ const newCatch = async (req, res) => {
                 return;
             } else {
                 // additional validation checks
-                const validationResults = await validateCatch(newTrip);
+                const validationResults = await validateCatch(newTrip, tripNum);
                 if (validationResults.status != 200) {
                     res.status(validationResults.status).send(validationResults.message);
                     return;
@@ -305,7 +305,7 @@ const updateCatch = async (req, res) => {
     const updateDoc: any = req.body;
 
     // additional validation checks
-    const validationResults = await validateCatch(updateDoc);
+    const validationResults = await validateCatch(updateDoc, tripNum);
     if (validationResults.status != 200) {
         res.status(validationResults.status).send(validationResults.message);
         return;
