@@ -31,7 +31,7 @@ export async function validateCatch(catchVal: Catches) {
 
     // Getting list of accepted speices code
     const emCodeDocs = await masterDev.view('em-views', 'wcgopCode-to-pacfinCode-map', { include_docs: true });
-    const validCodes = jp.query(emCodeDocs, '$..value');
+    const validCodes = jp.query(emCodeDocs, '$..key');
 
     // Adding nominal species codes to list of accepted species codes
     const nomDecoderSrc: any = await masterDev.view('obs_web', 'all_doc_types', { "reduce": false, "key": "nom-2-pacfin-decoder", "include_docs": true });
@@ -391,7 +391,7 @@ async function validateHaul(haul: any, tripInfo: Catches) {
 async function validateCatchVal(catches: any, speciesCodes: any) {
     // TODO in species code may want to check isNumber for logbook and isString for review 
     const dispositionLookups = await getLookupList('catch-disposition');
-    const validCodes = jp.query(speciesCodes, '$..value');
+    const validCodes = jp.query(speciesCodes, '$..key');
     const catchLevelChecks = {
         disposition: {
             presence: true,
