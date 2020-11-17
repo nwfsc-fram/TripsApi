@@ -10,10 +10,10 @@ async function getSpeciesCodesForGrouping(children: string[], speciesCodes: stri
         const result = species.rows[0].doc;
 
         if (result.pacfinSpeciesCode) {
-            speciesCodes.push(result.pacfinSpeciesCode);
+            speciesCodes.push(result.pacfinSpeciesCode.toString());
         }
-        if (result.wcemSpeciesCode) {
-            speciesCodes.push(result.wcemSpeciesCode.toString());
+        if (result.wcgopSpeciesCode) {
+            speciesCodes.push(result.wcgopSpeciesCode.toString());
         }
         if (result.taxonomy && result.taxonomy.children) {
             await getSpeciesCodesForGrouping(result.taxonomy.children, speciesCodes);
@@ -26,10 +26,10 @@ function getMembershipSpeciesCodes(members: TaxonomyAlias[]) {
     const speciesCodes = [];
     for (const member of members) {
         if (member.wcgopSpeciesCode) {
-            speciesCodes.push(member.wcgopSpeciesCode);
+            speciesCodes.push(member.wcgopSpeciesCode.toString());
         }
         if (member.pacfinSpeciesCode) {
-            speciesCodes.push(member.pacfinSpeciesCode);
+            speciesCodes.push(member.pacfinSpeciesCode.toString());
         }
     }
     return speciesCodes;
