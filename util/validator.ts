@@ -25,7 +25,7 @@ validate.validators.isEmpty = function (value, options) {
     return undefined;
 };
 
-export async function validateCatch(catchVal: Catches) {
+export async function validateCatch(catchVal: Catches, tripNum: number) {
     let errors: any[] = [];
     const source = catchVal.source;
 
@@ -40,7 +40,7 @@ export async function validateCatch(catchVal: Catches) {
     }
 
     // validate trip - find errors that would cause the request to be rejected
-    let validationResults: string = await validateTrip(catchVal);
+    let validationResults: string = await validateTrip(catchVal, tripNum);
     validationResults += await validateFishTickets(catchVal, validCodes);
     // find errors, the trip will still be accepted, but errors logged in the doc
     errors = errors.concat(await getTripErrors(catchVal));
@@ -132,7 +132,7 @@ async function getTripErrors(catchVal: Catches) {
     errors = merge(errors, validate(catchVal, errorsChecks));
 
     // validate fish tickets, check each has a date and # associated with it
-    if (catchVal.source === sourceType.logbook && catchVal.fishTickets) {
+    if (catchVal.fishTickets) {
         for (let fishTicket of catchVal.fishTickets) {
             let ticketLookup = await getFishTicket(fishTicket.fishTicketNumber);
             if (ticketLookup.length === 0) {
@@ -222,14 +222,18 @@ async function validateFishTickets(catchVal: Catches, speciesCodes: string[]) {
     return errors ? 'fish ticket errors: ' + errors : '';
 }
 
-async function validateTrip(catchVal: Catches) {
+async function validateTrip(catchVal: Catches, tripNum: number) {
     const sourceLookups = await getLookupList('em-source');
     const fisheryLookups = await getLookupList('fishery');
     const fisherySectorLookups = await getLookupList('fishery-sector');
 
     const validationChecks = {
         tripNum: {
-            presence: true
+            presence: true,
+            inclusion: {
+                within: [tripNum],
+                message: catchVal.tripNum + ' in catch doc does match tripNum: ' + tripNum +  ' specified in request'
+            }
         },
         source: {
             presence: true,
