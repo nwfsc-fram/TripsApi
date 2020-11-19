@@ -39,7 +39,7 @@ export async function catchEvaluator(tripNum: number) {
                         jp.apply(thirdParty, '$.hauls..speciesCode', function(value) { return value.toString() });
                     } else if (doc.source === 'nwfscAudit') {
                         nwfscAudit = cloneDeep(doc);
-                        jp.apply(nwfscAudit, '$.hauls..speciesCodee', function(value) { return value.toString() });
+                        jp.apply(nwfscAudit, '$.hauls..speciesCode', function(value) { return value.toString() });
                     }
                 }
             } else {
@@ -99,8 +99,14 @@ export async function catchEvaluator(tripNum: number) {
             if (flattenedCatch.find((row: any) => (row.speciesLength || row.speciesCount) && !row.speciesWeight)) {
                 console.log('length or count without weight found.');
                 //currCatch = weightFromLengthOrCount(currCatch);
+                const codesQuery = await masterDev.view('em-views', 'wcgopCode-to-pacfinCode-map', { include_docs: false });
+                const speciesCodeLookup = {};
+                for (const row of codesQuery.rows) {
+                    speciesCodeLookup[row.key] = row.value.toString();
+                }
+
                 const missingWeightsExp: missingWeight = new missingWeight();
-                currCatch = cloneDeep(missingWeightsExp.expand({ currCatch, fishTickets, logbook }));
+                currCatch = cloneDeep(missingWeightsExp.expand({ currCatch, fishTickets, logbook, speciesCodeLookup }));
             }
 
             // does catch contain pacific halibut, lingcod, or sablefish?
@@ -113,7 +119,7 @@ export async function catchEvaluator(tripNum: number) {
             // is any catch unsorted catch? ('UNST' or '999' speciesCode) (Net Bleed)?
             if (
                 flattenedCatch.find((row: any) => ['UNST', '999'].includes(row.speciesCode.toString())) &&
-                currCatch.hauls.find((row: any) => ['1', '2', '3', '4', '5'].includes(row.gearTypeCode))
+                currCatch.hauls.find((row: any) => row.gear === 'trawl')
             ) {
                 console.log('unsorted catch (net bleed) found');
                 const unsortedCatchExp: unsortedCatch = new unsortedCatch();
@@ -121,14 +127,14 @@ export async function catchEvaluator(tripNum: number) {
             }
 
             // any fixed-gear haul have lost gear (gearLost > 0 )?
-            if (currCatch.hauls.find((row: any) => row.gearLost && row.gearLost > 0 && ['10', '19', '20'].includes(row.gearTypeCode))) {
+            if (currCatch.hauls.find((row: any) => row.gearLost && row.gearLost > 0 && row.gear !== 'trawl')) {
                 console.log('lost fixed gear found');
                 const lostFixedGearExp: lostFixedGear = new lostFixedGear();
                 currCatch = lostFixedGearExp.expand({ currCatch });
             }
 
             // any haul have lost codend (isCodendLost = true)?
-            if (currCatch.hauls.find((row: any) => row.isCodendLost && ['1', '2', '3', '4', '5'].includes(row.gearTypeCode))) {
+            if (currCatch.hauls.find((row: any) => row.isCodendLost && row.gear === 'trawl')) {
                 console.log('lost trawl gear codend found');
                 const lostCodendExp: lostCodend = new lostCodend();
                 currCatch = cloneDeep(lostCodendExp.expand({ currCatch }));
@@ -149,13 +155,13 @@ export async function catchEvaluator(tripNum: number) {
         // logbook
         // any catch have a length and or a count but not a weight?  if true, perform weight from length/weight calcs
         // then pacific halibut (and lingcod and sablefish) - also mortality rate calc (dmr)
-        // is any catch unsorted catch? ('UNST' or 999 speciesCode) (Net Bleed) perform unsorted catch calcs - do we also check fishery or gearType (any trawl fishery (not pot, H&l or longline))
+        // is any catch unsorted catch? ('UNST' or 999 speciesCode) (Net Bleed) perform unsorted catch calcs - do we also check fishery or gear (any trawl fishery (not pot, H&l or longline))
         // any haul have lost gear (gearLost > 0 ) for fixed-gear fisheries perform lost pots or hooks calcs (same lost pots calc)
         // any haul have lost codend (isCodendLost = true) - perform lost codend cals
         // review and audit
         // any catch have a length and or a count but not a weight?  if true, perform length/weight calcs
         // then pacific halibut (and lingcod and sablefish) - also mortality rate calc (dmr)
-        // is any catch unsorted catch? ('UNST' or 999 speciesCode) (Net Bleed) perform unsorted catch calcs - do we also check fishery or gearType (any trawl fishery (not pot, H&l or longline))
+        // is any catch unsorted catch? ('UNST' or 999 speciesCode) (Net Bleed) perform unsorted catch calcs - do we also check fishery or gear (any trawl fishery (not pot, H&l or longline))
         // any haul have lost gear (gearLost > 0 ) for fixed-gear fisheries perform lost pots or hooks calcs (same lost pots calc)
         // any haul have lost codend (isCodendLost = true) - perform lost codend cals
         // any catch in a general grouping that needs to be expanded to specific members? - perform selective discards calcs

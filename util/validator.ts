@@ -280,51 +280,51 @@ async function validateTrip(catchVal: Catches) {
 }
 
 async function validateHaul(haul: any, tripInfo: Catches) {
-    const gearLookups = await getLookupList('gear-type');
-    const gearGroup1 = ["10", "19", "20"];
-    const gearGroup2 = ["1", "2", "3", "4", "5"];
+    const gearLookups = await getLookupList('gear');
+    const gearGroup1 = ["fish pot", "hook & line", "longline (snap)"];
+    const gearGroup2 = ["trawl"];
 
     const haulLevelChecks = {
         haulNum: {
             presence: true
         },
-        gearTypeCode: {
+        gear: {
             presence: true,
             inclusion: {
                 within: gearLookups,
-                message: 'of ' + haul.gearTypeCode + ' is invalid, accepted values are ' + gearLookups
+                message: 'of ' + haul.gear + ' is invalid, accepted values are ' + gearLookups
             }
         },
         gearPerSet: function (value, attributes) {
-            if (gearGroup1.includes(attributes.gearTypeCode)) {
+            if (gearGroup1.includes(attributes.gear)) {
                 return {
                     presence: true
                 }
             }
         },
         gearLost: function (value, attributes) {
-            if (gearGroup1.includes(attributes.gearTypeCode)) {
+            if (gearGroup1.includes(attributes.gear)) {
                 return {
                     presence: true
                 }
             }
         },
         avgHooksPerSeg: function (value, attributes) {
-            if (gearGroup1.includes(attributes.gearTypeCode)) {
+            if (gearGroup1.includes(attributes.gear)) {
                 return {
                     presence: true
                 }
             }
         },
         codendCapacity: function (value, attributes) {
-            if (gearGroup2.includes(attributes.gearTypeCode)) {
+            if (gearGroup2.includes(attributes.gear)) {
                 return {
                     presence: true
                 }
             }
         },
         isCodendLost: function (value, attributes) {
-            if (gearGroup2.includes(attributes.gearTypeCode)) {
+            if (gearGroup2.includes(attributes.gear)) {
                 return {
                     presence: true
                 }

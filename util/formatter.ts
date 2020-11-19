@@ -68,7 +68,7 @@ async function catchToHaul(catchVals: Catches) {
                 endDepth: haul.endDepth,
                 endLatitude: haul.endLatitude,
                 endLongitude: haul.endLongitude,
-                gearType: haul.gearTypeCode,
+                gear: haul.gear,
                 fisherySector: catchVals.fisherySector,
                 // fishery
                 // ifqSpeciesGroupName
