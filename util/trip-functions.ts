@@ -12,6 +12,16 @@ export async function catchEvaluator(tripNum: number) {
     //  wait for a while to be sure data is fully submitted to couch
     setTimeout(async () => {
 
+        const codesQuery = await masterDev.view('em-views', 'wc2pc-map-with-pri-and-pro', { include_docs: false });
+        const speciesCodeLookup = {};
+        for (const row of codesQuery.rows) {
+            speciesCodeLookup[row.key] = {
+                translatedCode: row.value[0].toString(),
+                isWcgopEmPriority: row.value[1],
+                isProtected: row.value[2]
+            };
+        }
+
         // get trip
         const trip = await masterDev.view('TripsApi', 'all_api_trips', { "reduce": false, "key": tripNum, "include_docs": true }).then((body) => {
             if (body.rows.length > 0) {
@@ -99,11 +109,6 @@ export async function catchEvaluator(tripNum: number) {
             if (flattenedCatch.find((row: any) => (row.speciesLength || row.speciesCount) && !row.speciesWeight)) {
                 console.log('length or count without weight found.');
                 //currCatch = weightFromLengthOrCount(currCatch);
-                const codesQuery = await masterDev.view('em-views', 'wcgopCode-to-pacfinCode-map', { include_docs: false });
-                const speciesCodeLookup = {};
-                for (const row of codesQuery.rows) {
-                    speciesCodeLookup[row.key] = row.value.toString();
-                }
 
                 const missingWeightsExp: missingWeight = new missingWeight();
                 currCatch = cloneDeep(missingWeightsExp.expand({ currCatch, fishTickets, logbook, speciesCodeLookup }));
