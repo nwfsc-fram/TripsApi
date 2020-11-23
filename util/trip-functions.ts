@@ -57,6 +57,10 @@ export async function catchEvaluator(tripNum: number) {
             }
         })
 
+        // any review/audit catch in a general grouping that needs to be expanded to specific members?
+        const mixedGroupings: any = await getMixedGroupingInfo();
+        const mixGroupingKeys: string[] = Object.keys(mixedGroupings);
+
         try {
             if (logbook) {
                 if (logbook.fishTickets) {
@@ -118,7 +122,7 @@ export async function catchEvaluator(tripNum: number) {
             if (flattenedCatch.find((row: any) => ['PHLB', '101', 'LCOD', '603', 'SABL', '203'].includes(row.speciesCode.toString()))) {
                 console.log('discard mortality rate species found');
                 const dmr: discardMortalityRates = new discardMortalityRates();
-                currCatch = cloneDeep(dmr.expand({ currCatch }));
+                currCatch = cloneDeep(dmr.expand({ currCatch, speciesCodeLookup }));
             };
 
             // is any catch unsorted catch? ('UNST' or '999' speciesCode) (Net Bleed)?
@@ -142,16 +146,13 @@ export async function catchEvaluator(tripNum: number) {
             if (currCatch.hauls.find((row: any) => row.isCodendLost && row.gear === 'trawl')) {
                 console.log('lost trawl gear codend found');
                 const lostCodendExp: lostCodend = new lostCodend();
-                currCatch = cloneDeep(lostCodendExp.expand({ currCatch }));
+                currCatch = cloneDeep(lostCodendExp.expand({ currCatch, speciesCodeLookup }));
             }
 
-            // any review/audit catch in a general grouping that needs to be expanded to specific members?
-            const mixedGroupings: any = await getMixedGroupingInfo();
-            const mixGroupingKeys: string[] = Object.keys(mixedGroupings);
             if (flattenedCatch.find((row: any) => mixGroupingKeys.includes(row.speciesCode.toString())) && ['thirdParty', 'nwfscAudit'].includes(currCatch.source)) {
                 console.log('selective discards found');
                 const selectiveDiscardsExp: selectiveDiscards = new selectiveDiscards();
-                currCatch = cloneDeep(selectiveDiscardsExp.expand({ currCatch, logbook, mixedGroupings }));
+                currCatch = cloneDeep(selectiveDiscardsExp.expand({ currCatch, logbook, mixedGroupings, speciesCodeLookup }));
             }
             return currCatch;
         }

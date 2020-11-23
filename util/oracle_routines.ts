@@ -9,7 +9,7 @@ export async function getFishTicket(ftid: string): Promise<string[]> {
       const pool = getOraclePool();
       const connection = await pool.getConnection();
       const result = await connection.execute(
-        `SELECT PACFIN_SPECIES_CODE, LANDED_WEIGHT_LBS, CONDITION_CODE, VESSEL_NUM
+        `SELECT PACFIN_SPECIES_CODE, LANDED_WEIGHT_LBS, NUM_OF_FISH, CONDITION_CODE, VESSEL_NUM
          FROM PACFIN.COMPREHENSIVE_FISH_TICKET
          WHERE FTID = :id ORDER BY PACFIN_SPECIES_CODE ASC`,
         [ftid],
