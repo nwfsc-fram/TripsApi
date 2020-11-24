@@ -27,7 +27,8 @@ import { validateJwtRequest } from '../get-user.middleware';
 import { getFishTicket, fakeDBTest } from '../util/oracle_routines';
 import { catchEvaluator } from '../util/trip-functions';
 import { Catches, sourceType } from '@boatnet/bn-models';
-import { set } from 'lodash';
+import { set, cloneDeep, omit } from 'lodash';
+
 import { masterDev, dbConfig } from '../util/couchDB';
 
 import { stringParser } from '../util/string-parser';
@@ -323,7 +324,7 @@ const updateCatch = async (req, res) => {
     if (!reqDoc.history) {
         set(reqDoc, 'history', []);
     }
-    reqDoc.history.unshift(couchDoc);
+    reqDoc.history.unshift(cloneDeep(omit(couchDoc, ['history']))); // don't store history array in history
     const errors: string = reqDoc.errors && reqDoc.errors.length > 0 ? ' Errors: ' + JSON.stringify(reqDoc.errors) : '';
     masterDev.bulk({ docs: [reqDoc] }).then((body) => {
         catchEvaluator(tripNum);
