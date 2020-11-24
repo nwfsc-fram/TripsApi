@@ -16,7 +16,7 @@ export async function catchEvaluator(tripNum: number) {
         const speciesCodeLookup = {};
         for (const row of codesQuery.rows) {
             speciesCodeLookup[row.key] = {
-                translatedCode: row.value[0].toString(),
+                translatedCode: row.value[0] ? row.value[0].toString() : '',
                 isWcgopEmPriority: row.value[1],
                 isProtected: row.value[2]
             };
