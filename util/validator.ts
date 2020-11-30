@@ -1,4 +1,4 @@
-import { Catches, sourceType, errorType } from "@boatnet/bn-models/lib";
+import { Catches, sourceType, errorType, gearTypeLookupValueEnum } from "@boatnet/bn-models/lib";
 import { getFishTicket } from './oracle_routines';
 import { get, set, flattenDeep, merge } from 'lodash';
 import { masterDev } from './couchDB';
@@ -297,6 +297,15 @@ async function validateHaul(haul: any, tripInfo: Catches) {
             inclusion: {
                 within: gearLookups,
                 message: 'of ' + haul.gear + ' is invalid, accepted values are ' + gearLookups
+            }
+        },
+        netType: function (value, attributes) {
+            if (attributes.gear === gearTypeLookupValueEnum.trawl) {
+                return {
+                    presence: {
+                        message: 'required when gear = trawl'
+                    }
+                }
             }
         },
         gearPerSet: function (value, attributes) {
