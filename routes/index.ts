@@ -422,20 +422,20 @@ const getLookups = async (req, res) => {
     }
     const csv = await jsonexport(formatted);
 
-    res.render('lookups', {lookupResults, csv});
+    res.status(200).render('lookups', {lookupResults, csv});
 }
 
 const getInstructions = async (req, res) => {
     const exampleLogbook = await masterDev.view('TripsApi', 'all_api_catch', {include_docs: true, reduce: false, key: 100001})
-    res.render('instructions-main', {path: path.resolve(__dirname.replace('\\routes', '')), exampleLogbook: exampleLogbook.rows[0].doc});
+    res.status(200).render('instructions-main', {path: path.resolve(__dirname.replace('\\routes', '')), exampleLogbook: exampleLogbook.rows[0].doc});
 };
 
 const getProgram = async (req, res) => {
-    res.render('program');
+    res.status(200).render('program');
 };
 
 const getDocs = async (req, res ) => {
-    res.render('docs');
+    res.status(200).render('docs');
 }
 
 const emailCoordinator = async (req, res) => {
