@@ -468,7 +468,7 @@ components:
           description: "Page number from vessel logbook"
         fisherySector:
           type: "string"
-          description: "Description of the EM fishery. Whiting, Midwater Rockfish, Fixed Gear, Bottom Trawl"
+          description: "Description of the EM fishery. Shoreside Hake, Midwater Rockfish, Fixed Gear, Bottom Trawl"
         year:
           type: "string"
           description: "Year the fishing activity took place"
@@ -818,7 +818,7 @@ components:
         updatedDate:
           type: "string"
       example:
-        vesselId: 544123
+        vesselId: "544123"
         vesselName: "Fish Master 3000"
         departurePort: "SEQ"
         returnPort: "SEQ"
