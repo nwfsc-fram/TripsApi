@@ -29,11 +29,11 @@ html(lang='en')
 
 body(class='container')
     include header.pug
-    a(class="btn btn-primary" onClick="saveFile()" style="margin: 15px; float: right") export em-lookups.csv
+    a(class="btn btn-primary" onClick="saveFile('em')" style="margin: 15px; float: right") export em-lookups.csv
     include nav.pug
 
     div(style="background-color: #007EC6; padding: 10px")
-        h5(class="inst-desc" style="color: white") Lookups
+        h5(class="inst-desc" style="color: white") EM Lookups
         ul(style="list-style: none; color: white; text-decoration: none" class="row")
             each val in emLookupTypes
                 li

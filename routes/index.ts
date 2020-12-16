@@ -27,12 +27,12 @@ import { validateJwtRequest } from '../get-user.middleware';
 import { getFishTicket, fakeDBTest } from '../util/oracle_routines';
 import { catchEvaluator } from '../util/trip-functions';
 import { Catches, sourceType } from '@boatnet/bn-models';
-import { set, cloneDeep, omit, pick } from 'lodash';
+import { set, cloneDeep, omit, pick, union, keys, reduce, isEqual } from 'lodash';
 
 import { masterDev, dbConfig } from '../util/couchDB';
 
 import { stringParser } from '../util/string-parser';
-import { validateCatch } from '../util/validator';
+import { validateCatch, validateApiTrip } from '../util/validator';
 
 let token = '';
 export let key = '';
@@ -108,73 +108,50 @@ async function getPubKey (
     }
 }
 
-// const getTrips = async (req, res) => {
-//     await masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "descending": true, include_docs: true}).then((body) => {
-//         if ( body.rows.length > 0 ) {
-//             const docs = body.rows.map((row) => row.doc)
-//             switch(Object.keys(req.query)[0]) {
-//                 case 'vesselId':
-//                   res.json(docs.filter( (doc) => doc.vesselId === req.query.vesselId ))
-//                   break;
-//                 case 'captain':
-//                     res.json(docs.filter( (doc) => doc.captain.toLowerCase() === req.query.captain.toLowerCase() ))
-//                     break;
-//                 case 'port':
-//                     res.json(docs.filter( (doc) => doc.departurePort.toLowerCase() === req.query.port.toLowerCase() || doc.returnPort.toLowerCase() === req.query.port.toLowerCase() ))
-//                     break;
-//                 case 'fishery':
-//                     res.json(docs.filter( (doc) => doc.fishery && doc.fishery.toLowerCase() === req.query.fishery.toLowerCase() ))
-//                     break;
-//                 default:
-//                     res.json(docs)
-//               }
-//         } else {
-//             res.status(400).send('not found')
-//         }
-//       });
-// }
+const getTrips = async (req, res) => {
+    let response = [];
 
-    const getTrips = async (req, res) => {
-        let response = [];
-
-        const evaluateBody = (body) => {
-            if (body.rows.length > 0) {
-                response = body.rows.map( (row: any) => pick(row.doc, ['vesselId', 'vesselName', 'departurePort', 'departureDate', 'returnPort', 'returnDate', 'fishery', 'permits', 'tripNum']));
-            }
+    const evaluateBody = (body) => {
+        if (body.rows.length > 0) {
+            response = body.rows.map( (row: any) => pick(row.doc, ['vesselId', 'vesselName', 'departurePort', 'departureDate', 'returnPort', 'returnDate', 'fishery', 'permits', 'tripNum']));
         }
-
-        const filter = () => { // filter results based on all queries
-            // if (req.query.vesselId) { response = response.filter( (row: any) => row.vesselId.toLowerCase().includes(req.query.vesselId.toLowerCase()) ); } // has no impact
-            if (req.query.vesselName) { response = response.filter( (row: any) => row.vesselName.toLowerCase().includes(req.query.vesselName.toLowerCase()) ); }
-            if (req.query.departurePort) { response = response.filter( (row: any) => row.departurePort.toLowerCase().includes(req.query.departurePort.toLowerCase()) ); }
-            if (req.query.returnPort) { response = response.filter( (row: any) => row.returnPort.toLowerCase().includes(req.query.returnPort.toLowerCase()) ); }
-            if (req.query.fishery) { response = response.filter( (row: any) => row.fishery.toLowerCase().includes(req.query.fishery.toLowerCase()) ); }
-            if (req.query.permit) { response = response.filter( (row: any) => row.permits && Array.isArray(row.permits) && row.permits.includes(req.query.permit) ); }
-            if (req.query.departureDate) { response = response.filter( (row: any) => moment(row.departureDate).isSame(req.query.departureDate, 'day') ); }
-            if (req.query.returnDate) { response = response.filter( (row: any) => moment(row.returnDate).isSame(req.query.returnDate, 'day') ); }
-        }
-
-        if (req.query.vesselId) { // choose the best view for the query
-            await masterDev.view('TripsApi', 'api_trips_by_vesselId', {reduce: false, descending: true, include_docs: true, key: req.query.vesselId}).then((body) => evaluateBody(body))
-        } else if (req.query.vesselName) {
-            await masterDev.view('TripsApi', 'api_trips_by_vesselName', {reduce: false, descending: true, include_docs: true, key: req.query.vesselName}).then((body) => evaluateBody(body))
-        } else if (req.query.departureDate) {
-            await masterDev.view('TripsApi', 'api_trips_by_departureDate', {reduce: false, descending: true, include_docs: true, start_key: req.query.departureDate}).then((body) => evaluateBody(body))
-        } else if (req.query.departurePort) {
-            await masterDev.view('TripsApi', 'api_trips_by_departurePort', {reduce: false, descending: true, include_docs: true, start_key: req.query.departurePort}).then((body) => evaluateBody(body))
-        } else {
-            await masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "descending": true, include_docs: true}).then((body) => evaluateBody(body))
-        }
-
-        filter();
-
-        if (response.length > 0) {
-            res.status(200).send(response);
-        } else {
-            res.status(400).send('no matching results found');
-        }
-
     }
+
+    const filter = () => { // filter results based on all queries
+        // if (req.query.vesselId) { response = response.filter( (row: any) => row.vesselId.toLowerCase().includes(req.query.vesselId.toLowerCase()) ); } // has no impact
+        if (req.query.vesselName) { response = response.filter( (row: any) => row.vesselName.toLowerCase().includes(req.query.vesselName.toLowerCase()) ); }
+        if (req.query.departurePort) { response = response.filter( (row: any) => row.departurePort.toLowerCase().includes(req.query.departurePort.toLowerCase()) ); }
+        if (req.query.returnPort) { response = response.filter( (row: any) => row.returnPort.toLowerCase().includes(req.query.returnPort.toLowerCase()) ); }
+        if (req.query.fishery) { response = response.filter( (row: any) => row.fishery.toLowerCase().includes(req.query.fishery.toLowerCase()) ); }
+        if (req.query.permit) { response = response.filter( (row: any) => row.permits && Array.isArray(row.permits) && row.permits.includes(req.query.permit) ); }
+        if (req.query.departureDate) { response = response.filter( (row: any) => moment(row.departureDate).isSame(req.query.departureDate, 'day') ); }
+        if (req.query.returnDate) { response = response.filter( (row: any) => moment(row.returnDate).isSame(req.query.returnDate, 'day') ); }
+        if (req.query.before) { response = response.filter( (row: any) => moment(row.departureDate).isBefore(req.query.before, 'day') ); }
+        if (req.query.after) { response = response.filter( (row: any) => moment(row.departureDate).isAfter(req.query.after, 'day') ); }
+        if (req.query.year) { response = response.filter( (row: any) => moment(row.departureDate).isSame(req.query.year, 'year') || moment(row.returnDate).isSame(req.query.year, 'year')); }
+    }
+
+    if (req.query.vesselId) { // choose the best view for the query
+        await masterDev.view('TripsApi', 'api_trips_by_vesselId', {reduce: false, descending: true, include_docs: true, key: req.query.vesselId}).then((body) => evaluateBody(body))
+    } else if (req.query.vesselName) {
+        await masterDev.view('TripsApi', 'api_trips_by_vesselName', {reduce: false, descending: true, include_docs: true, key: req.query.vesselName}).then((body) => evaluateBody(body))
+    } else if (req.query.departureDate) {
+        await masterDev.view('TripsApi', 'api_trips_by_departureDate', {reduce: false, descending: true, include_docs: true, start_key: req.query.departureDate}).then((body) => evaluateBody(body))
+    } else if (req.query.departurePort) {
+        await masterDev.view('TripsApi', 'api_trips_by_departurePort', {reduce: false, descending: true, include_docs: true, start_key: req.query.departurePort}).then((body) => evaluateBody(body))
+    } else {
+        await masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "descending": true, include_docs: true}).then((body) => evaluateBody(body))
+    }
+
+    filter();
+
+    if (response.length > 0) {
+        res.status(200).send(response);
+    } else {
+        res.status(400).send('no matching results found');
+    }
+
+}
 
 const newCruise = async (req, res) => {
     if (req.body.vesselId) {
@@ -216,12 +193,35 @@ const newCruise = async (req, res) => {
 
 const newTrip = async (req, res) => {
     if (req.headers['content-type'] == "application/xml") { stringParser(req); }
-    if (req.body.vesselId) {
-        await masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "descending": true, "limit": 1}).then((body) => {
+    if (req.body.vesselId && typeof req.body.vesselId === 'string' && req.body.departureDate && req.body.returnDate) {
+        let warnings = '';
+        await masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "descending": true, "limit": 1}).then( async (body) => {
             const maxId = body.rows[0].key
-            const newTrip = req.body
+            const newTrip: any = pick(req.body, [
+                'departureDate',
+                'returnDate',
+                'departurePort',
+                'returnPort',
+                'fishery',
+                'permits',
+                'vesselName',
+                'vesselId',
+                'captain'
+            ])
             newTrip.type = 'trips-api'
             newTrip.tripNum = maxId + 1
+            newTrip.createdBy = req.res && req.res.user ? req.res.user.username : 'unknown';
+            newTrip.createdDate = moment().format();
+            newTrip.changeLog = [];
+            const validationResults = await validateApiTrip(newTrip, 'new');
+            if (validationResults) {
+                if (Object.keys(validationResults).includes('vesselId') && Object.keys(validationResults).length == 1 ) {
+                    warnings += 'vessel Id not found (but trip was accepted)';  // warn but don't reject
+                } else {
+                    res.status(400).send(validationResults); // reject submisssion
+                    return;
+                }
+            }
             masterDev.bulk({docs: [newTrip]}).then(
                 setTimeout(() => {
                     masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "key": maxId + 1, "include_docs": true}).then((result) => {
@@ -229,7 +229,8 @@ const newTrip = async (req, res) => {
                         res.send(
                             {
                                 tripNum: maxId + 1,
-                                trip: result.rows[0].doc
+                                trip: result.rows[0].doc,
+                                warnings
                             }
                         )
                     })
@@ -237,7 +238,7 @@ const newTrip = async (req, res) => {
             )
             });
     } else {
-        res.status(400).send('vesselID is required to create a new trip.')
+        res.status(400).send('missing required data.  vesselId (string), departureDate, and returnDate are required.')
     }
 }
 
@@ -245,7 +246,24 @@ const getTrip = async (req, res) => {
     const tripNum = parseInt(req.params.tripNum, 10)
     await masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "key": tripNum, "include_docs": true}).then((body) => {
         if ( body.rows.length > 0 ) {
-            res.json(body.rows[0].doc);
+            res.json(pick(body.rows[0].doc, [
+                                        'tripNum',
+                                        'vesselId',
+                                        'vesselName',
+                                        'departureDate',
+                                        'returnDate',
+                                        'departurePort',
+                                        'returnPort',
+                                        'fishery',
+                                        'permits',
+                                        'changeLog',
+                                        'createdBy',
+                                        'createdDate',
+                                        'updatedBy',
+                                        'updatedDate',
+                                        'status',
+                                        'captain'
+                                            ]));
         } else {
             res.send('Doc with tripNum: ' + tripNum + ' not found')
         }
@@ -253,15 +271,52 @@ const getTrip = async (req, res) => {
 }
 
 const updateTrip = async (req, res) => {
+    const tripNum = parseInt(req.params.tripNum, 10);
+    let warnings = '';
     if (req.headers['content-type'] == "application/xml") { stringParser(req); }
-    const existing = await masterDev.get(req.body._id);
-    if (existing.tripNum === parseInt(req.params.tripNum, 10) ) {
-        masterDev.bulk({docs: [req.body]}).then( (body) => {
-            res.json(body);
-        })
-    } else {
-        res.status(400).send('Trip ID:' + req.body._id + ' not found.')
-    }
+    await masterDev.view('TripsApi', 'all_api_trips', {"reduce": false, "key": tripNum, "include_docs": true}).then( async (body) => {
+        if ( body.rows.length > 0 ) {
+            let existingDoc = body.rows[0].doc;
+            if (existingDoc.status && existingDoc.status === 'cancelled') {
+                res.status(400).send('Trip ' + tripNum + ' has been cancelled - it can not be updated');
+                return;
+            }
+            if (!existingDoc.changeLog) {
+                existingDoc.changeLog = [];
+            }
+
+            let newDoc = pick(req.body, ['departureDate', 'returnDate', 'departurePort', 'returnPort', 'fishery', 'permits', 'vesselName', 'status', 'captain']);
+
+            const validationResults = await validateApiTrip(newDoc, 'update');
+            if (validationResults) {
+                res.status(400).send(validationResults); // reject submisssion
+                return;
+            }
+
+            const difference = reduce(keys(newDoc), (result: any, key) => {
+                if ( !isEqual(existingDoc[key], newDoc[key]) ) {
+                    result[key] = {previousValue: existingDoc[key], newValue: newDoc[key]};
+                    existingDoc[key] = newDoc[key];
+                }
+                return result;
+            }, {});
+            if (keys(difference).length > 0) {
+                existingDoc.changeLog.unshift({
+                        changedBy: req.res && req.res.user ? req.res.user.username : 'unknown',
+                        changedDate: moment().format(),
+                        changes: difference
+                    })
+            }
+            existingDoc.updatedBy = req.res && req.res.user ? req.res.user.username : 'unknown';
+            existingDoc.updatedDate = moment().format();
+            console.log(existingDoc);
+            masterDev.bulk({docs: [existingDoc]}).then( (body) => {
+                res.status(200).send(body);
+            })
+        } else {
+            res.status(400).send('Trip ID:' + req.body._id + ' not found.');
+        }
+    })
 }
 
 const getCatch = async (req, res) => {
@@ -464,7 +519,26 @@ const getLookups = async (req, res) => {
     }
     const csv = await jsonexport(formatted);
 
-    res.status(200).render('lookups', {lookupResults, csv});
+    res.status(200).render('em-lookups', {lookupResults, csv});
+}
+
+const getTripsLookups = async (req, res) => {
+    const lookupResults = await masterDev.view('TripsApi', 'all_trips_lookups', {include_docs: false, reduce: false});
+    const lookupTranslations: any = {
+        'port': 'departurePort / returnPort'
+    };
+    let formatted = [];
+    for (const row of lookupResults.rows) {
+        formatted.push(
+            {
+                "type":  Object.keys(lookupTranslations).includes(row.key) ? lookupTranslations[row.key] : row.key ,
+                "description": row.value[0].replace(/,/g, ' -'),
+                "lookup": row.value[1]
+            }
+        )
+    }
+    const csv = await jsonexport(formatted);
+    res.status(200).render('trips-lookups', {lookupResults, csv});
 }
 
 const getInstructions = async (req, res) => {
@@ -548,7 +622,8 @@ const emailCoordinator = async (req, res) => {
 
 const API_VERSION = 'v1';
 
-router.get('/lookups', getLookups);
+router.get('/em-lookups', getLookups);
+router.get('/trips-lookups', getTripsLookups);
 router.get('/instructions', getInstructions);
 router.get('/program', getProgram);
 router.get('/docs', getDocs);
