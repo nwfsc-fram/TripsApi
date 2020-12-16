@@ -262,7 +262,8 @@ const getTrip = async (req, res) => {
                                         'updatedBy',
                                         'updatedDate',
                                         'status',
-                                        'captain'
+                                        'captain',
+                                        '_id'
                                             ]));
         } else {
             res.send('Doc with tripNum: ' + tripNum + ' not found')
