@@ -1,5 +1,5 @@
 
-var saveFile = () => {
+var saveFile = (lookupType) => {
   let data = JSON.stringify(csv);
   data = data.replaceAll('"', '')
   data = data.replaceAll('\\n', '\r\n' )
@@ -7,7 +7,7 @@ var saveFile = () => {
   const blob = new Blob([data], {type: 'text/csv'});
   const e = document.createEvent('MouseEvents');
   const a = document.createElement('a');
-  a.download = 'em-lookups.csv';
+  a.download = lookupType + '-lookups.csv';
   a.href = window.URL.createObjectURL(blob);
   a.dataset.downloadurl = ['text/json', a.download, a.href].join(':');
   e.initEvent('click', true, false);

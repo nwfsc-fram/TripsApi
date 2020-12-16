@@ -25,6 +25,90 @@ validate.validators.isEmpty = function (value, options) {
     return undefined;
 };
 
+export async function validateApiTrip(apiTrip: any, mode: string) {
+
+    const portsQuery = await masterDev.view('TripsApi', 'all_em_lookups', {reduce: false, include_docs: false, key: 'port'});
+    const validPortCodes = portsQuery.rows.map( (row: any) => row.value[1] );
+
+    const fisheriesQuery = await masterDev.view('obs_web', 'all_doc_types', {reduce: false, include_docs: true, key: 'fishery'});
+    const validFisheryNames = fisheriesQuery.rows.map( (row: any) => row.doc.description );
+
+    // check if vesselId valid
+    const vesselIdsQuery = await masterDev.view('obs_web', 'all_vessel_nums', {reduce: false, include_docs: false, key: apiTrip.vesselId});
+    const validVessel = vesselIdsQuery.rows.map( (row: any) => row.key );
+
+    validate.validators.equality.message = 'invalid value';
+    validate.validators.inclusion.message = 'not valid';
+
+    const validations = {
+        vesselId: function() {
+            if (mode === 'new') {
+                return {
+                    presence: true,
+                    inclusion: {
+                        within: validVessel
+                    }
+                }
+            }
+        },
+        departureDate: function() {
+            if (mode === 'new') {
+                return {
+                    presence: true,
+                    datetime: true
+                }
+            } else {
+                return {
+                    datetime: true
+                }
+            }
+        },
+        returnDate: function() {
+            if (mode === 'new') {
+                return {
+                    presence: true,
+                    datetime: true
+                }
+            } else {
+                return {
+                    datetime: true
+                }
+            }
+        },
+        status: {
+            inclusion: {
+                within: ["cancelled"]
+            }
+        },
+        departurePort: {
+            type: "string",
+            inclusion: {
+                within: validPortCodes,
+            }
+        },
+        returnPort: {
+            type: "string",
+            inclusion: {
+                within: validPortCodes,
+            }
+        },
+        fishery: {
+            type: "string",
+            inclusion: {
+                within: validFisheryNames,
+            }
+        },
+        vesselName: {
+            type: "string"
+        },
+        captain: {
+            type: "string"
+        }
+    };
+
+    return validate(apiTrip, validations);
+}
+
 export async function validateCatch(catchVal: Catches, tripNum: number) {
     let errors: any[] = [];
     const source = catchVal.source;

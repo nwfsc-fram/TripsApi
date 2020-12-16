@@ -1,0 +1,46 @@
+-
+    var tripsLookupTypes = [
+        {lookup: 'port', title: 'departurePort / returnPort', usage: 'TripsApi'},
+        {lookup: 'fishery', title: 'fishery', usage: 'TripsApi'}
+    ];
+
+    var lookups = lookupResults;
+
+doctype html
+html(lang='en')
+    head
+        include head.pug
+        script.
+            var csv = !{JSON.stringify(csv)}
+        script(src='./static/helpers.js')
+
+body(class='container')
+    include header.pug
+    a(class="btn btn-primary" onClick="saveFile('trips')" style="margin: 15px; float: right") export trips-lookups.csv
+    include nav.pug
+
+    div(style="background-color: #007EC6; padding: 10px")
+        h5(class="inst-desc" style="color: white") Trips Lookups
+        ul(style="list-style: none; color: white; text-decoration: none" class="row")
+            each val in tripsLookupTypes
+                li
+                    a(href="#" + val.lookup style="color: white; margin: 10px")
+                        span=val.title
+
+
+    each val in tripsLookupTypes
+        - var rowLookups = lookups.rows.filter( (couchRow) => couchRow.key === val.lookup ).sort((a,b) => (a.value[0]).localeCompare(b.value[0]))
+        h5(id=val.lookup)
+            span field:&nbsp;
+            span=val.title
+        table(style="width: 70%; border: 2px solid black; border-collapse: collapse")
+            tr
+                th Lookup
+                th Description
+                th Usage
+            each line in rowLookups
+                tr
+                    td=line.value[1]
+                    td=line.value[0]
+                    td=val.usage
+        br
