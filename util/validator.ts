@@ -44,7 +44,7 @@ export async function validateApiTrip(apiTrip: any, mode: string) {
         vesselId: function() {
             if (mode === 'new') {
                 return {
-                    presence: true,
+                    presence: {allowEmpty: false},
                     inclusion: {
                         within: validVessel
                     }
@@ -54,7 +54,7 @@ export async function validateApiTrip(apiTrip: any, mode: string) {
         departureDate: function() {
             if (mode === 'new') {
                 return {
-                    presence: true,
+                    presence: {allowEmpty: false},
                     datetime: true
                 }
             } else {
@@ -66,7 +66,7 @@ export async function validateApiTrip(apiTrip: any, mode: string) {
         returnDate: function() {
             if (mode === 'new') {
                 return {
-                    presence: true,
+                    presence: {allowEmpty: false},
                     datetime: true
                 }
             } else {
@@ -167,21 +167,21 @@ async function getTripErrors(catchVal: Catches) {
         fishTickets: function (value, attributes) {
             if (attributes.source === sourceType.logbook) {
                 return {
-                    presence: true
+                    presence: {allowEmpty: false}
                 }
             }
         },
         reviewerName: function (value, attributes) {
             if (attributes.source === sourceType.thirdParty) {
                 return {
-                    presence: true
+                    presence: {allowEmpty: false}
                 }
             }
         },
         totalReviewTime: function (value, attributes) {
             if (attributes.source === sourceType.thirdParty) {
                 return {
-                    presence: true
+                    presence: {allowEmpty: false}
                 }
             }
         },
@@ -249,14 +249,14 @@ function getHaulErrors(haul: any, source: sourceType) {
         catchHandlingPerformance: function (value, attributes) {
             if (source === sourceType.thirdParty) {
                 return {
-                    presence: true
+                    presence: {allowEmpty: false}
                 }
             }
         },
         systemPerformance: function (value, attributes) {
             if (source === sourceType.thirdParty) {
                 return {
-                    presence: true
+                    presence: {allowEmpty: false}
                 }
             }
         },
@@ -270,7 +270,7 @@ function catchErrors(catchVal: any, source: sourceType, haulNum: number) {
         fate: function (value, attributes) {
             if (source === sourceType.thirdParty) {
                 return {
-                    presence: true
+                    presence: {allowEmpty: false}
                 }
             }
         }
@@ -313,14 +313,14 @@ async function validateTrip(catchVal: Catches, tripNum: number) {
 
     const validationChecks = {
         tripNum: {
-            presence: true,
+            presence: {allowEmpty: false},
             inclusion: {
                 within: [tripNum],
                 message: catchVal.tripNum + ' in catch doc does match tripNum: ' + tripNum +  ' specified in request'
             }
         },
         source: {
-            presence: true,
+            presence: {allowEmpty: false},
             inclusion: {
                 within: sourceLookups,
                 message: 'of type ' + catchVal.source + ' invalid, accepted values: ' + sourceLookups
@@ -329,7 +329,7 @@ async function validateTrip(catchVal: Catches, tripNum: number) {
         fishery: function (value, attributes) {
             if (attributes.source === sourceType.logbook) {
                 return {
-                    presence: true,
+                    presence: {allowEmpty: false},
                     inclusion: {
                         within: fisheryLookups,
                         message: 'invalid, valid fisheries include ' + fisheryLookups
@@ -340,7 +340,7 @@ async function validateTrip(catchVal: Catches, tripNum: number) {
         fisherySector: function (value, attributes) {
             if (attributes.source === sourceType.thirdParty) {
                 return {
-                    presence: true,
+                    presence: {allowEmpty: false},
                     inclusion: {
                         within: fisherySectorLookups,
                         message: 'invalid, valid fishery sectors include ' + fisherySectorLookups
@@ -349,17 +349,17 @@ async function validateTrip(catchVal: Catches, tripNum: number) {
             }
         },
         provider: {
-            presence: true
+            presence: {allowEmpty: false}
         },
         departureDateTime: {
             datetime: {
                 latest: catchVal.returnDateTime,
                 message: 'must occur before Return Date'
             },
-            presence: true
+            presence: {allowEmpty: false}
         },
         returnDateTime: {
-            presence: true
+            presence: {allowEmpty: false}
         }
     };
     const tripResults = validate(catchVal, validationChecks);
@@ -374,10 +374,10 @@ async function validateHaul(haul: any, tripInfo: Catches) {
 
     const haulLevelChecks = {
         haulNum: {
-            presence: true
+            presence: {allowEmpty: false}
         },
         gear: {
-            presence: true,
+            presence: {allowEmpty: false},
             inclusion: {
                 within: gearLookups,
                 message: 'of ' + haul.gear + ' is invalid, accepted values are ' + gearLookups
@@ -387,6 +387,7 @@ async function validateHaul(haul: any, tripInfo: Catches) {
             if (attributes.gear === gearTypeLookupValueEnum.trawl) {
                 return {
                     presence: {
+                        allowEmpty: false,
                         message: 'required when gear = trawl'
                     }
                 }
@@ -395,42 +396,42 @@ async function validateHaul(haul: any, tripInfo: Catches) {
         gearPerSet: function (value, attributes) {
             if (gearGroup1.includes(attributes.gear)) {
                 return {
-                    presence: true
+                    presence: {allowEmpty: false}
                 }
             }
         },
         gearLost: function (value, attributes) {
             if (gearGroup1.includes(attributes.gear)) {
                 return {
-                    presence: true
+                    presence: {allowEmpty: false}
                 }
             }
         },
         avgHooksPerSeg: function (value, attributes) {
             if (gearGroup1.includes(attributes.gear)) {
                 return {
-                    presence: true
+                    presence: {allowEmpty: false}
                 }
             }
         },
         codendCapacity: function (value, attributes) {
             if (gearGroup2.includes(attributes.gear)) {
                 return {
-                    presence: true
+                    presence: {allowEmpty: false}
                 }
             }
         },
         isCodendLost: function (value, attributes) {
             if (gearGroup2.includes(attributes.gear)) {
                 return {
-                    presence: true
+                    presence: {allowEmpty: false}
                 }
             }
         },
         startDepth: function (value, attributes) {
             if (attributes.source === sourceType.logbook) {
                 return {
-                    presence: true
+                    presence: {allowEmpty: false}
                 }
             }
         },
@@ -440,16 +441,16 @@ async function validateHaul(haul: any, tripInfo: Catches) {
                 latest: haul.endDateTime,
                 message: 'must occur after trip departure date time: ' + tripInfo.departureDateTime + ' and before haul end date ' + haul.endDateTime
             },
-            presence: true
+            presence: {allowEmpty: false}
         },
         startLongitude: {
-            presence: true,
+            presence: {allowEmpty: false},
             numericality: {
                 lessThan: 0
             }
         },
         startLatitude: {
-            presence: true,
+            presence: {allowEmpty: false},
             numericality: {
                 lessThan: 49
             }
@@ -457,18 +458,18 @@ async function validateHaul(haul: any, tripInfo: Catches) {
         endDepth: function (value, attributes) {
             if (attributes.source === sourceType.logbook) {
                 return {
-                    presence: true
+                    presence: {allowEmpty: false}
                 }
             }
         },
         endLongitude: {
-            presence: true,
+            presence: {allowEmpty: false},
             numericality: {
                 lessThan: 0
             }
         },
         endLatitude: {
-            presence: true,
+            presence: {allowEmpty: false},
             numericality: {
                 lessThan: 49
             }
@@ -478,7 +479,7 @@ async function validateHaul(haul: any, tripInfo: Catches) {
                 latest: tripInfo.returnDateTime,
                 message: 'must occur before trip return date time: ' + tripInfo.returnDateTime
             },
-            presence: true
+            presence: {allowEmpty: false}
         }
     };
     const haulResults = validate(haul, haulLevelChecks);
@@ -491,14 +492,14 @@ async function validateCatchVal(catches: any, speciesCodes: any) {
     const validCodes = jp.query(speciesCodes, '$..key');
     const catchLevelChecks = {
         disposition: {
-            presence: true,
+            presence: {allowEmpty: false},
             inclusion: {
                 within: dispositionLookups,
                 message: 'invalid, disposition must be either ' + dispositionLookups
             }
         },
         speciesCode: {
-            presence: true,
+            presence: {allowEmpty: false},
             inclusion: {
                 within: validCodes,
                 message: ' %{value} is invalid. (Note WCGOP codes must be numbers and PACFIN codes must be enclosed in quotes)'
