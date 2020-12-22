@@ -260,6 +260,16 @@ function getHaulErrors(haul: any, source: sourceType) {
                 }
             }
         },
+        netType: function (value, attributes) {
+            if (attributes.gear === gearTypeLookupValueEnum.trawl) {
+                return {
+                    presence: {
+                        allowEmpty: false,
+                        message: 'required when gear = trawl'
+                    }
+                }
+            }
+        },
     }
     const validationErrors: any = validate(haul, errorChecks);
     return logErrors(validationErrors, haul.haulNum);
@@ -383,16 +393,16 @@ async function validateHaul(haul: any, tripInfo: Catches) {
                 message: 'of ' + haul.gear + ' is invalid, accepted values are ' + gearLookups
             }
         },
-        netType: function (value, attributes) {
-            if (attributes.gear === gearTypeLookupValueEnum.trawl) {
-                return {
-                    presence: {
-                        allowEmpty: false,
-                        message: 'required when gear = trawl'
-                    }
-                }
-            }
-        },
+        // netType: function (value, attributes) {
+        //     if (attributes.gear === gearTypeLookupValueEnum.trawl) {
+        //         return {
+        //             presence: {
+        //                 allowEmpty: false,
+        //                 message: 'required when gear = trawl'
+        //             }
+        //         }
+        //     }
+        // },
         gearPerSet: function (value, attributes) {
             if (gearGroup1.includes(attributes.gear)) {
                 return {
@@ -487,7 +497,7 @@ async function validateHaul(haul: any, tripInfo: Catches) {
 }
 
 async function validateCatchVal(catches: any, speciesCodes: any) {
-    // TODO in species code may want to check isNumber for logbook and isString for review 
+    // TODO in species code may want to check isNumber for logbook and isString for review
     const dispositionLookups = await getLookupList('catch-disposition');
     const validCodes = jp.query(speciesCodes, '$..key');
     const catchLevelChecks = {
