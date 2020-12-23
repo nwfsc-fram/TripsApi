@@ -7,6 +7,8 @@ const request = require('request');
 
 const nodemailer = require('nodemailer');
 const mailConfig = require('../dbConfig.json').mailConfig;
+const taskAuthorization = require('../dbConfig.json').taskAuthorization;
+const frslUrl = require('../dbConfig.json').frslUrl;
 
 const https = require('https');
 
@@ -27,7 +29,7 @@ import { validateJwtRequest } from '../get-user.middleware';
 import { getFishTicket, fakeDBTest } from '../util/oracle_routines';
 import { catchEvaluator } from '../util/trip-functions';
 import { Catches, sourceType } from '@boatnet/bn-models';
-import { set, cloneDeep, omit, pick, union, keys, reduce, isEqual } from 'lodash';
+import { set, cloneDeep, omit, pick, union, keys, reduce, isEqual, differenceBy, differenceWith } from 'lodash';
 
 import { masterDev, dbConfig } from '../util/couchDB';
 
@@ -555,6 +557,60 @@ const getDocs = async (req, res ) => {
     res.status(200).render('docs');
 }
 
+const updateBuyers= async (req, res) => {
+    if (req.query.taskAuthorization === taskAuthorization) {
+        request.get({
+            url: frslUrl,
+            rejectUnauthorized: false,
+            requestCert: false,
+            agent: false,
+        }, async function (err, response, body) {
+            const buyersQuery = await masterDev.view('obs_web', 'all_doc_types', {include_docs: true, reduce: false, key: "buyer"});
+
+            const couchBuyers = buyersQuery.rows.map( (row: any) => row.doc ) ;
+            const couchCompareBuyers = buyersQuery.rows.map( (row: any) => pick(row.doc, ['permit_number', 'license_number', 'license_start_date', 'license_end_date', 'plant_owner', 'plant_owner_city', 'plant_owner_state', 'designation'] ) ) 
+            const sdmBuyers = JSON.parse(body).items.map( (row) =>  pick(row, ['permit_number', 'license_number', 'license_start_date', 'license_end_date', 'plant_owner', 'plant_owner_city', 'plant_owner_state', 'designation']));
+
+            const differenceFromCouch = differenceWith(sdmBuyers, couchCompareBuyers, isEqual)
+            if (differenceFromCouch.length > 0) {
+                for (var differenceRow of differenceFromCouch) {
+                    var couchDoc = couchBuyers.find( (couchRow: any) => couchRow.permit_number === differenceRow.permit_number );
+                    if (couchDoc) {
+                        const id = couchDoc._id;
+                        const rev = couchDoc._rev;
+                        couchDoc = differenceRow;
+                        couchDoc._id = id;
+                        couchDoc._rev = rev
+                        couchDoc.type = "buyer"
+                        await masterDev.bulk({docs: [couchDoc]});
+                    } else {
+                        differenceRow.type = "buyer"
+                        await masterDev.bulk({docs: [differenceRow]})
+                    }
+                }
+            };
+
+            const differenceFromSdm = differenceWith(couchCompareBuyers, sdmBuyers, isEqual);
+            if (differenceFromSdm.length > 0) {
+                for (var differenceRow of differenceFromSdm) {
+                    var couchDoc = couchBuyers.find( (couchRow: any) => couchRow.permit_number === differenceRow.permit_number );
+                    if (couchDoc) {
+                        masterDev.destroy(couchDoc._id, couchDoc._rev);
+                    }
+                }
+            };
+
+            res.status(200).send(
+                'couch buyers updated'
+            );
+        }, function (err, response, body) {
+            res.status(500).send(err);
+        });
+    } else {
+        res.status(401).send('not authorized');
+    }
+}
+
 const emailCoordinator = async (req, res) => {
 
     const transporter = nodemailer.createTransport({
@@ -659,6 +715,8 @@ router.post('/api/' + API_VERSION + '/screenshot/:tripNum', saveScreenshot);
 router.use('/api/' + API_VERSION + '/email', getPubKey);
 router.use('/api/' + API_VERSION + '/email', validateJwtRequest);
 router.post('/api/' + API_VERSION + '/email', emailCoordinator);
+
+router.get('/api/' + API_VERSION + '/updateBuyers', updateBuyers);
 
 router.get('/api/' + API_VERSION + '/vmstest', fakeDBTest);
 
