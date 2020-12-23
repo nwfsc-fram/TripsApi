@@ -568,8 +568,8 @@ const updateBuyers= async (req, res) => {
             const buyersQuery = await masterDev.view('obs_web', 'all_doc_types', {include_docs: true, reduce: false, key: "buyer"});
 
             const couchBuyers = buyersQuery.rows.map( (row: any) => row.doc ) ;
-            const couchCompareBuyers = buyersQuery.rows.map( (row: any) => pick(row.doc, ['permit_number', 'license_number', 'license_start_date', 'license_end_date', 'plant_owner', 'plant_owner_city', 'plant_owner_state', 'designation'] ) ) 
-            const sdmBuyers = JSON.parse(body).items.map( (row) =>  pick(row, ['permit_number', 'license_number', 'license_start_date', 'license_end_date', 'plant_owner', 'plant_owner_city', 'plant_owner_state', 'designation']));
+            const couchCompareBuyers = buyersQuery.rows.map( (row: any) => pick(row.doc, ['permit_number', 'license_number', 'license_start_date', 'license_end_date', 'license_owner', 'processing_plant_city', 'processing_plant_state', 'designation'] ) )
+            const sdmBuyers = JSON.parse(body).items.map( (row) =>  pick(row, ['permit_number', 'license_number', 'license_start_date', 'license_end_date', 'license_owner', 'processing_plant_city', 'processing_plant_state', 'designation']));
 
             const differenceFromCouch = differenceWith(sdmBuyers, couchCompareBuyers, isEqual)
             if (differenceFromCouch.length > 0) {
@@ -582,9 +582,15 @@ const updateBuyers= async (req, res) => {
                         couchDoc._id = id;
                         couchDoc._rev = rev
                         couchDoc.type = "buyer"
+                        couchDoc.isActive = true;
+                        couchDoc.isEm = true;
+                        couchDoc.updatedDate = moment().format();
                         await masterDev.bulk({docs: [couchDoc]});
                     } else {
                         differenceRow.type = "buyer"
+                        differenceRow.isActive = true;
+                        differenceRow.isEm = true;
+                        differenceRow.createdDate = moment().format();
                         await masterDev.bulk({docs: [differenceRow]})
                     }
                 }
