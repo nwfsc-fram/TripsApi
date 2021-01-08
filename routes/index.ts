@@ -508,7 +508,8 @@ const getLookups = async (req, res) => {
         'catch-handling-performance': 'catchHandlingPerformance',
         'system-performance': 'systemPerformance',
         'review-species': 'speciesCode (review)',
-        'logbook-species': 'speciesCode (logbook)'
+        'logbook-species': 'speciesCode (logbook)',
+        'target-strategy': 'targetStrategy'
     }
     let formatted = [];
     for (const row of lookupResults.rows) {
@@ -519,7 +520,7 @@ const getLookups = async (req, res) => {
                 "lookup": row.value[1]
             }
         )
-    }
+    };
     const csv = await jsonexport(formatted);
 
     res.status(200).render('em-lookups', {lookupResults, csv});
