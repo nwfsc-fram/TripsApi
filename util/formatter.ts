@@ -70,6 +70,8 @@ async function catchToHaul(catchVals: Catches) {
                 endLongitude: haul.endLongitude,
                 gear: haul.gear,
                 fisherySector: catchVals.fisherySector,
+                comments: catchVal.comments ? catchVal.comments : '',
+                calcWeightType: catchVal.calcWeightType ? catchVal.calcWeightType : '',
                 // fishery
                 // ifqSpeciesGroupName
                 // fishingArea

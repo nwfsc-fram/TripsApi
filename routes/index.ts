@@ -26,7 +26,7 @@ const path = require('path');
 import { resolve } from 'path';
 
 import { validateJwtRequest } from '../get-user.middleware';
-import { getFishTicket, fakeDBTest } from '../util/oracle_routines';
+import { getFishTicket, fakeDBTest, insertRow } from '../util/oracle_routines';
 import { catchEvaluator } from '../util/trip-functions';
 import { Catches, sourceType } from '@boatnet/bn-models';
 import { set, cloneDeep, omit, pick, union, keys, reduce, isEqual, differenceBy, differenceWith } from 'lodash';
@@ -558,7 +558,13 @@ const getDocs = async (req, res ) => {
     res.status(200).render('docs');
 }
 
-const updateBuyers= async (req, res) => {
+// const insertObsprodRow = async (req, res) => {
+//     const response = await insertRow();
+//     console.log(response)
+//     res.status(200).send('see console');
+// }
+
+const updateBuyers = async (req, res) => {
     if (req.query.taskAuthorization === taskAuthorization) {
         request.get({
             url: frslUrl,
@@ -724,6 +730,7 @@ router.use('/api/' + API_VERSION + '/email', validateJwtRequest);
 router.post('/api/' + API_VERSION + '/email', emailCoordinator);
 
 router.get('/api/' + API_VERSION + '/updateBuyers', updateBuyers);
+// router.get('/api/' + API_VERSION + '/insertRow', insertObsprodRow);
 
 router.get('/api/' + API_VERSION + '/vmstest', fakeDBTest);
 
