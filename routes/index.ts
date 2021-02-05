@@ -564,6 +564,43 @@ const getDocs = async (req, res ) => {
 //     res.status(200).send('see console');
 // }
 
+
+const runTripChecks = async (req, res) => {
+    
+
+    const trip = await masterDev.get(req.query.trip_id);
+    let tripErrorDoc : any = {};
+
+    try {
+        tripErrorDoc = await masterDev.view('obs_web', 'wcgop-trip-errors', {include_docs: true, reduce: false, key: trip.legacy.tripId});
+        tripErrorDoc = tripErrorDoc.rows[0].doc;
+    }
+    catch (err)
+    {
+        tripErrorDoc = {
+            tripNumber : trip.legacy.tripId,
+            type : 'wcgop-trip-error'
+        }
+    }
+    //const previousTripErrors = await masterDev.view('obs_web', 'wcgop-trip-errors', {include_docs: true, reduce: false, key: trip.legacy.tripId});
+    
+    // for (var previousTripError of previousTripErrors.rows) {
+    //     masterDev.destroy(previousTripError.doc._id, previousTripError.doc._rev);
+    // }
+
+    const errors = [{severity: 'test severity3',
+    description: 'test description3',
+    dateCreated: moment().format(),
+    observer: 'name of observer',
+    status: 'status ',
+    notes: 'error notes'}];
+
+    tripErrorDoc.errors = errors;
+
+    const confirmation = await masterDev.bulk({docs: [tripErrorDoc]});
+    res.status(200).send(confirmation);
+}
+
 const updateBuyers = async (req, res) => {
     if (req.query.taskAuthorization === taskAuthorization) {
         request.get({
@@ -731,6 +768,10 @@ router.post('/api/' + API_VERSION + '/email', emailCoordinator);
 
 router.get('/api/' + API_VERSION + '/updateBuyers', updateBuyers);
 // router.get('/api/' + API_VERSION + '/insertRow', insertObsprodRow);
+
+router.use('/api/' + API_VERSION + '/runTripChecks', getPubKey);
+router.use('/api/' + API_VERSION + '/runTripChecks', validateJwtRequest);
+router.post('/api/' + API_VERSION + '/runTripChecks', runTripChecks);
 
 router.get('/api/' + API_VERSION + '/vmstest', fakeDBTest);
 
