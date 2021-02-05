@@ -566,25 +566,38 @@ const getDocs = async (req, res ) => {
 
 
 const runTripChecks = async (req, res) => {
-    const trip = await masterDev.get(req.query.trip_id);
-    const previousTripErrors = await masterDev.view('obs_web', 'wcgop-trip-errors', {include_docs: true, reduce: false, key: trip.legacy.tripId});
     
-    for (var previousTripError of previousTripErrors.rows) {
-        masterDev.destroy(previousTripError.doc._id, previousTripError.doc._rev);
-    }
 
+    const trip = await masterDev.get(req.query.trip_id);
+    let tripErrorDoc : any = {};
 
-    const tripError = {
-        tripNumber : trip.legacy.tripId,
-        type : 'wcgop-trip-error',
-        severity: 'test severity',
-        description: 'test description',
-        dateCreated: moment().format(),
-        observer: 'name of observer',
-        status: 'status ',
-        notes: 'error notes'
+    try {
+        tripErrorDoc = await masterDev.view('obs_web', 'wcgop-trip-errors', {include_docs: true, reduce: false, key: trip.legacy.tripId});
+        tripErrorDoc = tripErrorDoc.rows[0].doc;
     }
-    const confirmation = await masterDev.bulk({docs: [tripError]});
+    catch (err)
+    {
+        tripErrorDoc = {
+            tripNumber : trip.legacy.tripId,
+            type : 'wcgop-trip-error'
+        }
+    }
+    //const previousTripErrors = await masterDev.view('obs_web', 'wcgop-trip-errors', {include_docs: true, reduce: false, key: trip.legacy.tripId});
+    
+    // for (var previousTripError of previousTripErrors.rows) {
+    //     masterDev.destroy(previousTripError.doc._id, previousTripError.doc._rev);
+    // }
+
+    const errors = [{severity: 'test severity2',
+    description: 'test description3',
+    dateCreated: moment().format(),
+    observer: 'name of observer',
+    status: 'status ',
+    notes: 'error notes'}];
+
+    tripErrorDoc.errors = errors;
+
+    const confirmation = await masterDev.bulk({docs: [tripErrorDoc]});
     res.status(200).send(confirmation);
 }
 
