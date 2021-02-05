@@ -588,7 +588,7 @@ const runTripChecks = async (req, res) => {
     //     masterDev.destroy(previousTripError.doc._id, previousTripError.doc._rev);
     // }
 
-    const errors = [{severity: 'test severity2',
+    const errors = [{severity: 'test severity3',
     description: 'test description3',
     dateCreated: moment().format(),
     observer: 'name of observer',
