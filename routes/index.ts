@@ -565,10 +565,10 @@ const getDocs = async (req, res ) => {
 // }
 
 
-const runTripChecks = async (req, res) => {
+const runTripErrorChecks = async (req, res) => {
     
 
-    const trip = await masterDev.get(req.query.trip_id);
+    const trip = await masterDev.get(req.query.tripId);
     let tripErrorDoc : any = {};
 
     try {
@@ -579,7 +579,8 @@ const runTripChecks = async (req, res) => {
     {
         tripErrorDoc = {
             tripNumber : trip.legacy.tripId,
-            type : 'wcgop-trip-error'
+            type : 'wcgop-trip-error',
+            errors: [{}]
         }
     }
     //const previousTripErrors = await masterDev.view('obs_web', 'wcgop-trip-errors', {include_docs: true, reduce: false, key: trip.legacy.tripId});
@@ -588,14 +589,24 @@ const runTripChecks = async (req, res) => {
     //     masterDev.destroy(previousTripError.doc._id, previousTripError.doc._rev);
     // }
 
-    const errors = [{severity: 'test severity3',
-    description: 'test description3',
-    dateCreated: moment().format(),
-    observer: 'name of observer',
-    status: 'status ',
-    notes: 'error notes'}];
+    for (const operationID of trip.operationIDs)
+    {
+        const operation = await masterDev.get(operationID);
+        if (operation.gearPerformance.description !='Problem - trawl net or codend lost' && operation.totalHooksLost>0)
+        { 
+            const error = {severity: 'Error',
+            description: 'Wrong gear performance for partial lost gear',
+            dateCreated: moment().format(),
+            observer: trip.firstName||' '||trip.lastName,
+            tripNum: trip.legacy.tripId,
+            status: 'Valid',
+            errorItem: 'Gear Performance',
+            errorValue: operation.gearPerformance.description,
+            notes: ''};
 
-    tripErrorDoc.errors = errors;
+            tripErrorDoc.errors.push(error);
+        }
+    }
 
     const confirmation = await masterDev.bulk({docs: [tripErrorDoc]});
     res.status(200).send(confirmation);
@@ -771,7 +782,7 @@ router.get('/api/' + API_VERSION + '/updateBuyers', updateBuyers);
 
 router.use('/api/' + API_VERSION + '/runTripChecks', getPubKey);
 router.use('/api/' + API_VERSION + '/runTripChecks', validateJwtRequest);
-router.post('/api/' + API_VERSION + '/runTripChecks', runTripChecks);
+router.post('/api/' + API_VERSION + '/runTripChecks', runTripErrorChecks);
 
 router.get('/api/' + API_VERSION + '/vmstest', fakeDBTest);
 
