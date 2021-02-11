@@ -595,14 +595,47 @@ const runTripErrorChecks = async (req, res) => {
         if (operation.gearPerformance.description !='Problem - trawl net or codend lost' && operation.totalHooksLost>0)
         { 
             const error = {severity: 'Error',
-            description: 'Wrong gear performance for partial lost gear',
+                description: 'Wrong gear performance for partial lost gear',
+                dateCreated: moment().format(),
+                observer: trip.firstName||' '||trip.lastName,
+                tripNum: trip.legacy.tripId,
+                status: 'Valid',
+                errorItem: 'Gear Performance',
+                errorValue: operation.gearPerformance.description,
+                notes: '',
+                legacy:{
+                    checkCode : 98300 
+                }
+            };
+
+            tripErrorDoc.errors.push(error);
+        }
+    }
+
+    for (const fishTicket of trip.fishTickets)
+    {
+        const ticketNumberValidation = ['B', 'C', 'D', 'E', 'F', 'H', 'J', 'K', 'L', 'N', 'O', 'P', 'R', 'V', 'W', 'X', 'Z'];
+        
+        if (fishTicket.stateAgency ==='C' && 
+                (fishTicket.fishTicketNumber.length!=7 ||
+                    !ticketNumberValidation.includes(fishTicket.fishTicketNumber.substring(0,1).toUpperCase()) &&
+                    fishTicket.fishTicketNumber.substring(6,1).toUpperCase()!='E'
+            )
+        )
+        { 
+            const error = {severity: 'Error',
+            description: 'California fish ticket is not 7 characters long',
             dateCreated: moment().format(),
             observer: trip.firstName||' '||trip.lastName,
             tripNum: trip.legacy.tripId,
             status: 'Valid',
-            errorItem: 'Gear Performance',
-            errorValue: operation.gearPerformance.description,
-            notes: ''};
+            errorItem: 'Fish Ticket',
+            errorValue: fishTicket.fishTicketNumber,
+            notes: '',
+            legacy:{
+                checkCode : 1300 
+            }
+        };
 
             tripErrorDoc.errors.push(error);
         }
