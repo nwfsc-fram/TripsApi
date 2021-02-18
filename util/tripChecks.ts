@@ -1,56 +1,8 @@
 import * as moment from 'moment';
 import { WcgopTripError, StatusType, Severity, WcgopError } from '@boatnet/bn-models';
 import { masterDev } from './couchDB';
-import { flattenDeep } from 'lodash';
-const jp = require('jsonpath');
-
-
-
-
-const checkSpeciesCode = function(operation: any) {
-    const knownCodes = [123, 223, 333];
-    return knownCodes.includes(operation.speciesCode) ? 'known code' : 'unknown code'
-}
 
 export async function runTripErrorChecks (req, res) {
-    const operation = {
-        hauls: [
-            {
-                haulNum: 123,
-                catch: [
-                    {speciesCode: 123, comments: 'fish'},
-                    {speciesCode: 324},
-                    {speciesCode: 555}
-                ]
-            },
-            {
-                haulNum: 124,
-                catch: [
-                    {speciesCode: 223, comments: 'fish'},
-                    {speciesCode: 324},
-                    {speciesCode: 555}
-                ]
-            },
-            {
-                haulNum: 125,
-                catch: [
-                    {speciesCode: 323, comments: 'fish'},
-                    {speciesCode: 324, subItem: {
-                        subHaulNum: 3335,
-                        catch: [
-                            {speciesCode: 333},
-                            {speciesCode: 999}
-                        ]
-                    }},
-                    {speciesCode: 555}
-                ]
-            },
-        ]
-    }
-
-    const fishCatch: any = flattenDeep(jp.query(operation, '$..catch'))
-    fishCatch.forEach( (catchItem) => console.log(catchItem.speciesCode + ' : ' + checkSpeciesCode(catchItem)))
-
     const trip = await masterDev.get(req.query.tripId);
     let tripErrorDoc : WcgopTripError = {};
     const errors: WcgopError[] = [{}];
