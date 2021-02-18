@@ -10,7 +10,7 @@ const emLookupTypes = [
     {lookup: 'gear-type', title: 'gearTypeCode', usage: 'logbook, review', level: 'haul'},
     {lookup: 'system-performance', title: 'systemPerformance', usage: 'review', level: 'haul'},
     {lookup: 'catch-disposition', title: 'disposition', usage: 'logbook, review', level: 'catch'},
-    {lookup: 'fate', title: 'fate', usage: 'logbook, review', level: 'catch'},
+    {lookup: 'fate', title: 'fate', usage: 'review', level: 'catch'},
     {lookup: 'calc-weight-type', title: 'calcWeightType', usage: 'logbook, review', level: 'catch'}
 ];
 

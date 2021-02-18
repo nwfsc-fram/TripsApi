@@ -137,7 +137,7 @@ export async function validateCatch(catchVal: Catches, tripNum: number) {
 
         for (let j = 0; j < catches.length; j++) {
             let currCatchVal = catches[j];
-            const catchValResults = await validateCatchVal(currCatchVal, emCodeDocs.rows);
+            const catchValResults = await validateCatchVal(currCatchVal, emCodeDocs.rows, source);
             errors = errors.concat(catchErrors(currCatchVal, source, hauls[i].haulNum));
             if (catchValResults.length > 0) {
                 validationResults += '\nCatch level errors: ' + hauls[i].haulNum + ' catch: ' + currCatchVal.catchId + catchValResults;
@@ -241,6 +241,25 @@ async function getTripErrors(catchVal: Catches) {
             errors = fishTicketErrors ? merge(errors, fishTicketErrors) : errors;
         }
     }
+
+    const buyersQuery = await masterDev.view('obs_web', 'all_doc_types', {reduce: false, include_docs: true, key: 'buyer'});
+    const validBuyers = buyersQuery.rows.map( (row: any) => row.doc.permit_number );
+
+    if (catchVal.source === sourceType.thirdParty && catchVal.buyers) {
+        for (const buyer of catchVal.buyers) {
+            const buyerChecks = {
+                buyer: {
+                    inclusion: {
+                        within: validBuyers,
+                        message: '\'' + buyer + '\' is not a valid buyer lookup number'
+                    }
+                }
+            }
+            const buyerErrors = validate({buyer: buyer}, buyerChecks);
+            errors = buyerErrors ? merge(errors, buyerErrors) : errors;
+        }
+    }
+
     return logErrors(errors);
 }
 
@@ -277,13 +296,16 @@ function getHaulErrors(haul: any, source: sourceType) {
 
 function catchErrors(catchVal: any, source: sourceType, haulNum: number) {
     const errorChecks = {
-        fate: function (value, attributes) {
-            if (source === sourceType.thirdParty) {
-                return {
-                    presence: {allowEmpty: false}
-                }
-            }
-        }
+        // fate: function (value, attributes) {  --- moved to catch validation
+        //     if (source === sourceType.thirdParty) {
+        //         return {
+        //             presence: {
+        //                 allowEmpty: false,
+        //                 message: 'required for review submission'
+        //             }
+        //         }
+        //     }
+        // }
     }
     const validationErrors: any = validate(catchVal, errorChecks);
     return logErrors(validationErrors, haulNum, catchVal.catchId);
@@ -496,7 +518,7 @@ async function validateHaul(haul: any, tripInfo: Catches) {
     return haulResults ? '\nHaul level errors: haul# ' + haul.haulNum + ' ' + JSON.stringify(haulResults) : '';
 }
 
-async function validateCatchVal(catches: any, speciesCodes: any) {
+async function validateCatchVal(catches: any, speciesCodes: any, source?: any) {
     // TODO in species code may want to check isNumber for logbook and isString for review
     const dispositionLookups = await getLookupList('catch-disposition');
     const validCodes = jp.query(speciesCodes, '$..key');
@@ -513,6 +535,16 @@ async function validateCatchVal(catches: any, speciesCodes: any) {
             inclusion: {
                 within: validCodes,
                 message: ' %{value} is invalid. (Note WCGOP codes must be numbers and PACFIN codes must be enclosed in quotes)'
+            }
+        },
+        fate: function (value, attributes) {
+            if (source === sourceType.thirdParty) {
+                return {
+                    presence: {
+                        allowEmpty: false,
+                        message: 'required for review submission'
+                    }
+                }
             }
         },
         speciesCount: function (value, attributes) {

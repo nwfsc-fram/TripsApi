@@ -342,6 +342,7 @@ const newCatch = async (req, res) => {
             const newTrip = req.body;
             newTrip.type = 'trips-api-catch';
             newTrip.createdDate = moment().format();
+            newTrip.createdBy = req.res && req.res.user ? req.res.user.username : 'unknown';
             newTrip.revision = 0;
 
             // check trip doc for tripNum exists
