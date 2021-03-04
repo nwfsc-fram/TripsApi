@@ -113,7 +113,7 @@ export async function runTripErrorChecks (req, res) {
     res.status(200).send(confirmation);
 }
 
-//run trip check code 110020
+//trip check code 110020 
 function runTripReturnDateCheck(tripErrorDoc: WcgopTripError, trip: any) {
     let error : WcgopError = {severity: Severity.warning,
         description: 'Trip created after return date, please keep paper records',
