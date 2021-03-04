@@ -1,6 +1,6 @@
 const { MongoClient } = require('mongodb');
 
-const mongoUri = 'mongodb://nwcdbd26.nwfsc.noaa.gov:27017';
+const mongoUri = require('../dbConfig.json').mongoUri;
 const mongoDbName = 'common';
 
 const assert = require('assert');
