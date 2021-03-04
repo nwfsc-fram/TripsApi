@@ -16,8 +16,6 @@ validate.extend(validate.validators.datetime, {
 });
 
 export async function runTripErrorChecks (req, res) {
-    
-
     const trip = await masterDev.get(req.query.tripId);
     let tripErrorDoc : WcgopTripError = {};
     const errors: WcgopError[] = [{}];
@@ -35,7 +33,6 @@ export async function runTripErrorChecks (req, res) {
         }
     }
     //const previousTripErrors = await masterDev.view('obs_web', 'wcgop-trip-errors', {include_docs: true, reduce: false, key: trip.legacy.tripId});
-    
     // for (var previousTripError of previousTripErrors.rows) {
     //     masterDev.destroy(previousTripError.doc._id, previousTripError.doc._rev);
     // }
