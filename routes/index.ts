@@ -739,10 +739,7 @@ const mongoUpdate = async (req, res) => {
     console.log(req.body);
     document = req.body;
 
-    response = await updateDocument('documents', document, (result) => {
-        console.log(result);
-        response = result;
-    });
+    response = await updateDocument('documents', document);
 
     if (response) {
         res.status(200).send(response);
