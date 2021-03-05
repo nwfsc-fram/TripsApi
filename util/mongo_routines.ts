@@ -3,8 +3,6 @@ const { MongoClient } = require('mongodb');
 const mongoUri = require('../dbConfig.json').mongoUri;
 const mongoDbName = 'common';
 
-const assert = require('assert');
-
 export async function findDocuments(collectionName, callback, query?) {
     try {
         const mongoClient = new MongoClient(mongoUri);
@@ -31,7 +29,6 @@ export async function writeDocuments(collectionName, documents, callback) {
         const collection = db.collection(collectionName);
         // Insert some documents
         await collection.insertMany(documents, function(err, result) {
-          assert.equal(err, null);
           console.log("Inserted document into the collection");
           callback(result);
         });
