@@ -40,39 +40,86 @@ export async function runTripErrorChecks (req, res) {
     for (const operationID of trip.operationIDs)
     {
         const operation = await masterDev.get(operationID);
-        error = {severity: Severity.error,
-            description: 'Wrong gear performance for partial lost gear',
-            dateCreated: moment().format(),
-            observer: trip.observer.firstName + ' ' + trip.observer.lastName,
-            status: StatusType.valid,
-            errorItem: 'Gear Performance',
-            errorValue: operation.gearPerformance.description,
-            notes: '',
-            legacy:{
-                checkCode : 98300 
-            }
-        };
-
-        const gearPerformanceChecks = {
-            "gearPerformance.description": {
-                exclusion: {
-                    within: ["Problem - trawl net or codend lost"],
-                    message: error
-                  }
-            }
-        };
-
-        if (//operation.gearPerformance.description !=='Problem - trawl net or codend lost' && 
-            operation.totalHooksLost>0)
-        { 
-            //tripErrorDoc.errors.push(error); 
-            tripErrorDoc.errors.push(validate(operation, gearPerformanceChecks, {format: "flat"}));
-        }
+        runPartialLostGearCheck(tripErrorDoc, trip, operation); 
     }
 
+    runCAFishTicketCheck(tripErrorDoc, trip); 
+    runTripReturnDateCheck(tripErrorDoc, trip);
+
+
+    const confirmation = await masterDev.bulk({docs: [tripErrorDoc]});
+    res.status(200).send(confirmation);
+}
+
+//trip check code 98300 
+function runPartialLostGearCheck(tripErrorDoc: WcgopTripError, trip:any, operation: any) {
+    let error = {severity: Severity.error,
+        description: 'Wrong gear performance for partial lost gear',
+        dateCreated: moment().format(),
+        observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+        status: StatusType.valid,
+        errorItem: 'Gear Performance',
+        errorValue: operation.gearPerformance.description,
+        notes: '',
+        legacy:{
+            checkCode : 98300 
+        }
+    };
+
+    const gearPerformanceChecks = {
+        "gearPerformance.description": {
+            exclusion: {
+                within: ["Problem - trawl net or codend lost"],
+                message: error
+              }
+        }
+    };
+
+    if (//operation.gearPerformance.description !=='Problem - trawl net or codend lost' && 
+        operation.totalHooksLost>0)
+    { 
+        //tripErrorDoc.errors.push(error); 
+        tripErrorDoc.errors.push(validate(operation, gearPerformanceChecks, {format: "flat"}));
+    }
+}
+
+//trip check code 110020 
+function runTripReturnDateCheck(tripErrorDoc: WcgopTripError, trip: any) {
+    let error : WcgopError = {severity: Severity.warning,
+        description: 'Trip created after return date, please keep paper records',
+        dateCreated: moment().format(),
+        observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+        status: StatusType.valid,
+        errorItem: 'Last Haul Entered',
+        errorValue: trip.createdDate,
+        notes: '',
+        legacy:{
+            checkCode : 110020 
+        }
+    };
+
+    const tripReturnDateChecks = {
+        returnDate: {
+            datetime: {
+                dateOnly: true,
+                latest: trip.createdDate,
+                message: error
+            }
+        }
+    };
+    if ( trip.dataSource === undefined || 
+        (trip.dataSource !== undefined && !trip.dataSource.includes ("optecs") ) 
+    )
+    { 
+        tripErrorDoc.errors.push(validate(trip, tripReturnDateChecks, {format: "flat"}));
+    }
+}
+
+//trip check code 1300 
+function runCAFishTicketCheck(tripErrorDoc: WcgopTripError, trip: any) {
     for (const fishTicket of trip.fishTickets)
     {
-        error = {severity: Severity.error,
+        let error = {severity: Severity.error,
             description: 'California fish ticket is not 7 characters long',
             dateCreated: moment().format(),
             observer: trip.observer.firstName + ' ' + trip.observer.lastName,
@@ -105,42 +152,5 @@ export async function runTripErrorChecks (req, res) {
         { 
             tripErrorDoc.errors.push(validate(fishTicket, fishTicketChecks, {format: "flat"}));
         }
-
-        runTripReturnDateCheck(tripErrorDoc, trip); //run trip check code 110020
-
-    }
-    const confirmation = await masterDev.bulk({docs: [tripErrorDoc]});
-    res.status(200).send(confirmation);
-}
-
-//run trip check code 110020 
-function runTripReturnDateCheck(tripErrorDoc: WcgopTripError, trip: any) {
-    let error : WcgopError = {severity: Severity.warning,
-        description: 'Trip created after return date, please keep paper records',
-        dateCreated: moment().format(),
-        observer: trip.observer.firstName + ' ' + trip.observer.lastName,
-        status: StatusType.valid,
-        errorItem: 'Last Haul Entered',
-        errorValue: trip.createdDate,
-        notes: '',
-        legacy:{
-            checkCode : 110020 
-        }
-    };
-
-    const tripReturnDateChecks = {
-        returnDate: {
-            datetime: {
-                dateOnly: true,
-                latest: trip.createdDate,
-                message: error
-            }
-        }
-    };
-    if ( trip.dataSource === undefined || 
-        (trip.dataSource !== undefined && !trip.dataSource.includes ("optecs") ) 
-    )
-    { 
-        tripErrorDoc.errors.push(validate(trip, tripReturnDateChecks, {format: "flat"}));
     }
 }
