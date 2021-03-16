@@ -349,9 +349,12 @@ const newCatch = async (req, res) => {
             const tripDocs = await masterDev.view('TripsApi', 'all_api_trips', { "key": tripNum });
             if (tripDocs.rows.length === 0 ) {
                 res.status(400).send('Trip doc with tripNum: ' + tripNum + ' does not exist. ' +
-                    'Please create a valid tripDoc before submitting catchDoc.');
+                    'Please create a valid trip before submitting catch.');
                 return;
             }
+
+            const otsTripQuery = await masterDev.view('obs_web', 'ots_trips_by_tripNum', {"key": tripNum, "include_docs": true});
+            const otsTrip = otsTripQuery.rows.length > 0 ? otsTripQuery.rows[0].doc : null;
 
             const catchDocs = await masterDev.view('TripsApi', 'all_api_catch', { "key": tripNum, "include_docs": true });
             const catchDoc = catchDocs.rows.filter((row) => row.doc.source === req.body.source);
@@ -362,7 +365,7 @@ const newCatch = async (req, res) => {
                 return;
             } else {
                 // additional validation checks
-                const validationResults = await validateCatch(newTrip, tripNum);
+                const validationResults = await validateCatch(newTrip, tripNum, otsTrip);
                 if (validationResults.status != 200) {
                     res.status(validationResults.status).send(validationResults.message);
                     return;

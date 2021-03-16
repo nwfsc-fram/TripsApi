@@ -25,6 +25,25 @@ validate.validators.isEmpty = function (value, options) {
     return undefined;
 };
 
+const vesselIdCheck = async (vesselId?) => { // not implemented yet
+    if (vesselId) {
+        const vesselIdsQuery = await masterDev.view('obs_web', 'all_vessel_nums', {reduce: false, include_docs: false, key: vesselId});
+        if (vesselIdsQuery.rows.length === 0) {
+            return 'vesselId is not valid';
+        }
+    } else {
+        return 'vesselId is required';
+    }
+};
+
+const departureDateCheck = async (departureDate?) => { // not implemented yet
+    if (departureDate && !isNaN(new Date(departureDate).getDate())) {
+        return 'departure date is not a valid datetime'
+    } else {
+        return 'departure date is required';
+    }
+}
+
 export async function validateApiTrip(apiTrip: any, mode: string) {
 
     const portsQuery = await masterDev.view('TripsApi', 'all_em_lookups', {reduce: false, include_docs: false, key: 'port'});
@@ -109,7 +128,7 @@ export async function validateApiTrip(apiTrip: any, mode: string) {
     return validate(apiTrip, validations);
 }
 
-export async function validateCatch(catchVal: Catches, tripNum: number) {
+export async function validateCatch(catchVal: Catches, tripNum: number, otsTrip?: any) {
     let errors: any[] = [];
     const source = catchVal.source;
 
@@ -127,12 +146,20 @@ export async function validateCatch(catchVal: Catches, tripNum: number) {
     let validationResults: string = await validateTrip(catchVal, tripNum);
     validationResults += await validateFishTickets(catchVal, validCodes);
     // find errors, the trip will still be accepted, but errors logged in the doc
-    errors = errors.concat(await getTripErrors(catchVal));
+    errors = errors.concat(await getTripErrors(catchVal, otsTrip));
 
     let hauls = get(catchVal, 'hauls', []);
     for (let i = 0; i < hauls.length; i++) {
         validationResults += await validateHaul(hauls[i], catchVal);
         errors = errors.concat(getHaulErrors(hauls[i], source));
+        if (source === 'thirdParty') {
+            const logbookQuery = await masterDev.view('TripsApi', 'all_api_catch', {"key": tripNum, "include_docs": true});
+            const logbook = logbookQuery.rows.map( (row: any) => row.doc).find( (row: any) => row.source === 'logbook');
+            if (logbook && logbook.hauls && hauls[i] && logbook.hauls[i]) {
+                errors = errors.concat(await getHaulComparisonErrors(hauls[i], logbook.hauls[i]));
+            }
+        }
+
         let catches = get(hauls[i], 'catch', []);
 
         for (let j = 0; j < catches.length; j++) {
@@ -158,11 +185,21 @@ export async function validateCatch(catchVal: Catches, tripNum: number) {
     };
 }
 
+async function getHaulComparisonErrors(reviewHaul, logbookHaul) {
+    if (reviewHaul && logbookHaul && reviewHaul.gear !== logbookHaul.gear) {
+        return {
+            "field": "gear",
+            "message": "EM gear '" + reviewHaul.gear + "' does not match Logbook gear '" + logbookHaul.gear + "'",
+            "haulNum": reviewHaul.haulNum
+        }
+    }
+}
+
 /**
  * Gets errors logged in the catch document. This request is still
  * accepted and marked as valid
  */
-async function getTripErrors(catchVal: Catches) {
+async function getTripErrors(catchVal: Catches, otsTrip?: any) {
     let errorsChecks = {
         fishTickets: function (value, attributes) {
             if (attributes.source === sourceType.logbook) {
@@ -182,6 +219,28 @@ async function getTripErrors(catchVal: Catches) {
             if (attributes.source === sourceType.thirdParty) {
                 return {
                     presence: {allowEmpty: false}
+                }
+            }
+        },
+        departureDateTime: function (value, attributes) {
+            if (otsTrip) {
+                return {
+                    datetime: {
+                        earliest: otsTrip.departureDate,
+                        latest: otsTrip.returnDate,
+                        message: 'outside of original trip dates.'
+                    }
+                }
+            }
+        },
+        returnDateTime: function (value, attributes) {
+            if (otsTrip) {
+                return {
+                    datetime: {
+                        earliest: otsTrip.departureDate,
+                        latest: otsTrip.returnDate,
+                        message: 'outside of original trip dates.'
+                    }
                 }
             }
         },
@@ -233,7 +292,9 @@ async function getTripErrors(catchVal: Catches) {
                         message: 'missing from ticket# ' + fishTicket.fishTicketNumber
                     },
                     datetime: {
-                        message: fishTicket.fishTicketDate + ' is an invalid date'
+                        earliest: catchVal.returnDateTime,
+                        latest: moment(catchVal.returnDateTime).add(5, 'days'),
+                        message: 'must be after return date and within 5 days.'
                     }
                 }
             }
@@ -291,6 +352,11 @@ function getHaulErrors(haul: any, source: sourceType) {
         },
     }
     const validationErrors: any = validate(haul, errorChecks);
+
+    if (haul.catch && haul.catch.length > 0 && haul.isCodendLost) {
+        validationErrors.isCodendLost = ['Haul should not have catch when isLostCodend is true'];
+    }
+
     return logErrors(validationErrors, haul.haulNum);
 }
 
@@ -339,6 +405,14 @@ async function validateFishTickets(catchVal: Catches, speciesCodes: string[]) {
 }
 
 async function validateTrip(catchVal: Catches, tripNum: number) {
+
+    const portsQuery = await masterDev.view('TripsApi', 'all_em_lookups', {reduce: false, include_docs: false, key: 'port'});
+    const validPortCodes = portsQuery.rows.map( (row: any) => row.value[1] );
+
+    // check if vesselId valid
+    const vesselIdsQuery = await masterDev.view('obs_web', 'all_vessel_nums', {reduce: false, include_docs: false, key: catchVal.vesselNumber});
+    const validVessel = vesselIdsQuery.rows.map( (row: any) => row.key );
+
     const sourceLookups = await getLookupList('em-source');
     const fisheryLookups = await getLookupList('fishery');
     const fisherySectorLookups = await getLookupList('fishery-sector');
@@ -392,6 +466,38 @@ async function validateTrip(catchVal: Catches, tripNum: number) {
         },
         returnDateTime: {
             presence: {allowEmpty: false}
+        },
+        vesselNumber: {
+            presence: {allowEmpty: false},
+            inclusion: {
+                within: validVessel
+            }
+        },
+        vesselName: {
+            type: "string",
+            presence: {allowEmpty: false},
+        },
+        departurePortCode: {
+            presence: {allowEmpty: false},
+            type: "string",
+            inclusion: {
+                within: validPortCodes,
+            }
+        },
+        returnPortCode: {
+            presence: {allowEmpty: false},
+            type: "string",
+            inclusion: {
+                within: validPortCodes,
+            }
+        },
+        captain: {
+            presence: {allowEmpty: false},
+            type: "string"
+        },
+        permitNumber: {
+            presence: {allowEmpty: false},
+            type: "string"
         }
     };
     const tripResults = validate(catchVal, validationChecks);
