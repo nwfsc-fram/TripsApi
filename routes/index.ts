@@ -28,14 +28,15 @@ import { resolve } from 'path';
 import { validateJwtRequest } from '../get-user.middleware';
 import { getFishTicket, fakeDBTest, insertRow } from '../util/oracle_routines';
 import { catchEvaluator } from '../util/trip-functions';
-import { Catches, sourceType } from '@boatnet/bn-models';
-import { set, cloneDeep, omit, pick, union, keys, reduce, isEqual, differenceBy, differenceWith } from 'lodash';
+import { Catches, sourceType, EmReviewSelectionRate, EMHaulReviewSelection, EmHaulReviewSelectionTypeName } from '@boatnet/bn-models';
+import { set, cloneDeep, omit, pick, union, keys, reduce, isEqual, differenceBy, differenceWith, sampleSize, sortBy } from 'lodash';
 
 import { masterDev, dbConfig } from '../util/couchDB';
 
 import { stringParser } from '../util/string-parser';
 import { validateCatch, validateApiTrip } from '../util/validator';
 import { runTripErrorChecks } from '../util/tripChecks';
+import { selectHaulsForReview } from '../util/haulSelection';
 
 let token = '';
 export let key = '';
@@ -334,6 +335,8 @@ const getCatch = async (req, res) => {
     })
 }
 
+
+
 const newCatch = async (req, res) => {
     if (req.headers['content-type'] == "application/xml") { stringParser(req); }
     setTimeout(async () => {
@@ -375,6 +378,9 @@ const newCatch = async (req, res) => {
                 // everything is good, write to db and evaluate catch doc
                 masterDev.bulk({ docs: [validationResults.catchVal] }).then(
                     () => {
+                        if (validationResults.catchVal.source === 'logbook') {
+                            selectHaulsForReview(validationResults.catchVal);
+                        };
                         catchEvaluator(tripNum);
                         res.status('200').send('Catch doc with tripNum:' + tripNum + ' saved successfully. ' + errors);
                         return;
@@ -432,6 +438,9 @@ const updateCatch = async (req, res) => {
     reqDoc.history.unshift(cloneDeep(omit(couchDoc, ['history']))); // don't store history array in history
     const errors: string = reqDoc.errors && reqDoc.errors.length > 0 ? ' Errors: ' + JSON.stringify(reqDoc.errors) : '';
     masterDev.bulk({ docs: [reqDoc] }).then((body) => {
+        if (validationResults.catchVal.source === 'logbook') {
+            selectHaulsForReview(validationResults.catchVal);
+        };
         catchEvaluator(tripNum);
         res.status(200).send('Catch doc with tripNum:' + tripNum + ' successfully updated!' + errors);
     })
