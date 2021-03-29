@@ -37,6 +37,7 @@ import { stringParser } from '../util/string-parser';
 import { validateCatch, validateApiTrip } from '../util/validator';
 import { runTripErrorChecks } from '../util/tripChecks';
 import { selectHaulsForReview } from '../util/haulSelection';
+import { findDocuments, writeDocuments, updateDocument, deleteDocument } from '../util/mongo_routines';
 
 let token = '';
 export let key = '';
@@ -704,6 +705,78 @@ const emailCoordinator = async (req, res) => {
 
 }
 
+const mongoRead = async (req, res) => {
+    let response = [];
+    let collection = req.params.collection
+
+    console.log(req.query);
+
+    await findDocuments(collection, (documents) => {
+        response.push.apply(response, documents);
+    }, req.query)
+
+    if (response.length > 0) {
+        res.status(200).send(response);
+    } else {
+        res.status(400).send('no matching results found');
+    }
+
+}
+
+const mongoWrite = async (req, res) => {
+    let response = '';
+    let documents = [];
+
+    console.log(req.body);
+    if (Array.isArray(req.body)) {
+        documents = req.body;
+    }
+
+    await writeDocuments('documents', documents, (result) => {
+        console.log(result)
+        response = result;
+    })
+
+    if (response) {
+        res.status(200).send(response);
+    } else {
+        res.status(400).send('unable to write docs');
+    }
+}
+
+const mongoUpdate = async (req, res) => {
+    let response: any = '';
+    let document = {};
+
+    console.log(req.body);
+    document = req.body;
+
+    response = await updateDocument('documents', document);
+
+    if (response) {
+        res.status(200).send(response);
+    } else {
+        res.status(400).send('unable to update document');
+    }
+}
+
+const mongoDelete = async (req, res) => {
+    let response: any = '';
+    let document = {};
+
+    console.log(req.body);
+    document = req.body;
+
+    response = await deleteDocument('documents', document);
+    console.log(response);
+
+    if (response) {
+        res.status(200).send(response);
+    } else {
+        res.status(400).send('unable to delete document');
+    }
+}
+
 const API_VERSION = 'v1';
 
 router.get('/em-lookups', getLookups);
@@ -734,6 +807,13 @@ router.use('/api/' + API_VERSION + '/tripCatch/:tripNum', validateJwtRequest);
 router.get('/api/' + API_VERSION + '/tripCatch/:tripNum', getCatch);
 router.post('/api/' + API_VERSION + '/tripCatch/:tripNum', newCatch);
 router.put('/api/' + API_VERSION + '/tripCatch/:tripNum', updateCatch);
+
+router.use('/api/' + API_VERSION + '/mongo', getPubKey);
+router.use('/api/' + API_VERSION + '/mongo', validateJwtRequest);
+router.get('/api/' + API_VERSION + '/mongo/:collection', mongoRead);
+router.post('/api/' + API_VERSION + '/mongo', mongoWrite);
+router.put('/api/' + API_VERSION + '/mongo', mongoUpdate);
+router.delete('/api/' + API_VERSION + '/mongo', mongoDelete);
 
 router.use('/api/' + API_VERSION + '/screenshot/:tripNum', getPubKey);
 router.use('/api/' + API_VERSION + '/screenshot/:tripNum', validateJwtRequest);
