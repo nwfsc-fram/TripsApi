@@ -363,6 +363,16 @@ const newCatch = async (req, res) => {
             const catchDocs = await masterDev.view('TripsApi', 'all_api_catch', { "key": tripNum, "include_docs": true });
             const catchDoc = catchDocs.rows.filter((row) => row.doc.source === req.body.source);
 
+            if (req.body.source === 'logbook') {
+                await checkOtsTripStatus(req.body.tripNum, res);
+            }
+
+            if (req.body.source === 'logbook' && catchDocs.rows.some( (row: any) => row.doc.source === 'thirdParty' )) {
+                emailEMContact(req, 'attempted logbook submission after review submission');
+                res.status(400).send('Logbook info may not be submitted/updated via API after review data has been submitted.  Please contact NMFS.');
+                return;
+            }
+
             if (catchDoc.length > 0) {
                 res.status(400).send('Catch doc with tripNum:' + tripNum + ' already exists. ' +
                     'Please submit updated data via PUT to /tripCatch/:tripNum');
@@ -403,9 +413,20 @@ const updateCatch = async (req, res) => {
     const catchDocs = await masterDev.view('TripsApi', 'all_api_catch', { "key": tripNum, "include_docs": true });
     if (catchDocs.rows.length === 0) {
         res.status(400).send('Catch doc with tripNum ' + tripNum + ' does not exist.' +
-            'Please use POST to /tripCatch/:tripNum to submit new catch data.');
+        'Please use POST to /tripCatch/:tripNum to submit new catch data.');
         return;
     }
+
+    if (req.body.source === 'logbook') {
+        await checkOtsTripStatus(req.body.tripNum, res);
+    }
+
+    if (req.body.source === 'logbook' && catchDocs.rows.some( (row: any) => row.doc.source === 'thirdParty' )) {
+        emailEMContact(req, 'Attempted logbook submission after review submission');
+        res.status(400).send('Logbook info may not be submitted/updated via API after review data has been submitted.  Please contact NMFS.');
+        return;
+    }
+
     // get catchDocs with same source type as one specified in the request
     const catchDoc = catchDocs.rows.filter((row) => row.doc.source === req.body.source);
     if (catchDoc.length === 0) {
@@ -445,6 +466,27 @@ const updateCatch = async (req, res) => {
         catchEvaluator(tripNum);
         res.status(200).send('Catch doc with tripNum:' + tripNum + ' successfully updated!' + errors);
     })
+}
+
+const checkOtsTripStatus = async (tripNum, res) => {
+    const otsTrip = await masterDev.view(
+        'obs_web',
+        'ots_trips_by_tripNum',
+        {reduce: false, include_docs: true, key: tripNum} as any
+    )
+
+    if (otsTrip.rows[0]) {
+        if (!(otsTrip.rows[0].doc.tripStatus && otsTrip.rows[0].doc.tripStatus.description === 'closed')) {
+            res.status(400).send('error - trip not closed - please close trip prior to catch submission.');
+            return;
+        } else if (!otsTrip.rows[0].doc._attachments) {
+            res.status(400).send('error - missing logbook image capture - please add image prior to catch submission.');
+            return;
+        }
+    } else {
+        res.status(400).send('error - missing trip info - please log trip (with logbook image) prior to catch submission.');
+        return;
+    }
 }
 
 const saveScreenshot = async (req, res) => {
@@ -637,6 +679,42 @@ const updateBuyers = async (req, res) => {
     } else {
         res.status(401).send('not authorized');
     }
+}
+
+const emailEMContact = async (req, alert) => {
+    const transporter = nodemailer.createTransport({
+        service: mailConfig.service,
+        auth: {
+          user: mailConfig.username,
+          pass: mailConfig.password
+        }
+      });
+
+      let mailTo = mailConfig.emContact;
+      const emailHTML = "<p> Reviewer " + (req.body.reviewerName ? req.body.reviwerName : 'missing') +
+                        ' with provider ' + (req.body.provider ? req.body.provider : 'missing') + ' ' +
+                        alert + ' for trip # ' + (req.body.tripNum ? req.body.tripNum : 'missing') +
+                        '.</p>';
+
+    try {
+        let mailOptions = {
+            from: mailConfig.sender,
+            to: mailTo,
+            subject: alert,
+            html: emailHTML
+        };
+
+        transporter.sendMail(mailOptions, function(error, info) {
+            if (error) {
+                console.log(error);
+            } else {
+                console.log('Email sent: ' + info.response);
+            }
+        });
+
+        } catch (err) {
+            console.log(err);
+        }
 }
 
 const emailCoordinator = async (req, res) => {
