@@ -26,9 +26,6 @@ export async function selectHaulsForReview(logbook: Catches) {
 
         if (existingSelection) {
             const diff = differenceWith(logbookHaulNums, existingSelection.logbookHauls, isEqual);
-            console.log(existingSelection.logbookHauls)
-            console.log(logbookHaulNums)
-            console.log(diff)
             if (diff.length === 0) {
                 console.log('hauls haven\'t changed - selection not nescessary.')
                 return;
