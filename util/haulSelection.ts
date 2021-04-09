@@ -9,16 +9,23 @@ export async function selectHaulsForReview(logbook: Catches) {
     try {
         const tripNum = logbook.tripNum;
         const logbookHaulNums = sortBy(jp.query(logbook, '$.hauls[*].haulNum'));
+        // check for isCodendLost === true || gearLost === gearPerSet
+        let hauls = cloneDeep(logbook.hauls);
+        hauls = hauls.filter( (haul: any) => {
+            return !haul.isCodendLost && !(haul.gearLost >= haul.gearPerSet)
+            }
+        )
+        const haulWithCatchHaulNums = sortBy(hauls.map( (haul: any) => haul.haulNum));
 
         const existingSelectionQuery = await masterDev.view(
             'TripsApi',
             'em-haul-review-selection-by-tripNum',
             {include_docs: true, reduce: false, key: tripNum}
         );
-        const existingSelection = existingSelectionQuery.rows ? existingSelectionQuery.rows[0].doc : null;
+        const existingSelection = existingSelectionQuery.rows[0] ? existingSelectionQuery.rows[0].doc : null;
 
         if (existingSelection) {
-            const diff = differenceWith(existingSelection.logbookHauls, logbookHaulNums, isEqual);
+            const diff = differenceWith(existingSelection.logbookHauls, haulWithCatchHaulNums, isEqual);
             if (diff.length === 0) {
                 console.log('hauls haven\'t changed - selection not nescessary.')
                 return;
@@ -56,12 +63,9 @@ export async function selectHaulsForReview(logbook: Catches) {
             notes = 'All hauls selected fishery sector is ' + otsTrip.fisherySector.description;
             fisherySector = otsTrip.fisherySector;
         } else {
-            let numHaulsToSelect = Math.round(logbookHaulNums.length * (currentSelectionRateInfo.rate / 100));
-            if (numHaulsToSelect < 1) {
-                numHaulsToSelect = 1;
-            };
+            let numHaulsToSelect = Math.ceil(haulWithCatchHaulNums.length * (currentSelectionRateInfo.rate / 100));
 
-            selectedHauls = sortBy(sampleSize(logbookHaulNums, numHaulsToSelect));
+            selectedHauls = sortBy(sampleSize(haulWithCatchHaulNums, numHaulsToSelect));
 
             notes = 'hauls ' + selectedHauls + ' selected based on selection rate'
         }
@@ -72,6 +76,7 @@ export async function selectHaulsForReview(logbook: Catches) {
             vesselName: otsTrip.vessel.vesselName,
             vesselNumber: otsTrip.vessel.coastGuardNumber ? otsTrip.vessel.coastGuardNumber : otsTrip.vessel.stateRegulationNumber,
             logbookHauls: logbookHaulNums,
+            haulWithCatchNums: haulWithCatchHaulNums,
             selectedHauls: selectedHauls,
             selectionRate: currentSelectionRateInfo.rate,
             selectionDate: moment().format(),
