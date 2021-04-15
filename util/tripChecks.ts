@@ -45,6 +45,7 @@ export async function runTripErrorChecks (req, res) {
 
     runCAFishTicketCheck(tripErrorDoc, trip); 
     runTripReturnDateCheck(tripErrorDoc, trip);
+    runObsLogbookMissingCheck(tripErrorDoc, trip);
 
 
     const confirmation = await masterDev.bulk({docs: [tripErrorDoc]});
@@ -153,4 +154,29 @@ function runCAFishTicketCheck(tripErrorDoc: WcgopTripError, trip: any) {
             tripErrorDoc.errors.push(validate(fishTicket, fishTicketChecks, {format: "flat"}));
         }
     }
+}
+
+
+//trip check code 32200 
+function runObsLogbookMissingCheck(tripErrorDoc: WcgopTripError, trip: any) {
+    let error : WcgopError = {severity: Severity.error,
+        description: 'Observer logbook number is missing',
+        dateCreated: moment().format(), 
+        observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+        status: StatusType.valid,
+        errorItem: 'Observer logbook #',
+        errorValue: trip.logbook,
+        notes: '',
+        legacy:{
+            checkCode : 32200 
+        }
+    };
+
+    const obsLogbookMissingChecks = {
+        logbook: {
+            presence: true
+        }
+    };
+
+    tripErrorDoc.errors.push(validate(trip, obsLogbookMissingChecks, {format: "flat"}));
 }
