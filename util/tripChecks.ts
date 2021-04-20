@@ -198,7 +198,7 @@ function runLongTripCheck(tripErrorDoc: WcgopTripError, trip: any) {
         }
     };
 
-    if ( trip.fishery!=21 && moment(trip.departureDate).diff(trip.returnDate)>10 ) 
+    if ( trip.fishery.description!="Mothership Catcher-Vessel" && moment(trip.departureDate).diff(trip.returnDate)>10 ) 
     { 
         tripErrorDoc.errors.push(error);
     }
