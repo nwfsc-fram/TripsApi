@@ -54,6 +54,7 @@ export async function runTripErrorChecks (req, res) {
     runObsLogbookMissingCheck(tripErrorDoc, trip);
     runLongTripCheck(tripErrorDoc, trip);
     runBlankFitValueCheck(tripErrorDoc, trip, isFitNull, observerTotalCatch);
+    runInactiveVesselCheck(tripErrorDoc, trip);
 
 
     const confirmation = await masterDev.bulk({docs: [tripErrorDoc]});
@@ -241,4 +242,32 @@ function runBlankFitValueCheck(tripErrorDoc: WcgopTripError, trip: any, isFitNul
         tripErrorDoc.errors.push(validate(trip, blankFitChecks, {format: "flat"}));
     }
 
+}
+
+
+//trip check code 110014 
+function runInactiveVesselCheck(tripErrorDoc: WcgopTripError, trip: any) {
+    let error : WcgopError = {severity: Severity.error,
+        description: 'Vessel inactive, please review selected vessel',
+        dateCreated: moment().format(),
+        observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+        status: StatusType.valid,
+        errorItem: trip.vessel.vesselName + ' - ' + trip.vessel.coastGuardNumber + trip.vessel.stateRegulationNumber,
+        errorValue: trip.vessel.vesselStatus.description,
+        notes: '',
+        legacy:{
+            checkCode : 110014 
+        }
+    };
+
+    const inactiveVesselChecks = {
+        "vessel.vesselStatus.description": {
+            inclusion: {
+                within: ["Inactive - Vessel ID changed", "Sunk", "Retired" ], 
+                message: error
+              }
+        }
+    };
+
+    tripErrorDoc.errors.push(validate(trip, inactiveVesselChecks, {format: "flat"}));
 }
