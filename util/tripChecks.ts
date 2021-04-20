@@ -46,6 +46,7 @@ export async function runTripErrorChecks (req, res) {
     runCAFishTicketCheck(tripErrorDoc, trip); 
     runTripReturnDateCheck(tripErrorDoc, trip);
     runObsLogbookMissingCheck(tripErrorDoc, trip);
+    runLongTripCheck(tripErrorDoc, trip);
 
 
     const confirmation = await masterDev.bulk({docs: [tripErrorDoc]});
@@ -179,4 +180,26 @@ function runObsLogbookMissingCheck(tripErrorDoc: WcgopTripError, trip: any) {
     };
 
     tripErrorDoc.errors.push(validate(trip, obsLogbookMissingChecks, {format: "flat"}));
+}
+
+
+//trip check code 500 
+function runLongTripCheck(tripErrorDoc: WcgopTripError, trip: any) {
+    let error : WcgopError = {severity: Severity.warning,
+        description: 'Trip is longer than 10 days',
+        dateCreated: moment().format(),
+        observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+        status: StatusType.valid,
+        errorItem: 'Trip Length',
+        errorValue: moment(trip.departureDate).diff(trip.returnDate).toString(),
+        notes: '',
+        legacy:{
+            checkCode : 500 
+        }
+    };
+
+    if ( trip.fishery.description!=="Mothership Catcher-Vessel" && moment(trip.departureDate).diff(trip.returnDate)>10 ) 
+    { 
+        tripErrorDoc.errors.push(error);
+    }
 }
