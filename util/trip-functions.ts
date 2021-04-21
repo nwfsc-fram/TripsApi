@@ -8,7 +8,7 @@ import * as moment from 'moment';
 import { getMixedGroupingInfo } from './getMixedGroupings';
 import { masterDev } from './couchDB';
 
-export async function catchEvaluator(tripNum: number) {
+export async function catchEvaluator(tripNum: number, expansionType: string) {
     //  wait for a while to be sure data is fully submitted to couch
     setTimeout(async () => {
 
@@ -77,20 +77,26 @@ export async function catchEvaluator(tripNum: number) {
                         fishTickets.push.apply(fishTickets, fishTicketRows);
                     }
                 }
-                logbook = cloneDeep(await evaluatecurrCatch(logbook));
+                logbook = cloneDeep(await evaluatecurrCatch(logbook, expansionType));
             }
             if (thirdParty) {
-                thirdParty = cloneDeep(await evaluatecurrCatch(thirdParty));
+                thirdParty = cloneDeep(await evaluatecurrCatch(thirdParty, expansionType));
             }
             if (nwfscAudit) {
-                nwfscAudit = cloneDeep(await evaluatecurrCatch(nwfscAudit));
+                nwfscAudit = cloneDeep(await evaluatecurrCatch(nwfscAudit, expansionType));
             }
             // then write all tripCatch docs to results doc
-            let result: any = await format(tripNum, logbook, thirdParty, nwfscAudit);
-            const existingDoc = await masterDev.view('TripsApi', 'expansion_results',
+            let result: any = await format(tripNum, logbook, thirdParty, nwfscAudit, expansionType);
+            let existingDoc = null;
+            if (expansionType === 'full-expansion') {
+                existingDoc = await masterDev.view('TripsApi', 'expansion_results',
+                    { "key": tripNum, "include_docs": true });
+            } else {
+                existingDoc = await masterDev.view('TripsApi', 'minimal_expansion_results',
                 { "key": tripNum, "include_docs": true });
+            }
 
-            if (existingDoc.rows.length !== 0) {
+            if (existingDoc && existingDoc.rows.length !== 0) {
                 let currDoc = existingDoc.rows[0].doc;
                 set(result, 'revisionHistory', updateRevisionHistory(currDoc));
                 set(result, '_id', currDoc._id);
@@ -105,7 +111,7 @@ export async function catchEvaluator(tripNum: number) {
             console.log(err);
         }
 
-        async function evaluatecurrCatch(currCatch: Catches) {
+        async function evaluatecurrCatch(currCatch: Catches, expansionType: string) {
             let flattenedCatch: any[] = jp.query(currCatch, '$.hauls..catch');
             flattenedCatch = flattenDeep(flattenedCatch);
 
@@ -119,7 +125,7 @@ export async function catchEvaluator(tripNum: number) {
             }
 
             // does catch contain pacific halibut, lingcod, or sablefish?
-            if (flattenedCatch.find((row: any) => ['PHLB', '101', 'LCOD', '603', 'SABL', '203'].includes(row.speciesCode.toString()))) {
+            if (expansionType !== 'minimal-expansions' && flattenedCatch.find((row: any) => ['PHLB', '101', 'LCOD', '603', 'SABL', '203'].includes(row.speciesCode.toString()))) {
                 console.log('discard mortality rate species found');
                 const dmr: discardMortalityRates = new discardMortalityRates();
                 currCatch = cloneDeep(dmr.expand({ currCatch, speciesCodeLookup }));
@@ -136,14 +142,14 @@ export async function catchEvaluator(tripNum: number) {
             }
 
             // any fixed-gear haul have lost gear (gearLost > 0 )?
-            if (currCatch.hauls.find((row: any) => row.gearLost && row.gearLost > 0 && row.gear !== 'trawl')) {
+            if (expansionType !== 'minimal-expansions' && currCatch.hauls.find((row: any) => row.gearLost && row.gearLost > 0 && row.gear !== 'trawl')) {
                 console.log('lost fixed gear found');
                 const lostFixedGearExp: lostFixedGear = new lostFixedGear();
                 currCatch = lostFixedGearExp.expand({ currCatch });
             }
 
             // any haul have lost codend (isCodendLost = true)?
-            if (currCatch.hauls.find((row: any) => row.isCodendLost && row.gear === 'trawl')) {
+            if (expansionType !== 'minimal-expansions' && currCatch.hauls.find((row: any) => row.isCodendLost && row.gear === 'trawl')) {
                 console.log('lost trawl gear codend found');
                 const lostCodendExp: lostCodend = new lostCodend();
                 currCatch = cloneDeep(lostCodendExp.expand({ currCatch, speciesCodeLookup }));

@@ -1,10 +1,10 @@
-import { Catches, CatchResults, ResponseCatchTypeName, Disposition, sourceType } from '@boatnet/bn-models';
+import { Catches, CatchResults, ResponseCatchTypeName, MinimalResponseCatchTypeName, Disposition, sourceType } from '@boatnet/bn-models';
 import { set, get, uniqBy } from 'lodash';
 import { masterDev } from './couchDB';
 
-export async function format(tripNum: number, logbook: Catches, review: Catches, audit: Catches) {
+export async function format(tripNum: number, logbook: Catches, review: Catches, audit: Catches, expansionType: string) {
     let result: CatchResults = {
-        type: ResponseCatchTypeName,
+        type: expansionType === 'full-expansion' ? ResponseCatchTypeName : MinimalResponseCatchTypeName,
         tripNum: tripNum
     };
     const logbookCatch: any[] = await catchToHaul(logbook);

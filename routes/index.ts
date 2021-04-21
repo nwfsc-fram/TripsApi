@@ -392,7 +392,8 @@ const newCatch = async (req, res) => {
                         if (validationResults.catchVal.source === 'logbook') {
                             selectHaulsForReview(validationResults.catchVal);
                         };
-                        catchEvaluator(tripNum);
+                        catchEvaluator(tripNum, 'full-expansions');
+                        catchEvaluator(tripNum, 'minimal-expansions');
                         res.status('200').send('Catch doc with tripNum:' + tripNum + ' saved successfully. ' + errors);
                         return;
                 });
