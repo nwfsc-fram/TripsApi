@@ -2,7 +2,7 @@ const jp = require('jsonpath');
 import { cloneDeep, flattenDeep, set } from 'lodash';
 import { getFishTicket } from './oracle_routines';
 import { unsortedCatch, lostCodend, selectiveDiscards, discardMortalityRates, missingWeight, lostFixedGear } from '@boatnet/bn-expansions';
-import { Catches } from '@boatnet/bn-models';
+import { Catches, ResponseCatchTypeName, MinimalResponseCatchTypeName } from '@boatnet/bn-models';
 import { format } from './formatter';
 import * as moment from 'moment';
 import { getMixedGroupingInfo } from './getMixedGroupings';
@@ -88,7 +88,7 @@ export async function catchEvaluator(tripNum: number, expansionType: string) {
             // then write all tripCatch docs to results doc
             let result: any = await format(tripNum, logbook, thirdParty, nwfscAudit, expansionType);
             let existingDoc = null;
-            if (expansionType === 'full-expansion') {
+            if (expansionType === ResponseCatchTypeName) {
                 existingDoc = await masterDev.view('TripsApi', 'expansion_results',
                     { "key": tripNum, "include_docs": true });
             } else {
@@ -125,7 +125,7 @@ export async function catchEvaluator(tripNum: number, expansionType: string) {
             }
 
             // does catch contain pacific halibut, lingcod, or sablefish?
-            if (expansionType !== 'minimal-expansions' && flattenedCatch.find((row: any) => ['PHLB', '101', 'LCOD', '603', 'SABL', '203'].includes(row.speciesCode.toString()))) {
+            if (expansionType === ResponseCatchTypeName && flattenedCatch.find((row: any) => ['PHLB', '101', 'LCOD', '603', 'SABL', '203'].includes(row.speciesCode.toString()))) {
                 console.log('discard mortality rate species found');
                 const dmr: discardMortalityRates = new discardMortalityRates();
                 currCatch = cloneDeep(dmr.expand({ currCatch, speciesCodeLookup }));
@@ -142,14 +142,14 @@ export async function catchEvaluator(tripNum: number, expansionType: string) {
             }
 
             // any fixed-gear haul have lost gear (gearLost > 0 )?
-            if (expansionType !== 'minimal-expansions' && currCatch.hauls.find((row: any) => row.gearLost && row.gearLost > 0 && row.gear !== 'trawl')) {
+            if (expansionType === ResponseCatchTypeName && currCatch.hauls.find((row: any) => row.gearLost && row.gearLost > 0 && row.gear !== 'trawl')) {
                 console.log('lost fixed gear found');
                 const lostFixedGearExp: lostFixedGear = new lostFixedGear();
                 currCatch = lostFixedGearExp.expand({ currCatch });
             }
 
             // any haul have lost codend (isCodendLost = true)?
-            if (expansionType !== 'minimal-expansions' && currCatch.hauls.find((row: any) => row.isCodendLost && row.gear === 'trawl')) {
+            if (expansionType === ResponseCatchTypeName && currCatch.hauls.find((row: any) => row.isCodendLost && row.gear === 'trawl')) {
                 console.log('lost trawl gear codend found');
                 const lostCodendExp: lostCodend = new lostCodend();
                 currCatch = cloneDeep(lostCodendExp.expand({ currCatch, speciesCodeLookup }));
