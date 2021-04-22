@@ -252,7 +252,7 @@ function runInactiveVesselCheck(tripErrorDoc: WcgopTripError, trip: any) {
         dateCreated: moment().format(),
         observer: trip.observer.firstName + ' ' + trip.observer.lastName,
         status: StatusType.valid,
-        errorItem: trip.vessel.vesselName + ' - ' + trip.vessel.coastGuardNumber + trip.vessel.stateRegulationNumber,
+        errorItem: trip.vessel.vesselName + ' - ' + trip.vessel.coastGuardNumber ? trip.vessel.coastGuardNumber : trip.vessel.stateRegulationNumber,
         errorValue: trip.vessel.vesselStatus.description,
         notes: '',
         legacy:{
