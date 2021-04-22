@@ -120,7 +120,7 @@ export async function validateApiTrip(apiTrip: any, mode: string) {
         vesselName: {
             type: "string"
         },
-        captain: {
+        skipperName: {
             type: "string"
         }
     };
@@ -491,7 +491,7 @@ async function validateTrip(catchVal: Catches, tripNum: number) {
                 within: validPortCodes,
             }
         },
-        captain: {
+        skipperName: {
             presence: {allowEmpty: false},
             type: "string"
         },
