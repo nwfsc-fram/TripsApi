@@ -30,6 +30,7 @@ import { getFishTicket, fakeDBTest, insertRow } from '../util/oracle_routines';
 import { catchEvaluator } from '../util/trip-functions';
 import { Catches, sourceType, EmReviewSelectionRate, EMHaulReviewSelection, EmHaulReviewSelectionTypeName } from '@boatnet/bn-models';
 import { set, cloneDeep, omit, pick, union, keys, reduce, isEqual, differenceBy, differenceWith, sampleSize, sortBy } from 'lodash';
+import { ResponseCatchTypeName, MinimalResponseCatchTypeName } from '@boatnet/bn-models';
 
 import { masterDev, dbConfig } from '../util/couchDB';
 
@@ -392,8 +393,8 @@ const newCatch = async (req, res) => {
                         if (validationResults.catchVal.source === 'logbook') {
                             selectHaulsForReview(validationResults.catchVal);
                         };
-                        catchEvaluator(tripNum, 'full-expansions');
-                        catchEvaluator(tripNum, 'minimal-expansions');
+                        catchEvaluator(tripNum, ResponseCatchTypeName);
+                        catchEvaluator(tripNum, MinimalResponseCatchTypeName);
                         res.status('200').send('Catch doc with tripNum:' + tripNum + ' saved successfully. ' + errors);
                         return;
                 });
@@ -464,7 +465,8 @@ const updateCatch = async (req, res) => {
         if (validationResults.catchVal.source === 'logbook') {
             selectHaulsForReview(validationResults.catchVal);
         };
-        catchEvaluator(tripNum);
+        catchEvaluator(tripNum, ResponseCatchTypeName);
+        catchEvaluator(tripNum, MinimalResponseCatchTypeName);
         res.status(200).send('Catch doc with tripNum:' + tripNum + ' successfully updated!' + errors);
     })
 }

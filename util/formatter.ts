@@ -4,7 +4,7 @@ import { masterDev } from './couchDB';
 
 export async function format(tripNum: number, logbook: Catches, review: Catches, audit: Catches, expansionType: string) {
     let result: CatchResults = {
-        type: expansionType === 'full-expansion' ? ResponseCatchTypeName : MinimalResponseCatchTypeName,
+        type: expansionType,
         tripNum: tripNum
     };
     const logbookCatch: any[] = await catchToHaul(logbook);
