@@ -660,7 +660,7 @@ async function validateCatchVal(catches: any, speciesCodes: any, source?: any) {
             }
         },
         timeOnDeck: function (value, attributes) {
-            if (["PHLB", 101].includes(attributes.speciesCode)) {
+            if (["PHLB", 101].includes(attributes.speciesCode) && source !== 'logbook') {
                 return {
                     presence: {
                         message: ' should not be empty when species is of type ' + attributes.speciesCode

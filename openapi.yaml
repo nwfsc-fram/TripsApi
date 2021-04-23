@@ -734,7 +734,7 @@ components:
           description: "Length (in cm) of individual fish (Pacific Halibut)"
         timeOnDeck:
           type: "number"
-          description: "Time on deck (in min) specific to each Pacific Halibut"
+          description: "Time on deck (in min) specific to each Pacific Halibut - review only"
         comments:
           type: "string"
           description: "Notes pertaining to a specific catch record"
