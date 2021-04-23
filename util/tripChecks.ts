@@ -59,6 +59,8 @@ export async function runTripErrorChecks (req, res) {
     runLongTripCheck(tripErrorDoc, trip);
     runBlankFitValueCheck(tripErrorDoc, trip, isFitNull, observerTotalCatch);
     runInactiveVesselCheck(tripErrorDoc, trip);
+    runTripCreatedAfterReturnCheck(tripErrorDoc, trip, maxOperationCreatedDate);
+ 
 
 
     const confirmation = await masterDev.bulk({docs: [tripErrorDoc]});
@@ -291,6 +293,6 @@ function runTripCreatedAfterReturnCheck(tripErrorDoc: WcgopTripError, trip: any,
         }
     };
 
-    if ( maxOperationCreatedDate === null || moment(trip.returnDate).isBefore(maxOperationCreatedDate) )
+    if ( !trip.dataSource.toString.includes("optecs") && ( maxOperationCreatedDate === null || moment(trip.returnDate).isBefore(maxOperationCreatedDate) ) )
         tripErrorDoc.errors.push(error);
 }
