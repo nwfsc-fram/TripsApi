@@ -22,6 +22,7 @@ export async function runTripErrorChecks (req, res) {
     let error : WcgopError = {};
     let isFitNull : boolean = true;
     let observerTotalCatch : number = 0;
+    let maxOperationCreatedDate : Date;
     
     try {
         tripErrorDoc = await masterDev.view('obs_web', 'wcgop-trip-errors', {include_docs: true, reduce: false, key: trip.legacy.tripId});
@@ -47,6 +48,9 @@ export async function runTripErrorChecks (req, res) {
         if ( operation.Fit >=0 )
             isFitNull = false;
         observerTotalCatch += observerTotalCatch + operation.observerTotalCatch;
+
+        if ( maxOperationCreatedDate === null || moment(maxOperationCreatedDate).isAfter(operation.createdDate) )
+            maxOperationCreatedDate = operation.createdDate;
     }
 
     runCAFishTicketCheck(tripErrorDoc, trip); 
@@ -270,4 +274,23 @@ function runInactiveVesselCheck(tripErrorDoc: WcgopTripError, trip: any) {
     };
 
     tripErrorDoc.errors.push(validate(trip, inactiveVesselChecks, {format: "flat"}));
+}
+
+//trip check code 110020 
+function runTripCreatedAfterReturnCheck(tripErrorDoc: WcgopTripError, trip: any, maxOperationCreatedDate: Date) {
+    let error : WcgopError = {severity: Severity.error,
+        description: 'Trip created after return date, please keep paper records',
+        dateCreated: moment().format(),
+        observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+        status: StatusType.valid,
+        errorItem: 'Last Haul Entered',
+        errorValue: maxOperationCreatedDate.toString(),
+        notes: '',
+        legacy:{
+            checkCode : 110020 
+        }
+    };
+
+    if ( maxOperationCreatedDate === null || moment(trip.returnDate).isBefore(maxOperationCreatedDate) )
+        tripErrorDoc.errors.push(error);
 }
