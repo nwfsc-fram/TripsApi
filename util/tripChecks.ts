@@ -20,6 +20,9 @@ export async function runTripErrorChecks (req, res) {
     let tripErrorDoc : WcgopTripError = {};
     const errors: WcgopError[] = [{}];
     let error : WcgopError = {};
+    let isFitNull : boolean = true;
+    let observerTotalCatch : number = 0;
+    
     try {
         tripErrorDoc = await masterDev.view('obs_web', 'wcgop-trip-errors', {include_docs: true, reduce: false, key: trip.legacy.tripId});
         tripErrorDoc = tripErrorDoc.rows[0].doc;
@@ -41,12 +44,17 @@ export async function runTripErrorChecks (req, res) {
     {
         const operation = await masterDev.get(operationID);
         runPartialLostGearCheck(tripErrorDoc, trip, operation); 
+        if ( operation.Fit >=0 )
+            isFitNull = false;
+        observerTotalCatch += observerTotalCatch + operation.observerTotalCatch;
     }
 
     runCAFishTicketCheck(tripErrorDoc, trip); 
     runTripReturnDateCheck(tripErrorDoc, trip);
     runObsLogbookMissingCheck(tripErrorDoc, trip);
     runLongTripCheck(tripErrorDoc, trip);
+    runBlankFitValueCheck(tripErrorDoc, trip, isFitNull, observerTotalCatch);
+    runInactiveVesselCheck(tripErrorDoc, trip);
 
 
     const confirmation = await masterDev.bulk({docs: [tripErrorDoc]});
@@ -202,4 +210,64 @@ function runLongTripCheck(tripErrorDoc: WcgopTripError, trip: any) {
     { 
         tripErrorDoc.errors.push(error);
     }
+}
+
+
+//trip check code 110016 
+function runBlankFitValueCheck(tripErrorDoc: WcgopTripError, trip: any, isFitNull: boolean, observerTotalCatch: number) {
+    let error : WcgopError = {severity: Severity.warning,
+        description: 'Fit value not entered for any haul',
+        dateCreated: moment().format(),
+        observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+        status: StatusType.valid,
+        errorItem: 'Missing Fit Value',
+        errorValue: null,
+        notes: '',
+        legacy:{
+            checkCode : 110016 
+        }
+    };
+
+    const blankFitChecks = {
+        "fishery.description": {
+            exclusion: {
+                within: ["Mothership Catcher-Vessel", "OR Blue/Black Rockfish Nearshore", "OR Blue/Black Rockfish", "Shoreside Hake", "CA Fosmark EFP" ], //legacy: 21,11,12,20,23
+                message: error
+              }
+        }
+    };
+
+    if ( isFitNull && observerTotalCatch > 0 )
+    { 
+        tripErrorDoc.errors.push(validate(trip, blankFitChecks, {format: "flat"}));
+    }
+
+}
+
+
+//trip check code 110014 
+function runInactiveVesselCheck(tripErrorDoc: WcgopTripError, trip: any) {
+    let error : WcgopError = {severity: Severity.error,
+        description: 'Vessel inactive, please review selected vessel',
+        dateCreated: moment().format(),
+        observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+        status: StatusType.valid,
+        errorItem: trip.vessel.vesselName + ' - ' + trip.vessel.coastGuardNumber ? trip.vessel.coastGuardNumber : trip.vessel.stateRegulationNumber,
+        errorValue: trip.vessel.vesselStatus.description,
+        notes: '',
+        legacy:{
+            checkCode : 110014 
+        }
+    };
+
+    const inactiveVesselChecks = {
+        "vessel.vesselStatus.description": {
+            inclusion: {
+                within: ["Inactive - Vessel ID changed", "Sunk", "Retired" ], 
+                message: error
+              }
+        }
+    };
+
+    tripErrorDoc.errors.push(validate(trip, inactiveVesselChecks, {format: "flat"}));
 }
