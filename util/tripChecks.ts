@@ -1,6 +1,7 @@
 import * as moment from 'moment';
 import { WcgopTripError, StatusType, Severity, WcgopError } from '@boatnet/bn-models';
 import { masterDev } from './couchDB';
+import { sumBy } from 'lodash';
 
 var validate = require("validate.js");
 
@@ -51,18 +52,13 @@ export async function runTripErrorChecks (req, res) {
     {
       //  const operation = await masterDev.get(operationID);
         runPartialLostGearCheck(tripErrorDoc, trip, operation); 
-        
-        if ( operation.Fit >=0 )
-            isFitNull = false;
-        
-        observerTotalCatch += observerTotalCatch + operation.observerTotalCatch;
     }
 
     runCAFishTicketCheck(tripErrorDoc, trip); 
     runTripReturnDateCheck(tripErrorDoc, trip);
     runObsLogbookMissingCheck(tripErrorDoc, trip);
     runLongTripCheck(tripErrorDoc, trip);
-    runBlankFitValueCheck(tripErrorDoc, trip, isFitNull, observerTotalCatch);
+    runBlankFitValueCheck(tripErrorDoc, trip, operations);
     runInactiveVesselCheck(tripErrorDoc, trip);
     runTripCreatedAfterReturnCheck(tripErrorDoc, trip, operations);
  
@@ -225,7 +221,7 @@ function runLongTripCheck(tripErrorDoc: WcgopTripError, trip: any) {
 
 
 //trip check code 110016 
-function runBlankFitValueCheck(tripErrorDoc: WcgopTripError, trip: any, isFitNull: boolean, observerTotalCatch: number) {
+function runBlankFitValueCheck(tripErrorDoc: WcgopTripError, trip: any, operations: any) {
     let error : WcgopError = {severity: Severity.warning,
         description: 'Fit value not entered for any haul',
         dateCreated: moment().format(),
@@ -239,6 +235,9 @@ function runBlankFitValueCheck(tripErrorDoc: WcgopTripError, trip: any, isFitNul
         }
     };
 
+    const observerTotalCatch = sumBy(operations, 'observerTotalCatch');
+    const operationTotalFit = sumBy(operations, 'fit');
+
     const blankFitChecks = {
         "fishery.description": {
             exclusion: {
@@ -248,7 +247,7 @@ function runBlankFitValueCheck(tripErrorDoc: WcgopTripError, trip: any, isFitNul
         }
     };
 
-    if ( isFitNull && observerTotalCatch > 0 )
+    if ( operationTotalFit === null && observerTotalCatch > 0 )
     { 
         tripErrorDoc.errors.push(validate(trip, blankFitChecks, {format: "flat"}));
     }
@@ -304,7 +303,7 @@ function runTripCreatedAfterReturnCheck(tripErrorDoc: WcgopTripError, trip: any,
             checkCode : 110020 
         }
     };
-    
+
     if ( !trip.dataSource.toString.includes("optecs") && ( maxOperationCreatedDate === null || moment(trip.returnDate).isBefore(maxOperationCreatedDate) ) )
         tripErrorDoc.errors.push(error);
 }
