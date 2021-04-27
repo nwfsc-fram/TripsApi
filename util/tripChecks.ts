@@ -1,6 +1,7 @@
 import * as moment from 'moment';
 import { WcgopTripError, StatusType, Severity, WcgopError } from '@boatnet/bn-models';
 import { masterDev } from './couchDB';
+import { sumBy } from 'lodash';
 
 var validate = require("validate.js");
 
@@ -22,6 +23,7 @@ export async function runTripErrorChecks (req, res) {
     let error : WcgopError = {};
     let isFitNull : boolean = true;
     let observerTotalCatch : number = 0;
+    let maxOperationCreatedDate : Date;
     
     try {
         tripErrorDoc = await masterDev.view('obs_web', 'wcgop-trip-errors', {include_docs: true, reduce: false, key: trip.legacy.tripId});
@@ -40,21 +42,26 @@ export async function runTripErrorChecks (req, res) {
     //     masterDev.destroy(previousTripError.doc._id, previousTripError.doc._rev);
     // }
 
-    for (const operationID of trip.operationIDs)
+    // get all the operation docs for the trip.
+    let operations = await masterDev.view('wcgop',  'all-operations',
+        {include_docs: true, keys: trip.operationIDs} as any);
+    
+    operations = operations.rows.map( (row: any) => row.doc );
+
+    for (const operation of operations)
     {
-        const operation = await masterDev.get(operationID);
+      //  const operation = await masterDev.get(operationID);
         runPartialLostGearCheck(tripErrorDoc, trip, operation); 
-        if ( operation.Fit >=0 )
-            isFitNull = false;
-        observerTotalCatch += observerTotalCatch + operation.observerTotalCatch;
     }
 
     runCAFishTicketCheck(tripErrorDoc, trip); 
     runTripReturnDateCheck(tripErrorDoc, trip);
     runObsLogbookMissingCheck(tripErrorDoc, trip);
     runLongTripCheck(tripErrorDoc, trip);
-    runBlankFitValueCheck(tripErrorDoc, trip, isFitNull, observerTotalCatch);
+    runBlankFitValueCheck(tripErrorDoc, trip, operations);
     runInactiveVesselCheck(tripErrorDoc, trip);
+    runTripCreatedAfterReturnCheck(tripErrorDoc, trip, operations);
+ 
 
 
     const confirmation = await masterDev.bulk({docs: [tripErrorDoc]});
@@ -214,7 +221,7 @@ function runLongTripCheck(tripErrorDoc: WcgopTripError, trip: any) {
 
 
 //trip check code 110016 
-function runBlankFitValueCheck(tripErrorDoc: WcgopTripError, trip: any, isFitNull: boolean, observerTotalCatch: number) {
+function runBlankFitValueCheck(tripErrorDoc: WcgopTripError, trip: any, operations: any) {
     let error : WcgopError = {severity: Severity.warning,
         description: 'Fit value not entered for any haul',
         dateCreated: moment().format(),
@@ -228,6 +235,9 @@ function runBlankFitValueCheck(tripErrorDoc: WcgopTripError, trip: any, isFitNul
         }
     };
 
+    const observerTotalCatch = sumBy(operations, 'observerTotalCatch');
+    const operationTotalFit = sumBy(operations, 'fit');
+
     const blankFitChecks = {
         "fishery.description": {
             exclusion: {
@@ -237,7 +247,7 @@ function runBlankFitValueCheck(tripErrorDoc: WcgopTripError, trip: any, isFitNul
         }
     };
 
-    if ( isFitNull && observerTotalCatch > 0 )
+    if ( operationTotalFit === null && observerTotalCatch > 0 )
     { 
         tripErrorDoc.errors.push(validate(trip, blankFitChecks, {format: "flat"}));
     }
@@ -270,4 +280,30 @@ function runInactiveVesselCheck(tripErrorDoc: WcgopTripError, trip: any) {
     };
 
     tripErrorDoc.errors.push(validate(trip, inactiveVesselChecks, {format: "flat"}));
+}
+
+//trip check code 110020 
+function runTripCreatedAfterReturnCheck(tripErrorDoc: WcgopTripError, trip: any, operations: any) {
+
+    // store operation created dates as moment objects.
+    const createdDates = operations.map( (row: any) => moment(row.createdDate) );
+
+    // get max moment ()
+    const maxOperationCreatedDate = moment.max(createdDates).format();
+
+    let error : WcgopError = {severity: Severity.error,
+        description: 'Trip created after return date, please keep paper records',
+        dateCreated: moment().format(),
+        observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+        status: StatusType.valid,
+        errorItem: 'Last Haul Entered',
+        errorValue: maxOperationCreatedDate.toString(),
+        notes: '',
+        legacy:{
+            checkCode : 110020 
+        }
+    };
+
+    if ( !trip.dataSource.toString.includes("optecs") && ( maxOperationCreatedDate === null || moment(trip.returnDate).isBefore(maxOperationCreatedDate) ) )
+        tripErrorDoc.errors.push(error);
 }
