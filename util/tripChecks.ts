@@ -62,7 +62,7 @@ export async function runTripErrorChecks (req, res) {
     runInactiveVesselCheck(tripErrorDoc, trip);
     runTripCreatedAfterReturnCheck(tripErrorDoc, trip, operations);
     runFishTicketDateCheck(tripErrorDoc, trip); 
-
+    runBeaufortSeaStateLevelCheck(tripErrorDoc, trip, operations);
 
     const confirmation = await masterDev.bulk({docs: [tripErrorDoc]});
     res.status(200).send(confirmation);
