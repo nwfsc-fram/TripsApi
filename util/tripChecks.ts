@@ -61,8 +61,8 @@ export async function runTripErrorChecks (req, res) {
     runBlankFitValueCheck(tripErrorDoc, trip, operations);
     runInactiveVesselCheck(tripErrorDoc, trip);
     runTripCreatedAfterReturnCheck(tripErrorDoc, trip, operations);
- 
-
+    runFishTicketDateCheck(tripErrorDoc, trip); 
+    runBeaufortSeaStateLevelCheck(tripErrorDoc, trip, operations);
 
     const confirmation = await masterDev.bulk({docs: [tripErrorDoc]});
     res.status(200).send(confirmation);
@@ -306,4 +306,57 @@ function runTripCreatedAfterReturnCheck(tripErrorDoc: WcgopTripError, trip: any,
 
     if ( !trip.dataSource.toString.includes("optecs") && ( maxOperationCreatedDate === null || moment(trip.returnDate).isBefore(maxOperationCreatedDate) ) )
         tripErrorDoc.errors.push(error);
+}
+
+//trip check code 110015 
+function runFishTicketDateCheck(tripErrorDoc: WcgopTripError, trip: any) {
+
+    for (const fishTicket of trip.fishTickets)
+    {
+
+        if ( moment(trip.returnDate).diff(fishTicket.date)>3 )
+        {
+             let error = {severity: Severity.warning,
+                description: 'Fish ticket date is not within 3 days after return date',
+                dateCreated: moment().format(),
+                observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+                status: StatusType.valid,
+                errorItem: 'Fish Ticket Date',
+                errorValue: fishTicket.date,
+                notes: '',
+                legacy:{
+                    checkCode : 110015 
+                }
+            };
+
+            tripErrorDoc.errors.push( error );;
+        }
+    }
+
+}
+
+//trip check code 110013 
+function runBeaufortSeaStateLevelCheck(tripErrorDoc: WcgopTripError, trip: any, operations: any) {
+
+    const operationWithLevel = operations.find( (operation) => operation.beaufortValue === 8 || operation.beaufortValue === 9)
+
+    if ( operationWithLevel )
+    { 
+
+        let error : WcgopError = {severity: Severity.warning,
+            description: 'Beaufort sea state recorded as level 8 or 9.  Please review and confirm',
+            dateCreated: moment().format(),
+            observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+            status: StatusType.valid,
+            errorItem: 'Beaufort Value',
+            errorValue: operationWithLevel.beaufortValue,
+            notes: '',
+            legacy:{
+                checkCode : 110013 
+            }
+        };
+
+        tripErrorDoc.errors.push( error );
+    }
+
 }
