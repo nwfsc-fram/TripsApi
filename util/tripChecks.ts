@@ -52,6 +52,7 @@ export async function runTripErrorChecks (req, res) {
     {
       //  const operation = await masterDev.get(operationID);
         runPartialLostGearCheck(tripErrorDoc, trip, operation); 
+        runRetrievalLocationDateCheck(tripErrorDoc, trip, operation); 
     }
 
     runCAFishTicketCheck(tripErrorDoc, trip); 
@@ -358,5 +359,41 @@ function runBeaufortSeaStateLevelCheck(tripErrorDoc: WcgopTripError, trip: any, 
 
         tripErrorDoc.errors.push( error );
     }
+
+}
+
+//trip check code 103900 
+function runRetrievalLocationDateCheck(tripErrorDoc: WcgopTripError, trip:any, operation: any) {
+
+    for (const operationLocation of operation.locations)
+    {
+        if ( operationLocation.position ===0 && 
+            (operation.gearType.description ==="Fish pot" || 
+                operation.gearType.description ==="Hook & Line" || 
+                operation.gearType.description ==="Longline (snap)") && //gear type in 10,19,20
+            (moment(operationLocation.locationDate).isBefore(trip.departureDate) ||
+                moment(operationLocation.locationDate).isAfter(trip.returnDate))
+        )
+        { 
+            let error = {severity: Severity.error,
+                description: 'Retrieval location date is outside the trip departure and return dates',
+                dateCreated: moment().format(),
+                observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+                status: StatusType.valid,
+                errorItem: 'Location Date',
+                errorValue: operationLocation.locationDate,
+                notes: '',
+                legacy:{
+                    checkCode : 103900 
+                }
+        };
+
+        tripErrorDoc.errors.push( error );
+    
+    }
+
+
+
+
 
 }
