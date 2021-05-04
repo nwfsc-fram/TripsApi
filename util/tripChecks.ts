@@ -53,6 +53,7 @@ export async function runTripErrorChecks (req, res) {
       //  const operation = await masterDev.get(operationID);
         runPartialLostGearCheck(tripErrorDoc, trip, operation); 
         runRetrievalLocationDateCheck(tripErrorDoc, trip, operation); 
+        runTotalHooksLessThan100Check(tripErrorDoc, trip, operation); 
     }
 
     runCAFishTicketCheck(tripErrorDoc, trip); 
@@ -388,12 +389,36 @@ function runRetrievalLocationDateCheck(tripErrorDoc: WcgopTripError, trip:any, o
                 }
         };
 
-        tripErrorDoc.errors.push( error );
+            tripErrorDoc.errors.push( error );
     
+        }
     }
+}
 
 
+//trip check code 103800 
+function runTotalHooksLessThan100Check(tripErrorDoc: WcgopTripError, trip:any, operation: any) {
 
+    if ( (operation.gearType.description ==="Hook & Line" || 
+            operation.gearType.description ==="Longline (snap)") && //gear type in 19,20
+        (operation.gearPerformance.description !=="Problem - trawl net or codend lost") && //gear performance != 5 
+            operation.totalHooks < 100
+    )
+    { 
+        let error = {severity: Severity.warning,
+            description: 'Total Hook Count < 100',
+            dateCreated: moment().format(),
+            observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+            status: StatusType.valid,
+            errorItem: 'Gear Type',
+            errorValue: operation.totalHooks,
+            notes: '',
+            legacy:{
+                checkCode : 103800 
+            }
+    };
 
+        tripErrorDoc.errors.push( error );
 
+    }
 }
