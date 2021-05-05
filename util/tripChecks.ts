@@ -416,7 +416,31 @@ function runTotalHooksLessThan100Check(tripErrorDoc: WcgopTripError, trip:any, o
             legacy:{
                 checkCode : 103800 
             }
-    };
+        };
+
+        tripErrorDoc.errors.push( error );
+
+    }
+}
+
+
+//trip check code 104601 
+function runFishProcessedCheck(tripErrorDoc: WcgopTripError, trip:any) {
+
+    if ( trip.isFishProcessed  )
+    { 
+        let error = {severity: Severity.warning,
+            description: '"Fish processed during trip?" marked Yes. Ensure that species and type of processing is included in trip notes.',
+            dateCreated: moment().format(),
+            observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+            status: StatusType.valid,
+            errorItem: 'Fish Processed',
+            errorValue: trip.isFishProcessed,
+            notes: '',
+            legacy:{
+                checkCode : 104601 
+            }
+        };
 
         tripErrorDoc.errors.push( error );
 
