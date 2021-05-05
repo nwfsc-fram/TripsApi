@@ -427,7 +427,7 @@ function runTotalHooksLessThan100Check(tripErrorDoc: WcgopTripError, trip:any, o
 //trip check code 104601 
 function runFishProcessedCheck(tripErrorDoc: WcgopTripError, trip:any) {
 
-    if ( trip.isFishProcessed  )
+    if ( trip.isFishProcessed && moment(trip.returnDate).isAfter( moment('2016-01-01') ) )
     { 
         let error = {severity: Severity.warning,
             description: '"Fish processed during trip?" marked Yes. Ensure that species and type of processing is included in trip notes.',
