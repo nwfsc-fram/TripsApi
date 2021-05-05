@@ -1,6 +1,7 @@
 import { Catches, CatchResults, ResponseCatchTypeName, MinimalResponseCatchTypeName, Disposition, sourceType } from '@boatnet/bn-models';
-import { set, get, uniqBy } from 'lodash';
+import { set, get, uniqBy, sumBy } from 'lodash';
 import { masterDev } from './couchDB';
+const jp = require('jsonpath');
 
 export async function format(tripNum: number, logbook: Catches, review: Catches, audit: Catches, expansionType: string) {
     let result: CatchResults = {
@@ -30,6 +31,8 @@ export async function format(tripNum: number, logbook: Catches, review: Catches,
 
     const ifqTripReporting = await setIFQTripReporting(result);
     set(result, 'ifqTripReporting', ifqTripReporting);
+
+    result = gradeLogbook(result);
 
     return result;
 }
@@ -212,4 +215,84 @@ function selectDebitSource(emCatch, logbookCatch) {
             return emWeight > logbookWeight ? emCatch : logbookCatch;
         }
     }
+}
+
+function gradeLogbook(result) {
+    if (result.type === MinimalResponseCatchTypeName) {
+        console.log(JSON.stringify(result.ifqThirdPartyReviewCatchHaulLevel))
+
+        const reviewedHaulNums = result.ifqThirdPartyReviewCatchHaulLevel.map( (row) => row.haulNum);
+        const reviewedIfqGroupings = result.ifqThirdPartyReviewCatchHaulLevel.map( (row) => row.ifqGrouping);
+        const logbookIfqCatchMatchedHauls = result.ifqLogbookCatchHaulLevel.filter( (row) => reviewedHaulNums.includes(row.haulNum) );
+
+        const reviewedGroupingTotals = [];
+
+        for (const grouping of reviewedIfqGroupings) {
+            const groupingFilteredReviewCatch = result.ifqThirdPartyReviewCatchHaulLevel.filter( (row) => row.ifqGrouping === grouping && row.disposition === 'Discarded');
+            const groupingFilteredLogbookCatch = logbookIfqCatchMatchedHauls.filter( (row) => row.ifqGrouping === grouping && row.disposition === 'Discarded');
+            reviewedGroupingTotals.push(
+                {
+                    grouping,
+                    logbook: sumBy(groupingFilteredLogbookCatch, 'speciesWeight'),
+                    review: sumBy(groupingFilteredReviewCatch, 'speciesWeight')
+                }
+            )
+        }
+        for (let grouping of reviewedGroupingTotals) {
+            if (!grouping.review) {
+                console.log('grouping not in review - passing species');
+                grouping.grade = 'pass';
+            } else if (grouping.review && !grouping.lokgook) {
+                if (['Cowcod rockfish', 'Yelloweye Rockfish'].includes(grouping)) {
+                    if (grouping.review <= 2) {
+                        console.log('grouping in review / not in logbook, and under 2 lbs - passing grouping');
+                        grouping.grade = 'pass';
+                    } else {
+                        console.log('grouping in review / not in logbook, and 2 or more lbs - failing grouping');
+                        grouping.grade = 'fail';
+                    }
+                } else {
+                    if (grouping.review <= 5) {
+                        console.log('grouping in review / not in logbook, and under 5 lbs - passing grouping');
+                        grouping.grade = 'pass';
+                    } else {
+                        console.log('grouping in review / not in logbook, and 5 or more lbs - failing grouping');
+                        grouping.grade = 'fail';
+                    }
+                }
+        } else if (grouping.review && grouping.logbook) {
+            if (grouping.logbook >= grouping.review) {
+                console.log('grouping logbook weight greater than or equal to review weight - passing grouping')
+            } else {
+                if (['Cowcod rockfish', 'Yelloweye Rockfish'].includes(grouping)) {
+                    if (
+                        grouping.review - grouping.logbook <= 2
+                        || (Math.abs(grouping.logbook - grouping.review) <= (10 / 100 * grouping.review))
+                        ) {
+                            console.log('logbook weight is less than review weight, but less than 2 lbs or 10% of EM - passing grouping');
+                            grouping.grade = 'pass';
+                    } else {
+                        console.log('logbook weight is less than review weight and exceeds 2 lbs or 10% of EM - failing grouping');
+                        grouping.grade = 'fail';
+                    }
+                } else {
+                    if (
+                        grouping.review - grouping.logbook <= 5
+                        || (Math.abs(grouping.logbook - grouping.review) <= (25 / 100 * grouping.review))
+                        ) {
+                            console.log('logbook weight is less than review weight, but less than 5 lbs or 25% of EM - passing grouping');
+                            grouping.grade = 'pass';
+                    } else {
+                        console.log('logbook weight is less than review weight and exceeds 5 lbs or 25% of EM - failing grouping');
+                        grouping.grade = 'fail';
+                    }
+                }
+            }
+        }
+    }
+        result.reviewedGroupingTotals = reviewedGroupingTotals;
+        result.logbookGrade = reviewedGroupingTotals.find( (row) => row.grade = 'fail') ? 'fail' : 'pass';
+    }
+
+    return result;
 }
