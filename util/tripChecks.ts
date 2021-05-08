@@ -54,6 +54,7 @@ export async function runTripErrorChecks (req, res) {
         runPartialLostGearCheck(tripErrorDoc, trip, operation); 
         runRetrievalLocationDateCheck(tripErrorDoc, trip, operation); 
         runTotalHooksLessThan100Check(tripErrorDoc, trip, operation); 
+        runOperationStartEndLocationsCheck(tripErrorDoc, trip, operation); 
     }
 
     runCAFishTicketCheck(tripErrorDoc, trip); 
@@ -77,6 +78,8 @@ function runPartialLostGearCheck(tripErrorDoc: WcgopTripError, trip:any, operati
         dateCreated: moment().format(),
         observer: trip.observer.firstName + ' ' + trip.observer.lastName,
         status: StatusType.valid,
+        operationId: operation._id,
+        operationNum: operation.operationNum,
         errorItem: 'Gear Performance',
         errorValue: operation.gearPerformance.description,
         notes: '',
@@ -350,6 +353,8 @@ function runBeaufortSeaStateLevelCheck(tripErrorDoc: WcgopTripError, trip: any, 
             dateCreated: moment().format(),
             observer: trip.observer.firstName + ' ' + trip.observer.lastName,
             status: StatusType.valid,
+            operationId: operationWithLevel._id,
+            operationNum: operationWithLevel.operationNum,
             errorItem: 'Beaufort Value',
             errorValue: operationWithLevel.beaufortValue,
             notes: '',
@@ -381,6 +386,8 @@ function runRetrievalLocationDateCheck(tripErrorDoc: WcgopTripError, trip:any, o
                 dateCreated: moment().format(),
                 observer: trip.observer.firstName + ' ' + trip.observer.lastName,
                 status: StatusType.valid,
+                operationId: operation._id,
+                operationNum: operation.operationNum,
                 errorItem: 'Location Date',
                 errorValue: operationLocation.locationDate,
                 notes: '',
@@ -410,6 +417,8 @@ function runTotalHooksLessThan100Check(tripErrorDoc: WcgopTripError, trip:any, o
             dateCreated: moment().format(),
             observer: trip.observer.firstName + ' ' + trip.observer.lastName,
             status: StatusType.valid,
+            operationId: operation._id,
+            operationNum: operation.operationNum,
             errorItem: 'Gear Type',
             errorValue: operation.totalHooks,
             notes: '',
@@ -445,4 +454,67 @@ function runFishProcessedCheck(tripErrorDoc: WcgopTripError, trip:any) {
         tripErrorDoc.errors.push( error );
 
     }
+}
+
+
+//trip check code 110012 
+function runOperationStartEndLocationsCheck(tripErrorDoc: WcgopTripError, trip:any, operation: any) {
+
+    //find the location with the max position in all locations
+    var maxPositionedLocation = operation.locations.reduce(function(prev, current) {
+        if (+current.position > +prev.position) {
+            return current;
+        } else {
+            return prev;
+        }
+    });
+
+    //find the location with the min position in all locations
+    var minPositionedLocation = operation.locations.reduce(function(prev, current) {
+        if (+current.position < +prev.position) {
+            return current;
+        } else {
+            return prev;
+        }
+    });
+
+    if ( (trip.program.description === "TIQ Catch Shares" || //program_id in (14, 17)
+            trip.program.description === "Electronic Monitoring EFP") && 
+            calculateFishingArea(maxPositionedLocation.coordinates[0])!==calculateFishingArea(minPositionedLocation.coordinates[0]) )
+    { 
+        let error = {severity: Severity.warning,
+            description: 'Haul starts and ends in different management areas',
+            dateCreated: moment().format(),
+            observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+            status: StatusType.valid,
+            operationId: operation._id,
+            operationNum: operation.operationNum,
+            errorItem: 'Fishing Areas',
+            errorValue: calculateFishingArea(minPositionedLocation.coordinates[0])+'-->'+calculateFishingArea(maxPositionedLocation.coordinates[0]),
+            notes: '',
+            legacy:{
+                checkCode : 110012 
+            }
+        };
+
+        tripErrorDoc.errors.push( error );
+
+    }
+    
+}
+
+//helper function to get the management area
+//replicated from function OBSPROD.WCGOP_IFQ_RECEIPTS_XML.fnd_fishing_area
+function calculateFishingArea(latitude: number) {
+    let returnArea = null;
+    if ( latitude>40.166667 )
+        returnArea = 100;
+    else if( latitude > 36.0 && latitude < 40.166667)
+        returnArea = 200;
+    else if( latitude > 34.45 && latitude < 36.0)
+        returnArea = 300;
+    else if( latitude < 34.45 )
+        returnArea = 400;    
+
+    return returnArea;
 }
