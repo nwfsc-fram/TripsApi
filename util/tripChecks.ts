@@ -66,6 +66,7 @@ export async function runTripErrorChecks (req, res) {
     runTripCreatedAfterReturnCheck(tripErrorDoc, trip, operations);
     runFishTicketDateCheck(tripErrorDoc, trip); 
     runBeaufortSeaStateLevelCheck(tripErrorDoc, trip, operations);
+    runIntendedGearTypeMissingCheck(tripErrorDoc, trip); 
 
     const confirmation = await masterDev.bulk({docs: [tripErrorDoc]});
     res.status(200).send(confirmation);
@@ -194,7 +195,7 @@ function runObsLogbookMissingCheck(tripErrorDoc: WcgopTripError, trip: any) {
     };
 
     const obsLogbookMissingChecks = {
-        logbook: {
+        logbookNum: {
             presence: true
         }
     };
@@ -518,3 +519,31 @@ function calculateFishingArea(latitude: number) {
 
     return returnArea;
 }
+
+//trip check code 106700 
+function runIntendedGearTypeMissingCheck(tripErrorDoc: WcgopTripError, trip: any) {
+    let error : WcgopError = {severity: Severity.error,
+        description: 'Intended Gear Type is missing',
+        dateCreated: moment().format(), 
+        observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+        status: StatusType.valid,
+        errorItem: 'Intended Gear Type',
+        errorValue: trip.intendedGearType,
+        notes: '',
+        legacy:{
+            checkCode : 106700 
+        }
+    };
+
+    const intendedGearTypeMissingChecks = {
+        intendedGearType: {
+            presence: false
+        },
+        isNoFishingActivity: {
+            presence: true
+        }
+    };
+
+    tripErrorDoc.errors.push(validate(trip, intendedGearTypeMissingChecks, {format: "flat"}));
+}
+
