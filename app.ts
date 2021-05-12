@@ -12,6 +12,7 @@ import { getFishTicket } from './util/oracle_routines';
 
 const ODWdbConfig = require('./dbConfig.json').ODWdbConfig;
 const OBSPRODdbConfig = require('./dbConfig.json').OBSPRODdbConfig;
+const VMSConfig = require('./dbConfig.json').VMSConfig;
 
 const app = express();
 const port = 3000;
@@ -126,6 +127,7 @@ httpsServer.listen(PORT, () => {
 
 createDWOraclePool();
 createObsprodOraclePool();
+createVMSOraclePool();
 
 function createDWOraclePool() {
   console.log('Creating oracle connection pool to', ODWdbConfig.connectString);
@@ -165,6 +167,20 @@ function createObsprodOraclePool() {
   });
 };
 
+function createVMSOraclePool() {
+  console.log('Creating oracle connection pool to', VMSConfig.connectString);
+  const oracleCredentials = {
+    connectString: OBSPRODdbConfig.connectString,
+    poolAlias: 'vms'
+  };
+  oracledb.fetchAsString = [ oracledb.CLOB ];
 
-
+  oracledb.createPool(oracleCredentials, function(err, pool) {
+    if (pool) {
+      console.log('Oracle connection pool created:', pool.poolAlias); // 'default'
+    } else {
+      console.log(err);
+    }
+  });
+}
 
