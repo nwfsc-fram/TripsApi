@@ -55,7 +55,7 @@ export async function insertRow() {
   }
 }
 
-export async function fakeDBTest() {
+export async function vmsDBTest() {
   // Sucessfully tested so this can just be a place holder now
   return true;
 }
@@ -86,4 +86,16 @@ function getObsprodOraclePool() {
       pool.connectionsOpen
   );
   return pool;
+}
+
+function getVmsOraclePool() {
+  oracledb.autoCommit = true;
+  const pool = oracledb.getPool('vms');
+  console.log(
+    'Connect to pool ' +
+    pool.poolAlias +
+    ', pool connections open: ' +
+    pool.connectionsOpen
+);
+return pool;
 }
