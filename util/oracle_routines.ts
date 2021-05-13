@@ -55,9 +55,22 @@ export async function insertRow() {
   }
 }
 
-export async function vmsDBTest() {
-  // Sucessfully tested so this can just be a place holder now
-  return true;
+export async function vmsDBTest(req: any, res: any) {
+  try {
+    const pool = getVmsOraclePool();
+    const connection = await pool.getConnection();
+    const result = await connection.execute(
+      'SELECT MAX(confirmation_number) FROM "Declarations Transaction Table"'
+    )
+    if (result) {
+      res.send(200).json(result);
+    } else {
+      res.send(400).send('did not receive a response');
+    }
+  } catch (err) {
+    res.send(400).send(err.message);
+    throw new Error(err.message);
+  }
 }
 
 function closeOracleConnection(connection: any) {
