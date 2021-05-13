@@ -63,12 +63,12 @@ export async function vmsDBTest(req: any, res: any) {
       'SELECT MAX(confirmation_number) FROM "Declarations Transaction Table"'
     )
     if (result) {
-      res.send(200).json(result);
+      res.status(200).json(result);
     } else {
-      res.send(400).send('did not receive a response');
+      res.status(400).send('did not receive a response');
     }
   } catch (err) {
-    res.send(400).send(err.message);
+    res.status(400).send(err.message);
     throw new Error(err.message);
   }
 }
