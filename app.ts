@@ -127,7 +127,7 @@ httpsServer.listen(PORT, () => {
 
 createDWOraclePool();
 createObsprodOraclePool();
-// createVMSOraclePool();
+createVMSOraclePool();
 
 function createDWOraclePool() {
   console.log('Creating oracle connection pool to', ODWdbConfig.connectString);
