@@ -170,6 +170,8 @@ function createObsprodOraclePool() {
 function createVMSOraclePool() {
   console.log('Creating oracle connection pool to', VMSConfig.connectString);
   const oracleCredentials = {
+    user: VMSConfig.user,
+    password: VMSConfig.password,
     connectString: OBSPRODdbConfig.connectString,
     poolAlias: 'vms'
   };
