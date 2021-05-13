@@ -13,3 +13,4 @@ openapi - old.yaml
 openapi-old.yaml
 cert.pem
 key.pem
+util/lookupscript.ts
