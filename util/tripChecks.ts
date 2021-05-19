@@ -67,6 +67,9 @@ export async function runTripErrorChecks (req, res) {
     runFishTicketDateCheck(tripErrorDoc, trip); 
     runBeaufortSeaStateLevelCheck(tripErrorDoc, trip, operations);
     runIntendedGearTypeMissingCheck(tripErrorDoc, trip); 
+    runPermitNumberNotSFCFACheck(tripErrorDoc, trip);
+    runPermitNumberNot5DigitsCheck(tripErrorDoc, trip);
+    runIntendedGearTypeMissingCheck(tripErrorDoc, trip);
 
     const confirmation = await masterDev.bulk({docs: [tripErrorDoc]});
     res.status(200).send(confirmation);
@@ -547,3 +550,91 @@ function runIntendedGearTypeMissingCheck(tripErrorDoc: WcgopTripError, trip: any
     tripErrorDoc.errors.push(validate(trip, intendedGearTypeMissingChecks, {format: "flat"}));
 }
 
+//trip check code 104400 
+function runPermitNumberNot5DigitsCheck(tripErrorDoc: WcgopTripError, trip: any) {
+    
+    for (const certificate of trip.certificates)
+    {    
+
+        if( (certificate.certificateNumber === null || certificate.certificateNumber === "" 
+                || (certificate.certificateNumber !==null && certificate.certificateNumber.length!=5)) &&
+                (trip.fishery.description!=="CA Pink Shrimp" || trip.fishery.description!=="OR Pink Shrimp" || //t.fishery IN (9, 13, 18)
+                trip.fishery.description!=="WA Pink Shrimp") &&
+                moment(trip.returnDate).isAfter( moment('2015-01-01') ) )
+        {
+            let error : WcgopError = {severity: Severity.error,
+                description: 'Permit Number is missing or is not 5 digits',
+                dateCreated: moment().format(), 
+                observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+                status: StatusType.valid,
+                errorItem: 'Certificate #',
+                errorValue: certificate.certificateNumber,
+                notes: '',
+                legacy:{
+                    checkCode : 104400 
+                }
+            };
+
+            tripErrorDoc.errors.push( error );
+        }
+    }
+
+}
+
+//trip check code 104101 
+function runPermitNumberNotSFCFACheck(tripErrorDoc: WcgopTripError, trip: any) {
+    
+    for (const certificate of trip.certificates)
+    {    
+
+        if( (certificate.certificateNumber === null || certificate.certificateNumber === "" 
+                || (certificate.certificateNumber !==null && !certificate.certificateNumber.includes("SFCFA"))) &&
+                trip.fishery.description!=="CA Emley-Platt SFCFA EFP" )
+        {
+            let error : WcgopError = {severity: Severity.error,
+                description: 'Permit Number is missing or does not contain SFCFA',
+                dateCreated: moment().format(), 
+                observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+                status: StatusType.valid,
+                errorItem: 'Certificate #',
+                errorValue: certificate.certificateNumber,
+                notes: '',
+                legacy:{
+                    checkCode : 104101 
+                }
+            };
+
+            tripErrorDoc.errors.push( error );
+        }
+    }
+
+}
+
+//trip check code 104100 
+function runPermitNumberNotContainBTCheck(tripErrorDoc: WcgopTripError, trip: any) {
+    
+    for (const certificate of trip.certificates)
+    {    
+        if( (certificate.certificateNumber === null || certificate.certificateNumber === "" 
+                || (certificate.certificateNumber !==null && !certificate.certificateNumber.includes("BT")) &&
+                trip.fishery.description!=="CA Halibut" &&
+                moment(trip.returnDate).isAfter( moment('2015-01-01') ) ))
+        {
+            let error : WcgopError = {severity: Severity.error,
+                description: 'Permit Number is missing or does not start with "BT"',
+                dateCreated: moment().format(), 
+                observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+                status: StatusType.valid,
+                errorItem: 'Certificate #',
+                errorValue: certificate.certificateNumber,
+                notes: '',
+                legacy:{
+                    checkCode : 104100 
+                }
+            };
+
+            tripErrorDoc.errors.push( error );
+        }
+    }
+
+}
