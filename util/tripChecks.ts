@@ -55,6 +55,7 @@ export async function runTripErrorChecks (req, res) {
         runRetrievalLocationDateCheck(tripErrorDoc, trip, operation); 
         runTotalHooksLessThan100Check(tripErrorDoc, trip, operation); 
         runOperationStartEndLocationsCheck(tripErrorDoc, trip, operation); 
+        runMSOTCOver300KCheck(tripErrorDoc, trip, operation);
     }
 
     runCAFishTicketCheck(tripErrorDoc, trip); 
@@ -662,4 +663,31 @@ function runFisheryMissingCheck(tripErrorDoc: WcgopTripError, trip: any) {
     };
 
     tripErrorDoc.errors.push(validate(trip, fisheryMissingChecks, {format: "flat"}));
+}
+
+//trip check code 32100 
+function runMSOTCOver300KCheck(tripErrorDoc: WcgopTripError, trip:any, operation: any) {
+
+    if ( (trip.fishery.description === "Shoreside Hake" || 
+            trip.fishery.description === "Mothership Catcher-Vessel") && 
+            operation.measurement.value>300000)
+    { 
+        let error = {severity: Severity.warning,
+            description: 'Mothership Catcher Vessel or Shoreside Hake OTC >300,000 lbs',
+            dateCreated: moment().format(),
+            observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+            status: StatusType.valid,
+            operationId: operation._id,
+            operationNum: operation.operationNum,
+            errorItem: 'OTC',
+            errorValue: operation.measurement.value,
+            notes: '',
+            legacy:{
+                checkCode : 32100 
+            }
+        };
+
+        tripErrorDoc.errors.push( error );
+    }
+    
 }
