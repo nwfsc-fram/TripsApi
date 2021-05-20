@@ -670,7 +670,7 @@ function runMSOTCOver300KCheck(tripErrorDoc: WcgopTripError, trip:any, operation
 
     if ( (trip.fishery.description === "Shoreside Hake" || 
             trip.fishery.description === "Mothership Catcher-Vessel") && 
-            operation.measurement.value>300000)
+            operation.observerTotalCatch.measurement.value>300000)
     { 
         let error = {severity: Severity.warning,
             description: 'Mothership Catcher Vessel or Shoreside Hake OTC >300,000 lbs',
@@ -680,7 +680,7 @@ function runMSOTCOver300KCheck(tripErrorDoc: WcgopTripError, trip:any, operation
             operationId: operation._id,
             operationNum: operation.operationNum,
             errorItem: 'OTC',
-            errorValue: operation.measurement.value,
+            errorValue: operation.observerTotalCatch.measurement.value,
             notes: '',
             legacy:{
                 checkCode : 32100 
