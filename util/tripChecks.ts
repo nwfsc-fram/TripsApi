@@ -70,6 +70,7 @@ export async function runTripErrorChecks (req, res) {
     runPermitNumberNotSFCFACheck(tripErrorDoc, trip);
     runPermitNumberNot5DigitsCheck(tripErrorDoc, trip);
     runIntendedGearTypeMissingCheck(tripErrorDoc, trip);
+    runFisheryMissingCheck(tripErrorDoc, trip);
 
     const confirmation = await masterDev.bulk({docs: [tripErrorDoc]});
     res.status(200).send(confirmation);
@@ -637,4 +638,28 @@ function runPermitNumberNotContainBTCheck(tripErrorDoc: WcgopTripError, trip: an
         }
     }
 
+}
+
+//trip check code 103301 
+function runFisheryMissingCheck(tripErrorDoc: WcgopTripError, trip: any) {
+    
+    let error : WcgopError = {severity: Severity.error,
+        description: 'Fishery is missing',
+        dateCreated: moment().format(), 
+        observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+        status: StatusType.valid,
+        errorItem: 'Fishery is missing',
+        notes: '',
+        legacy:{
+            checkCode : 103301 
+        }
+    };
+
+    const fisheryMissingChecks = {
+        "trip.fishery": {
+            presence: true
+        }
+    };
+
+    tripErrorDoc.errors.push(validate(trip, fisheryMissingChecks, {format: "flat"}));
 }
