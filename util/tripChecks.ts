@@ -1,7 +1,8 @@
 import * as moment from 'moment';
-import { WcgopTripError, StatusType, Severity, WcgopError } from '@boatnet/bn-models';
+import { WcgopTripError, StatusType, Severity, WcgopError, WcgopTrip, WcgopCatch, WcgopOperation } from '@boatnet/bn-models';
 import { masterDev } from './couchDB';
 import { sumBy } from 'lodash';
+import { nullLiteral } from '@babel/types';
 
 var validate = require("validate.js");
 
@@ -21,6 +22,8 @@ export async function runTripErrorChecks (req, res) {
     let tripErrorDoc : WcgopTripError = {};
     const errors: WcgopError[] = [{}];
     let error : WcgopError = {};
+    let catchDoc : WcgopCatch = {};
+    let operation : WcgopOperation = {};
     let isFitNull : boolean = true;
     let observerTotalCatch : number = 0;
     let maxOperationCreatedDate : Date;
@@ -56,6 +59,12 @@ export async function runTripErrorChecks (req, res) {
         runTotalHooksLessThan100Check(tripErrorDoc, trip, operation); 
         runOperationStartEndLocationsCheck(tripErrorDoc, trip, operation); 
         runMSOTCOver300KCheck(tripErrorDoc, trip, operation);
+    
+        for (let catchDoc of operation.catches)
+        {
+            runOpenAccess500CatchWeightCheck(tripErrorDoc, trip, operation, catchDoc);
+        }
+
     }
 
     runCAFishTicketCheck(tripErrorDoc, trip); 
@@ -78,7 +87,7 @@ export async function runTripErrorChecks (req, res) {
 }
 
 //trip check code 98300 
-function runPartialLostGearCheck(tripErrorDoc: WcgopTripError, trip:any, operation: any) {
+function runPartialLostGearCheck(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation) {
     let error = {severity: Severity.error,
         description: 'Wrong gear performance for partial lost gear',
         dateCreated: moment().format(),
@@ -112,7 +121,7 @@ function runPartialLostGearCheck(tripErrorDoc: WcgopTripError, trip:any, operati
 }
 
 //trip check code 110020 
-function runTripReturnDateCheck(tripErrorDoc: WcgopTripError, trip: any) {
+function runTripReturnDateCheck(tripErrorDoc: WcgopTripError, trip: WcgopTrip) {
     let error : WcgopError = {severity: Severity.warning,
         description: 'Trip created after return date, please keep paper records',
         dateCreated: moment().format(),
@@ -144,7 +153,7 @@ function runTripReturnDateCheck(tripErrorDoc: WcgopTripError, trip: any) {
 }
 
 //trip check code 1300 
-function runCAFishTicketCheck(tripErrorDoc: WcgopTripError, trip: any) {
+function runCAFishTicketCheck(tripErrorDoc: WcgopTripError, trip: WcgopTrip) {
     for (const fishTicket of trip.fishTickets)
     {
         let error = {severity: Severity.error,
@@ -185,7 +194,7 @@ function runCAFishTicketCheck(tripErrorDoc: WcgopTripError, trip: any) {
 
 
 //trip check code 32200 
-function runObsLogbookMissingCheck(tripErrorDoc: WcgopTripError, trip: any) {
+function runObsLogbookMissingCheck(tripErrorDoc: WcgopTripError, trip: WcgopTrip) {
     let error : WcgopError = {severity: Severity.error,
         description: 'Observer logbook number is missing',
         dateCreated: moment().format(), 
@@ -210,7 +219,7 @@ function runObsLogbookMissingCheck(tripErrorDoc: WcgopTripError, trip: any) {
 
 
 //trip check code 500 
-function runLongTripCheck(tripErrorDoc: WcgopTripError, trip: any) {
+function runLongTripCheck(tripErrorDoc: WcgopTripError, trip: WcgopTrip) {
     let error : WcgopError = {severity: Severity.warning,
         description: 'Trip is longer than 10 days',
         dateCreated: moment().format(),
@@ -232,7 +241,7 @@ function runLongTripCheck(tripErrorDoc: WcgopTripError, trip: any) {
 
 
 //trip check code 110016 
-function runBlankFitValueCheck(tripErrorDoc: WcgopTripError, trip: any, operations: any) {
+function runBlankFitValueCheck(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operations: any) {
     let error : WcgopError = {severity: Severity.warning,
         description: 'Fit value not entered for any haul',
         dateCreated: moment().format(),
@@ -267,7 +276,7 @@ function runBlankFitValueCheck(tripErrorDoc: WcgopTripError, trip: any, operatio
 
 
 //trip check code 110014 
-function runInactiveVesselCheck(tripErrorDoc: WcgopTripError, trip: any) {
+function runInactiveVesselCheck(tripErrorDoc: WcgopTripError, trip: WcgopTrip) {
     let error : WcgopError = {severity: Severity.error,
         description: 'Vessel inactive, please review selected vessel',
         dateCreated: moment().format(),
@@ -294,7 +303,7 @@ function runInactiveVesselCheck(tripErrorDoc: WcgopTripError, trip: any) {
 }
 
 //trip check code 110020 
-function runTripCreatedAfterReturnCheck(tripErrorDoc: WcgopTripError, trip: any, operations: any) {
+function runTripCreatedAfterReturnCheck(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operations: any) {
 
     // store operation created dates as moment objects.
     const createdDates = operations.map( (row: any) => moment(row.createdDate) );
@@ -315,12 +324,12 @@ function runTripCreatedAfterReturnCheck(tripErrorDoc: WcgopTripError, trip: any,
         }
     };
 
-    if ( !trip.dataSource.toString.includes("optecs") && ( maxOperationCreatedDate === null || moment(trip.returnDate).isBefore(maxOperationCreatedDate) ) )
+    if ( !trip.dataSource.toString().includes("optecs") && ( maxOperationCreatedDate === null || moment(trip.returnDate).isBefore(maxOperationCreatedDate) ) )
         tripErrorDoc.errors.push(error);
 }
 
 //trip check code 110015 
-function runFishTicketDateCheck(tripErrorDoc: WcgopTripError, trip: any) {
+function runFishTicketDateCheck(tripErrorDoc: WcgopTripError, trip: WcgopTrip) {
 
     for (const fishTicket of trip.fishTickets)
     {
@@ -347,7 +356,7 @@ function runFishTicketDateCheck(tripErrorDoc: WcgopTripError, trip: any) {
 }
 
 //trip check code 110013 
-function runBeaufortSeaStateLevelCheck(tripErrorDoc: WcgopTripError, trip: any, operations: any) {
+function runBeaufortSeaStateLevelCheck(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operations: any) {
 
     const operationWithLevel = operations.find( (operation) => operation.beaufortValue === 8 || operation.beaufortValue === 9)
 
@@ -375,7 +384,7 @@ function runBeaufortSeaStateLevelCheck(tripErrorDoc: WcgopTripError, trip: any, 
 }
 
 //trip check code 103900 
-function runRetrievalLocationDateCheck(tripErrorDoc: WcgopTripError, trip:any, operation: any) {
+function runRetrievalLocationDateCheck(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation) {
 
     for (const operationLocation of operation.locations)
     {
@@ -410,7 +419,7 @@ function runRetrievalLocationDateCheck(tripErrorDoc: WcgopTripError, trip:any, o
 
 
 //trip check code 103800 
-function runTotalHooksLessThan100Check(tripErrorDoc: WcgopTripError, trip:any, operation: any) {
+function runTotalHooksLessThan100Check(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation) {
 
     if ( (operation.gearType.description ==="Hook & Line" || 
             operation.gearType.description ==="Longline (snap)") && //gear type in 19,20
@@ -426,7 +435,7 @@ function runTotalHooksLessThan100Check(tripErrorDoc: WcgopTripError, trip:any, o
             operationId: operation._id,
             operationNum: operation.operationNum,
             errorItem: 'Gear Type',
-            errorValue: operation.totalHooks,
+            errorValue: operation.totalHooks.toString(),
             notes: '',
             legacy:{
                 checkCode : 103800 
@@ -440,7 +449,7 @@ function runTotalHooksLessThan100Check(tripErrorDoc: WcgopTripError, trip:any, o
 
 
 //trip check code 104601 
-function runFishProcessedCheck(tripErrorDoc: WcgopTripError, trip:any) {
+function runFishProcessedCheck(tripErrorDoc: WcgopTripError, trip: WcgopTrip) {
 
     if ( trip.isFishProcessed && moment(trip.returnDate).isAfter( moment('2016-01-01') ) )
     { 
@@ -450,7 +459,7 @@ function runFishProcessedCheck(tripErrorDoc: WcgopTripError, trip:any) {
             observer: trip.observer.firstName + ' ' + trip.observer.lastName,
             status: StatusType.valid,
             errorItem: 'Fish Processed',
-            errorValue: trip.isFishProcessed,
+            errorValue: trip.isFishProcessed.toString(),
             notes: '',
             legacy:{
                 checkCode : 104601 
@@ -464,7 +473,7 @@ function runFishProcessedCheck(tripErrorDoc: WcgopTripError, trip:any) {
 
 
 //trip check code 110012 
-function runOperationStartEndLocationsCheck(tripErrorDoc: WcgopTripError, trip:any, operation: any) {
+function runOperationStartEndLocationsCheck(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation) {
 
     //find the location with the max position in all locations
     var maxPositionedLocation = operation.locations.reduce(function(prev, current) {
@@ -613,7 +622,7 @@ function runPermitNumberNotSFCFACheck(tripErrorDoc: WcgopTripError, trip: any) {
 }
 
 //trip check code 104100 
-function runPermitNumberNotContainBTCheck(tripErrorDoc: WcgopTripError, trip: any) {
+function runPermitNumberNotContainBTCheck(tripErrorDoc: WcgopTripError, trip: WcgopTrip) {
     
     for (const certificate of trip.certificates)
     {    
@@ -642,7 +651,7 @@ function runPermitNumberNotContainBTCheck(tripErrorDoc: WcgopTripError, trip: an
 }
 
 //trip check code 103301 
-function runFisheryMissingCheck(tripErrorDoc: WcgopTripError, trip: any) {
+function runFisheryMissingCheck(tripErrorDoc: WcgopTripError, trip: WcgopTrip) {
     
     let error : WcgopError = {severity: Severity.error,
         description: 'Fishery is missing',
@@ -666,7 +675,7 @@ function runFisheryMissingCheck(tripErrorDoc: WcgopTripError, trip: any) {
 }
 
 //trip check code 32100 
-function runMSOTCOver300KCheck(tripErrorDoc: WcgopTripError, trip:any, operation: any) {
+function runMSOTCOver300KCheck(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation) {
 
     if ( (trip.fishery.description === "Shoreside Hake" || 
             trip.fishery.description === "Mothership Catcher-Vessel") && 
@@ -680,13 +689,50 @@ function runMSOTCOver300KCheck(tripErrorDoc: WcgopTripError, trip:any, operation
             operationId: operation._id,
             operationNum: operation.operationNum,
             errorItem: 'OTC',
-            errorValue: operation.observerTotalCatch.measurement.value,
+            errorValue: operation.observerTotalCatch.measurement.value.toString(),
             notes: '',
             legacy:{
                 checkCode : 32100 
             }
         };
 
+        tripErrorDoc.errors.push( error );
+    }
+    
+}
+
+
+//trip check code 91800 
+function runOpenAccess500CatchWeightCheck(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation, catchDoc: WcgopCatch ) {
+
+    let error = {severity: Severity.warning,
+        description: 'Open access gear (7, 8, 9, 14, 15, 16) and catch weight is greater than 500 lbs',
+        dateCreated: moment().format(),
+        observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+        status: StatusType.valid,
+        operationId: operation._id,
+        operationNum: operation.operationNum,
+        errorItem: 'Weight',
+        errorValue: null,
+        notes: '',
+        legacy:{
+            checkCode : 91800 
+        }
+    };
+    if ( ((operation.gearType.description === "All net gear except trawl" || 
+            operation.gearType.description === "All other miscellaneous gear" )) && //gear_type IN (14,16)
+            catchDoc.weight.value > 500)
+    { 
+        error.errorValue = catchDoc.weight.value.toString();
+        tripErrorDoc.errors.push( error );
+    }
+    else if( ((operation.gearType.description === "Vertical hook and line gear" || 
+                operation.gearType.description === "Pole (commercial)" ||
+                operation.gearType.description === "Other hook and line gear" ||
+                operation.gearType.description === "All troll gear")) &&  //gear_type   in (7,8,9,15)
+                catchDoc.sampleWeight.value > 500)
+    { 
+        error.errorValue = catchDoc.sampleWeight.value.toString();
         tripErrorDoc.errors.push( error );
     }
     
