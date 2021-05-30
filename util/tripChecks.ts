@@ -2,7 +2,7 @@ import * as moment from 'moment';
 import { WcgopTripError, StatusType, Severity, WcgopError, WcgopTrip, WcgopCatch, WcgopOperation } from '@boatnet/bn-models';
 import { masterDev } from './couchDB';
 import { sumBy } from 'lodash';
-import { nullLiteral } from '@babel/types';
+import { nullLiteral, catchClause } from '@babel/types';
 
 var validate = require("validate.js");
 
@@ -733,6 +733,38 @@ function runOpenAccess500CatchWeightCheck(tripErrorDoc: WcgopTripError, trip: Wc
                 catchDoc.sampleWeight.value > 500)
     { 
         error.errorValue = catchDoc.sampleWeight.value.toString();
+        tripErrorDoc.errors.push( error );
+    }
+    
+}
+
+
+//trip check code 102200 
+function runFishActivityWithNoDispositionCheck(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation) {
+    
+    const catches = operation.catches;
+    const catchWithRetainedDisposition = catches.find( (element) => element.disposition.description === "Retained")
+
+    if ( (trip.fishery.description === "Catch Shares" || 
+            trip.fishery.description === "Shoreside Hake"|| 
+            trip.fishery.description === "Mothership Catcher-Vessel") && //fishery in ('19', '20', '21') 
+            operation.observerTotalCatch.measurement.value>0 &&
+            !catchWithRetainedDisposition) //meaning there are no Catches with Retained disposition 
+    { 
+        let error = {severity: Severity.warning,
+            description: 'Fish activities with no disposition = R catches',
+            dateCreated: moment().format(),
+            observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+            status: StatusType.valid,
+            operationId: operation._id,
+            operationNum: operation.operationNum,
+            errorItem: 'Fish activities with no disposition = R catches',
+            notes: '',
+            legacy:{
+                checkCode : 102200 
+            }
+        };
+
         tripErrorDoc.errors.push( error );
     }
     
