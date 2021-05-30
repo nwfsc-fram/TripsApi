@@ -59,6 +59,7 @@ export async function runTripErrorChecks (req, res) {
         runTotalHooksLessThan100Check(tripErrorDoc, trip, operation); 
         runOperationStartEndLocationsCheck(tripErrorDoc, trip, operation); 
         runMSOTCOver300KCheck(tripErrorDoc, trip, operation);
+        runFishActivityWithNoDispositionCheck(tripErrorDoc, trip, operation);
     
         for (let catchDoc of operation.catches)
         {
@@ -741,7 +742,7 @@ function runOpenAccess500CatchWeightCheck(tripErrorDoc: WcgopTripError, trip: Wc
 
 //trip check code 102200 
 function runFishActivityWithNoDispositionCheck(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation) {
-    
+
     const catches = operation.catches;
     const catchWithRetainedDisposition = catches.find( (element) => element.disposition.description === "Retained")
 
