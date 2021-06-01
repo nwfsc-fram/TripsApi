@@ -2,7 +2,7 @@ import * as moment from 'moment';
 import { WcgopTripError, StatusType, Severity, WcgopError, WcgopTrip, WcgopCatch, WcgopOperation } from '@boatnet/bn-models';
 import { masterDev } from './couchDB';
 import { sumBy } from 'lodash';
-import { nullLiteral } from '@babel/types';
+import { nullLiteral, catchClause } from '@babel/types';
 
 var validate = require("validate.js");
 
@@ -59,6 +59,8 @@ export async function runTripErrorChecks (req, res) {
         runTotalHooksLessThan100Check(tripErrorDoc, trip, operation); 
         runOperationStartEndLocationsCheck(tripErrorDoc, trip, operation); 
         runMSOTCOver300KCheck(tripErrorDoc, trip, operation);
+        runFishActivityWithNoDispositionCheck(tripErrorDoc, trip, operation);
+        runRetrievalDepthGreater500FMCheck(tripErrorDoc, trip, operation);
     
         for (let catchDoc of operation.catches)
         {
@@ -736,4 +738,77 @@ function runOpenAccess500CatchWeightCheck(tripErrorDoc: WcgopTripError, trip: Wc
         tripErrorDoc.errors.push( error );
     }
     
+}
+
+
+//trip check code 102200 
+function runFishActivityWithNoDispositionCheck(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation) {
+
+    const catches = operation.catches;
+    const catchWithRetainedDisposition = catches.find( (element) => element.disposition.description === "Retained")
+
+    if ( (trip.fishery.description === "Catch Shares" || 
+            trip.fishery.description === "Shoreside Hake"|| 
+            trip.fishery.description === "Mothership Catcher-Vessel") && //fishery in ('19', '20', '21') 
+            operation.observerTotalCatch.measurement.value>0 &&
+            !catchWithRetainedDisposition) //meaning there are no Catches with Retained disposition 
+    { 
+        let error = {severity: Severity.warning,
+            description: 'Haul missing retained catch categories',
+            dateCreated: moment().format(),
+            observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+            status: StatusType.valid,
+            operationId: operation._id,
+            operationNum: operation.operationNum,
+            errorItem: 'Fish activities with no disposition = R catches',
+            errorValue: null,
+            notes: '',
+            legacy:{
+                checkCode : 102200 
+            }
+        };
+
+        tripErrorDoc.errors.push( error );
+    }
+    
+}
+
+//trip check code 100302 
+function runRetrievalDepthGreater500FMCheck(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation) {
+
+    for (const operationLocation of operation.locations)
+    {
+        if ( operationLocation.depth.value >500 && operationLocation.depth.units === "FM" && operationLocation.position === 0 &&
+            (operation.gearType.description ==="Groundfish trawl, footrope < 8 inches (small footrope)" || 
+                operation.gearType.description ==="Groundfish trawl, footrope > 8 inches (large footrope)" || 
+                operation.gearType.description ==="Danish/Scottish Seine (trawl)" || 
+                operation.gearType.description ==="Other trawl gear" || 
+                operation.gearType.description ==="Prawn trawl" || 
+                operation.gearType.description ==="Shrimp trawl, single rigged" || 
+                operation.gearType.description ==="Shrimp trawl, double rigged" || 
+                operation.gearType.description ==="All net gear except trawl" || 
+                operation.gearType.description ==="All other miscellaneous gear" || 
+                operation.gearType.description ==="Oregon set-back flatfish net")  //gear_type IN (1, 2, 4, 5, 11, 12, 13, 14 ,16, 17)
+        )
+        {
+            let error = {severity: Severity.warning,
+                description: 'Retrieval depth is greater than 500 fathoms. ',
+                dateCreated: moment().format(),
+                observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+                status: StatusType.valid,
+                operationId: operation._id,
+                operationNum: operation.operationNum,
+                fishingLocation: operationLocation,
+                errorItem: 'Depth',
+                errorValue: operationLocation.depth.value.toString(),
+                notes: '',
+                legacy:{
+                    checkCode : 100302 
+                }
+            };
+
+            tripErrorDoc.errors.push( error );
+    
+        }
+    }
 }
