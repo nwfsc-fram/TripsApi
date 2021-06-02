@@ -742,10 +742,10 @@ const emailCoordinator = async (req, res) => {
           return;
       }
 
-      let changelogstring = '';
-      for (const row of req.body.changeLog) {
-          changelogstring += "<b>" + (row.property + "</b> changed to <b>" + row.newVal + "</b> from <b>" + row.oldVal + "</b><br> ");
-      }
+    //   let changelogstring = '';
+    //   for (const row of req.body.changeLog) {
+    //       changelogstring += "<b>" + (row.property + "</b> changed to <b>" + row.newVal + "</b> from <b>" + row.oldVal + "</b><br> ");
+    //   }
 
       const emailHTML =
           "<p>Trip #: <b>" + (req.body.tripNum ? req.body.tripNum : 'missing') + "</b><br>" +
@@ -757,8 +757,8 @@ const emailCoordinator = async (req, res) => {
           "Fishery: <b>" + (req.body.fishery ? req.body.fishery.description : 'missing') + "</b><br>" +
           "Created By: <b>" + (req.body.createdBy ? req.body.createdBy : 'missing') + "</b><br>" +
           "Created Date: <b>" + (req.body.createdDate ? req.body.createdDate : 'missing') + "</b><br>" +
-          "Notes: <b>" + (req.body.notes ? req.body.notes : 'missing') + "</b><br>" +
-          "Change Log: <br>" + changelogstring +
+        //   "Notes: <b>" + (req.body.notes ? req.body.notes : 'missing') + "</b><br>" +
+        //   "Change Log: <br>" + changelogstring +
           "</p>"
 
       try {

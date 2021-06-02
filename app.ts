@@ -172,7 +172,7 @@ function createVMSOraclePool() {
   const oracleCredentials = {
     user: VMSConfig.user,
     password: VMSConfig.password,
-    connectString: OBSPRODdbConfig.connectString,
+    connectString: VMSConfig.connectString,
     poolAlias: 'vms'
   };
   oracledb.fetchAsString = [ oracledb.CLOB ];
