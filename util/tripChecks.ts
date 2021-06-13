@@ -61,6 +61,7 @@ export async function runTripErrorChecks (req, res) {
         runMSOTCOver300KCheck(tripErrorDoc, trip, operation);
         runFishActivityWithNoDispositionCheck(tripErrorDoc, trip, operation);
         runRetrievalDepthGreater500FMCheck(tripErrorDoc, trip, operation);
+        runWrongOTCPartialGearCheck(tripErrorDoc, trip, operation);
     
         for (let catchDoc of operation.catches)
         {
@@ -792,7 +793,7 @@ function runRetrievalDepthGreater500FMCheck(tripErrorDoc: WcgopTripError, trip: 
         )
         {
             let error = {severity: Severity.warning,
-                description: 'Retrieval depth is greater than 500 fathoms. ',
+                description: 'Retrieval depth is greater than 500 fathoms',
                 dateCreated: moment().format(),
                 observer: trip.observer.firstName + ' ' + trip.observer.lastName,
                 status: StatusType.valid,
@@ -811,4 +812,31 @@ function runRetrievalDepthGreater500FMCheck(tripErrorDoc: WcgopTripError, trip: 
     
         }
     }
+}
+
+//trip check code 98200 
+function runWrongOTCPartialGearCheck(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation) {
+
+    if (operation.observerTotalCatch.weightMethod.description != 'Extrapolation' && 
+            operation.totalHooks!=operation.totalHooksLost
+    )
+    {
+        let error = {severity: Severity.error,
+            description: 'Wrong OTC weight method for partial lost gear',
+            dateCreated: moment().format(),
+            observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+            status: StatusType.valid,
+            operationId: operation._id,
+            operationNum: operation.operationNum,
+            errorItem: 'OTC Weight Method',
+            errorValue: operation.observerTotalCatch.weightMethod.description,
+            notes: '',
+            legacy:{
+                checkCode : 98200 
+            }
+        };
+
+        tripErrorDoc.errors.push( error );
+    }
+
 }
