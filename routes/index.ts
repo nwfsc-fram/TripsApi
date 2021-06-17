@@ -26,7 +26,7 @@ const path = require('path');
 import { resolve } from 'path';
 
 import { validateJwtRequest } from '../get-user.middleware';
-import { getFishTicket, vmsDBTest, insertRow, getVesselSelections } from '../util/oracle_routines';
+import { getFishTicket, vmsDBTest, insertRow, getVesselSelections, getVesselWaivers, fishTicketQuery } from '../util/oracle_routines';
 import { catchEvaluator } from '../util/trip-functions';
 import { Catches, sourceType, EmReviewSelectionRate, EMHaulReviewSelection, EmHaulReviewSelectionTypeName } from '@boatnet/bn-models';
 import { set, cloneDeep, omit, pick, union, keys, reduce, isEqual, differenceBy, differenceWith, sampleSize, sortBy } from 'lodash';
@@ -914,6 +914,14 @@ router.post('/api/' + API_VERSION + '/runTripChecks', runTripErrorChecks);
 router.use('/api/' + API_VERSION + '/getSelections', getPubKey);
 router.use('/api/' + API_VERSION + '/getSelections', validateJwtRequest);
 router.get('/api/' + API_VERSION + '/getSelections', getVesselSelections);
+
+router.use('/api/' + API_VERSION + '/getWaivers', getPubKey);
+router.use('/api/' + API_VERSION + '/getWaivers', validateJwtRequest);
+router.get('/api/' + API_VERSION + '/getWaivers', getVesselWaivers);
+
+router.use('/api/' + API_VERSION + '/getFishTicket', getPubKey);
+router.use('/api/' + API_VERSION + '/getFishTicket', validateJwtRequest);
+router.get('/api/' + API_VERSION + '/getFishTicket', fishTicketQuery);
 
 router.get('/api/' + API_VERSION + '/vmstest', vmsDBTest);
 
