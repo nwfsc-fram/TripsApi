@@ -79,6 +79,49 @@ export async function getVesselSelections(req: any, res: any) {
   }
 };
 
+export async function getVesselWaivers(req: any, res: any) {
+  const id = req.query.vesselId ? req.query.vesselId : '';
+  const year = req.query.year ? req.query.year : '';
+  const pool = getObsprodOraclePool();
+  const connection = await pool.getConnection();
+  let result = null;
+  if (id) {
+    result = await connection.execute(
+      "SELECT w.waiver_id, v.vessel_name, coalesce(v.state_reg_number, v.coast_guard_number) as vessel_drvid, (select description from lookups where lookup_type = 'WAIVER_TYPE' and lookup_value = w.waiver_type) as waiver_type, (select description from lookups where lookup_type = 'WAIVER_REASON' and lookup_value = w.waiver_reason) as waiver_reason, w.fishery as fishery_id, (select description from lookups where lookup_type = 'FISHERY' and lookup_value = w.fishery) as fishery, trim(coalesce(c.first_name, '') || ' ' || coalesce(c.last_name, '')) as contact, w.certificate_number as permit_or_license, w.issue_date, w.start_date, w.end_date, p.port_name, p.port_code, p.port_group, p.state as port_state, w.created_date as waiver_created_date, w.notes FROM waivers w JOIN vessels v ON w.vessel_id = v.vessel_id LEFT JOIN contacts c ON w.contact_id = c.contact_id LEFT JOIN ports p ON w.landing_port_id = p.port_id WHERE extract(year from issue_date) = :year AND (v.state_reg_number = :id OR v.coast_guard_number = :id)", [year, id, id]
+    ).catch( error => console.log(error));
+
+    closeOracleConnection(connection);
+  } else {
+    result = await connection.execute(
+      "SELECT w.waiver_id, v.vessel_name, coalesce(v.state_reg_number, v.coast_guard_number) as vessel_drvid, (select description from lookups where lookup_type = 'WAIVER_TYPE' and lookup_value = w.waiver_type) as waiver_type, (select description from lookups where lookup_type = 'WAIVER_REASON' and lookup_value = w.waiver_reason) as waiver_reason, w.fishery as fishery_id, (select description from lookups where lookup_type = 'FISHERY' and lookup_value = w.fishery) as fishery, trim(coalesce(c.first_name, '') || ' ' || coalesce(c.last_name, '')) as contact, w.certificate_number as permit_or_license, w.issue_date, w.start_date, w.end_date, p.port_name, p.port_code, p.port_group, p.state as port_state, w.created_date as waiver_created_date, w.notes FROM waivers w JOIN vessels v ON w.vessel_id = v.vessel_id LEFT JOIN contacts c ON w.contact_id = c.contact_id LEFT JOIN ports p ON w.landing_port_id = p.port_id WHERE extract(year from issue_date) = :year", [year]
+    ).catch( error => console.log(error));
+
+    closeOracleConnection(connection);
+  }
+  if (result) {
+    const waivers = [];
+      for (const row of result.rows) {
+        const selection = {};
+        for (const [i, column] of result.metaData.entries()) {
+          selection[column.name] = row[i]
+        }
+        waivers.push(selection);
+      }
+    res.status(200).json(waivers);
+  } else {
+    res.status(400).send('did not receive a response');
+  }
+};
+
+export async function fishTicketQuery(req: any, res: any) {
+  const result = await getFishTicket(req.query.ftid);
+  if (result) {
+    res.status(200).json(result);
+  } else {
+    res.status(400).send('did not receive a response');
+  }
+};
+
 export async function vmsDBTest(req: any, res: any) {
   try {
     const pool = getVmsOraclePool();
