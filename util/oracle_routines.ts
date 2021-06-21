@@ -32,6 +32,40 @@ export async function getFishTicket(ftid: string): Promise<string[]> {
     }
   }
 
+export async function getVesselFishTickets(req: any, res: any) {
+  const vesselId = req.query.vesselId ? req.query.vesselId : '';
+  const startDate = req.query.startDate ? req.query.startDate : '';
+  const endDate = req.query.endDate ? req.query.endDate : '';
+
+  let fishTicketRows: any = [];
+
+  try {
+    const pool = getPacfinOraclePool();
+    const connection = await pool.getConnection();
+    const result = await connection.execute(
+      "SELECT LANDING_DATE, FTID, FISHER_LICENSE_NUM, PORT_NAME, SPECIES_CODE_NAME, PACFIN_SPECIES_CODE, CONDITION_NAME, CONDITION_CODE, NUM_OF_FISH, LANDED_WEIGHT_LBS FROM PACFIN.COMPREHENSIVE_FISH_TICKET where VESSEL_NUM = :vesselId AND LANDING_DATE >= TO_DATE(:startDate, 'YYYY-MM-DD') AND LANDING_DATE <= TO_DATE(:endDate, 'YYYY-MM-DD') ORDER BY LANDING_DATE ASC",
+      [vesselId, startDate, endDate],
+    ).catch( error => console.log(error));
+    closeOracleConnection(connection);
+
+    if (result) {
+      for (const row of result.rows) {
+        const fishTicketRow = {};
+        for (const [i, column] of result.metaData.entries()) {
+          fishTicketRow[column.name] = row[i]
+        }
+        fishTicketRows.push(fishTicketRow);
+      }
+      res.status(200).json(fishTicketRows);
+    } else {
+      res.status(400).send('did not receive a response');
+    }
+  } catch (connErr) {
+    console.error(connErr.message);
+    res.status(400).send(connErr.message);
+  }
+}
+
 export async function insertRow() {
 
   try {
