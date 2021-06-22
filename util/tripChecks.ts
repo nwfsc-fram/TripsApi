@@ -62,7 +62,7 @@ export async function runTripErrorChecks (req, res) {
         runFishActivityWithNoDispositionCheck(tripErrorDoc, trip, operation);
         runRetrievalDepthGreater500FMCheck(tripErrorDoc, trip, operation);
         runWrongOTCPartialGearCheck(tripErrorDoc, trip, operation);
-        runShrimpPotOTCGreater1000Check(tripErrorDoc, trip, operation);
+        runShrimpPotOTCGreater1000Check(tripErrorDoc, trip, operation); 
      
         for (let catchDoc of operation.catches)
         {
