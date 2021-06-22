@@ -62,7 +62,8 @@ export async function runTripErrorChecks (req, res) {
         runFishActivityWithNoDispositionCheck(tripErrorDoc, trip, operation);
         runRetrievalDepthGreater500FMCheck(tripErrorDoc, trip, operation);
         runWrongOTCPartialGearCheck(tripErrorDoc, trip, operation);
-        runShrimpPotOTCGreater1000Check(tripErrorDoc, trip, operation); 
+        runShrimpPotOTCGreater1000Check(tripErrorDoc, trip, operation);
+        runLineOTCGreater1000Check(tripErrorDoc, trip, operation);
      
         for (let catchDoc of operation.catches)
         {
@@ -860,6 +861,32 @@ function runShrimpPotOTCGreater1000Check(tripErrorDoc: WcgopTripError, trip: Wcg
             notes: '',
             legacy:{
                 checkCode : 70700 
+            }
+        };
+
+        tripErrorDoc.errors.push( error );
+    }
+    
+}
+
+//trip check code 80100 
+function runLineOTCGreater1000Check(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation) {
+
+    if ( operation.gearType.description ==="Vertical hook and line gear" && //gear_type = 7
+            operation.observerTotalCatch.measurement.value>1000)
+    { 
+        let error = {severity: Severity.warning,
+            description: 'Line gear OTC is greater than 1000 lbs',
+            dateCreated: moment().format(),
+            observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+            status: StatusType.valid,
+            operationId: operation._id,
+            operationNum: operation.operationNum,
+            errorItem: 'OTC',
+            errorValue: operation.observerTotalCatch.measurement.value.toString(),
+            notes: '',
+            legacy:{
+                checkCode : 80100 
             }
         };
 
