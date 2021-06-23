@@ -43,7 +43,7 @@ export async function getVesselFishTickets(req: any, res: any) {
     const pool = getPacfinOraclePool();
     const connection = await pool.getConnection();
     const result = await connection.execute(
-      "SELECT LANDING_DATE, FTID, FISHER_LICENSE_NUM, PORT_NAME, SPECIES_CODE_NAME, PACFIN_SPECIES_CODE, CONDITION_NAME, CONDITION_CODE, NUM_OF_FISH, LANDED_WEIGHT_LBS FROM PACFIN.COMPREHENSIVE_FISH_TICKET where VESSEL_NUM = :vesselId AND LANDING_DATE >= TO_DATE(:startDate, 'YYYY-MM-DD') AND LANDING_DATE <= TO_DATE(:endDate, 'YYYY-MM-DD') ORDER BY LANDING_DATE ASC",
+      "SELECT LANDING_DATE, FTID, FISHER_LICENSE_NUM, PORT_NAME, SPECIES_CODE_NAME, PACFIN_SPECIES_CODE, CONDITION_NAME, CONDITION_CODE, NUM_OF_FISH, LANDED_WEIGHT_LBS, DECLARATION_CODES, DECLARATION_TYPES, VESSEL_NUM FROM PACFIN.COMPREHENSIVE_FISH_TICKET where VESSEL_NUM = :vesselId AND LANDING_DATE >= TO_DATE(:startDate, 'YYYY-MM-DD') AND LANDING_DATE <= TO_DATE(:endDate, 'YYYY-MM-DD') ORDER BY LANDING_DATE ASC",
       [vesselId, startDate, endDate],
     ).catch( error => console.log(error));
     closeOracleConnection(connection);
