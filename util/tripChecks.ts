@@ -61,7 +61,10 @@ export async function runTripErrorChecks (req, res) {
         runMSOTCOver300KCheck(tripErrorDoc, trip, operation);
         runFishActivityWithNoDispositionCheck(tripErrorDoc, trip, operation);
         runRetrievalDepthGreater500FMCheck(tripErrorDoc, trip, operation);
-    
+        runWrongOTCPartialGearCheck(tripErrorDoc, trip, operation);
+        runShrimpPotOTCGreater1000Check(tripErrorDoc, trip, operation);
+        runLineOTCGreater1000Check(tripErrorDoc, trip, operation);
+     
         for (let catchDoc of operation.catches)
         {
             runOpenAccess500CatchWeightCheck(tripErrorDoc, trip, operation, catchDoc);
@@ -792,7 +795,7 @@ function runRetrievalDepthGreater500FMCheck(tripErrorDoc: WcgopTripError, trip: 
         )
         {
             let error = {severity: Severity.warning,
-                description: 'Retrieval depth is greater than 500 fathoms. ',
+                description: 'Retrieval depth is greater than 500 fathoms',
                 dateCreated: moment().format(),
                 observer: trip.observer.firstName + ' ' + trip.observer.lastName,
                 status: StatusType.valid,
@@ -811,4 +814,83 @@ function runRetrievalDepthGreater500FMCheck(tripErrorDoc: WcgopTripError, trip: 
     
         }
     }
+}
+
+//trip check code 98200 
+function runWrongOTCPartialGearCheck(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation) {
+
+    if (operation.observerTotalCatch.weightMethod.description != 'Extrapolation' && 
+            operation.totalHooks!=operation.totalHooksLost
+    )
+    {
+        let error = {severity: Severity.error,
+            description: 'Wrong OTC weight method for partial lost gear',
+            dateCreated: moment().format(),
+            observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+            status: StatusType.valid,
+            operationId: operation._id,
+            operationNum: operation.operationNum,
+            errorItem: 'OTC Weight Method',
+            errorValue: operation.observerTotalCatch.weightMethod.description,
+            notes: '',
+            legacy:{
+                checkCode : 98200 
+            }
+        };
+
+        tripErrorDoc.errors.push( error );
+    }
+
+}
+
+//trip check code 70700 
+function runShrimpPotOTCGreater1000Check(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation) {
+
+    if ( operation.gearType.description ==="Prawn trap" && //gear_type = 18
+            operation.observerTotalCatch.measurement.value>1000)
+    { 
+        let error = {severity: Severity.warning,
+            description: 'Shrimp pot OTC is greater than 1000 lbs',
+            dateCreated: moment().format(),
+            observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+            status: StatusType.valid,
+            operationId: operation._id,
+            operationNum: operation.operationNum,
+            errorItem: 'OTC',
+            errorValue: operation.observerTotalCatch.measurement.value.toString(),
+            notes: '',
+            legacy:{
+                checkCode : 70700 
+            }
+        };
+
+        tripErrorDoc.errors.push( error );
+    }
+    
+}
+
+//trip check code 80100 
+function runLineOTCGreater1000Check(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation) {
+
+    if ( operation.gearType.description ==="Vertical hook and line gear" && //gear_type = 7
+            operation.observerTotalCatch.measurement.value>1000)
+    { 
+        let error = {severity: Severity.warning,
+            description: 'Line gear OTC is greater than 1000 lbs',
+            dateCreated: moment().format(),
+            observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+            status: StatusType.valid,
+            operationId: operation._id,
+            operationNum: operation.operationNum,
+            errorItem: 'OTC',
+            errorValue: operation.observerTotalCatch.measurement.value.toString(),
+            notes: '',
+            legacy:{
+                checkCode : 80100 
+            }
+        };
+
+        tripErrorDoc.errors.push( error );
+    }
+    
 }
