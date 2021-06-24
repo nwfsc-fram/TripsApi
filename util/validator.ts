@@ -627,7 +627,13 @@ async function validateHaul(haul: any, tripInfo: Catches) {
 async function validateCatchVal(catches: any, speciesCodes: any, source?: any) {
     // TODO in species code may want to check isNumber for logbook and isString for review
     const dispositionLookups = await getLookupList('catch-disposition');
-    const validCodes = jp.query(speciesCodes, '$..key');
+    const validCodes = jp.query(speciesCodes, '$..key').map( (row: any) => {
+        if (parseInt(row, 10)) {
+            return parseInt(row, 10);
+        } else {
+            return row;
+        }
+    });
     const catchLevelChecks = {
         disposition: {
             presence: {allowEmpty: false},
