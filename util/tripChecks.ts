@@ -68,6 +68,7 @@ export async function runTripErrorChecks (req, res) {
         for (let catchDoc of operation.catches)
         {
             runOpenAccess500CatchWeightCheck(tripErrorDoc, trip, operation, catchDoc);
+            runCatchMethod5Check(tripErrorDoc, trip, operation, catchDoc);
         }
 
     }
@@ -717,6 +718,8 @@ function runOpenAccess500CatchWeightCheck(tripErrorDoc: WcgopTripError, trip: Wc
         status: StatusType.valid,
         operationId: operation._id,
         operationNum: operation.operationNum,
+        catchId: catchDoc.legacy.catchId,
+        catchNum: catchDoc.catchNum,
         errorItem: 'Weight',
         errorValue: null,
         notes: '',
@@ -890,6 +893,35 @@ function runLineOTCGreater1000Check(tripErrorDoc: WcgopTripError, trip: WcgopTri
             }
         };
 
+        tripErrorDoc.errors.push( error );
+    }
+    
+}
+
+
+//trip check code 7150 
+function runCatchMethod5Check(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation, catchDoc: WcgopCatch ) {
+
+    let error = {severity: Severity.warning,
+        description: 'Catch Weight Method 5 is not common',
+        dateCreated: moment().format(),
+        observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+        status: StatusType.valid,
+        operationId: operation._id,
+        operationNum: operation.operationNum,
+        catchId: catchDoc.legacy.catchId,
+        catchNum: catchDoc.catchNum,
+        errorItem: 'Catch Weight Method',
+        errorValue: null,
+        notes: '',
+        legacy:{
+            checkCode : 7150 
+        }
+    };
+    if ( catchDoc.weightMethod.description === "OTC - retained" && // catch_weight_method = 5
+            moment(trip.returnDate).isAfter( moment('2011-01-01') ))
+    { 
+        error.errorValue = catchDoc.weightMethod.description;
         tripErrorDoc.errors.push( error );
     }
     
