@@ -69,6 +69,8 @@ export async function runTripErrorChecks (req, res) {
         {
             runOpenAccess500CatchWeightCheck(tripErrorDoc, trip, operation, catchDoc);
             runCatchMethod5Check(tripErrorDoc, trip, operation, catchDoc);
+            runFixedGearSampleWeightBlankCheck(tripErrorDoc, trip, operation, catchDoc);
+            runFixedGearSampleWeightGreater8000Check(tripErrorDoc, trip, operation, catchDoc);
         }
 
     }
@@ -922,6 +924,71 @@ function runCatchMethod5Check(tripErrorDoc: WcgopTripError, trip: WcgopTrip, ope
             moment(trip.returnDate).isAfter( moment('2011-01-01') ))
     { 
         error.errorValue = catchDoc.weightMethod.description;
+        tripErrorDoc.errors.push( error );
+    }
+    
+}
+
+//trip check code 31600 
+function runFixedGearSampleWeightBlankCheck(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation, catchDoc: WcgopCatch ) {
+
+    let error = {severity: Severity.error,
+        description: 'Fixed gear sample weight is negative, zero or blank',
+        dateCreated: moment().format(),
+        observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+        status: StatusType.valid,
+        operationId: operation._id,
+        operationNum: operation.operationNum,
+        catchId: catchDoc.legacy.catchId,
+        catchNum: catchDoc.catchNum,
+        errorItem: 'Sample Weight',
+        errorValue: null,
+        notes: '',
+        legacy:{
+            checkCode : 31600 
+        }
+    };
+    if ( (operation.gearType.description === "Longline (snap)" || 
+            operation.gearType.description === "Pole (commercial)" || 
+            operation.gearType.description === "Other hook and line gear" || 
+            operation.gearType.description === "Fish pot" || 
+            operation.gearType.description === "All troll gear" || 
+            operation.gearType.description === "Longline" || 
+            operation.gearType.description === "Vertical hook and line gear" || 
+            operation.gearType.description === "Hook & Line" ) && //gear_type IN (20,8,9,10,15,6,7,19)
+            catchDoc.sampleWeight.value === undefined ||  catchDoc.sampleWeight.value === null 
+            ||    catchDoc.sampleWeight.value <= 0)
+    { 
+        error.errorValue = catchDoc.sampleWeight.value;
+        tripErrorDoc.errors.push( error );
+    }
+    
+}
+
+//trip check code 91300 
+function runFixedGearSampleWeightGreater8000Check(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation, catchDoc: WcgopCatch ) {
+
+    let error = {severity: Severity.warning,
+        description: 'Fixed gear sample weight is greater than 8000 lbs',
+        dateCreated: moment().format(),
+        observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+        status: StatusType.valid,
+        operationId: operation._id,
+        operationNum: operation.operationNum,
+        catchId: catchDoc.legacy.catchId,
+        catchNum: catchDoc.catchNum,
+        errorItem: 'Weight',
+        errorValue: null,
+        notes: '',
+        legacy:{
+            checkCode : 91300 
+        }
+    };
+    if ( (  operation.gearType.description === "Longline" || 
+            operation.gearType.description === "Fish pot" ) && //gear_type IN (6,10)
+            catchDoc.sampleWeight.value > 8000)
+    { 
+        error.errorValue = catchDoc.sampleWeight.value;
         tripErrorDoc.errors.push( error );
     }
     
