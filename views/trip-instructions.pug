@@ -2,7 +2,9 @@ h6(id="tripNumber") Get Trip Number (tripNum)
 
 p(class="inst-desc") All em trips receive a 6 digit trip number which must be included with any catch (logbook data or em review summary) sumbission.
     br
-    | In virtually all cases, em providers will already be aware of the trip number via information obtained from the Boatnet Observer-Web app (described INSERT LINK here).
+    | In virtually all cases, em providers will already be aware of the trip number via information obtained from the 
+    a(href='#boatnet' style="color: #007EC6;") Boatnet app
+
     br
     p(class="inst-desc") In the rare event it's necessary to search for a trip number, the Trips API exposes GET /trips which accepts a vesselId query string. The response will contain an array of brief trip summaries for the given vesselId. From this, the user should be able to locate the trip number for the trip that took place on the dates in question.
     iframe(class="inst-desc" scrolling="no" src="./api-docs/#/Trips/get_trips_" style="width: 100%; height: 1250px")
