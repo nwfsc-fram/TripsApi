@@ -22,8 +22,38 @@ p(class="inst-desc" style="background-color: lightblue; padding: 10px")
     | ]
 
 div(style="padding-left: 30px")
-    h6(id="individualSubmissions") Length & Pacific Halibut timeOnDeck
-    p(class="inst-desc") Catch submissions which inculde lengths and/or timeOnDeck values should be supplied as individual catch rows:
+    h6(id="submissionFields") Submission Fields
+    p(class="inst-desc") For a complete list of fields, data types, and descriptions, see ‘TripCatch’, ‘Haul’, and ‘Catch’ in the schemas section at the bottom of:
+        a(class='nav-link' href='./docs') API Docs
+
+    h6(id="tripFields") Required Trip Fields
+    p(class="inst-desc") buyers⁵, departureDateTime, departurePortCode, departureState, fishery, fisherySector⁴, isEFPTrip, isObserved, provider, resubmission, returnDateTime, returnPortCode, returnPortState, reviewerName⁴, source, submissionDatetime, tripNum, totalReviewTime⁴, vesselName, vesselNumber, year
+
+    h6(id="haulFields") Required Haul Fields
+    p(class="inst-desc") avgHooksPerSeg¹, catchHandlingPerformance, codendCapacity², endDateTime, endDepth, endLatitude, endLongitude, gear, gearLost¹, gearPerSet¹, haulNum, isCodendLost², netType², startDateTime, startDepth, startLatitude, startLongitude, systemPerformance
+
+    h6(id="catchFields") Required Catch Fields
+    p(class="inst-desc") calcWeightType, disposition, fate⁶, speciesCode, speciesCount³, speciesLength³, speciesWeight³, timeOnDeck⁷
+
+    | ¹ - required if gear = 'hook & line', 'fish pot', or 'longline (snap)'
+    br
+    | ² - required if gear = 'trawl'
+    br
+    | ³ - one of speciesWeight, speciesCount, speciesLength is required
+    br
+    | ⁴ - required for review only
+    br
+    | ⁵ - required for logbook only
+    br
+    | ⁶ - if disposition = 'Discarded' - review only
+    br
+    | ⁷ - required only if speciesCode = 101 (Pacific Halibut) - review only
+    br
+    br
+
+div(style="padding-left: 30px")
+    h6(id="lengthandTODSubmissions") Length & Pacific Halibut timeOnDeck
+    p(class="inst-desc") Catch submissions which inculde lengths and/or timeOnDeck (Pacific Halibut only) values should be supplied as individual catch rows:
         br
         br
         |...catch: [
@@ -70,36 +100,6 @@ div(style="padding-left: 30px")
         br
         | ]
         br
-
-div(style="padding-left: 30px")
-    h6(id="submissionFields") Submission Fields
-    p(class="inst-desc") For a complete list of fields, data types, and descriptions, see ‘TripCatch’, ‘Haul’, and ‘Catch’ in the schemas section at the bottom of:
-        a(class='nav-link' href='./docs') API Docs
-
-    h6(id="tripFields") Required Trip Fields
-    p(class="inst-desc") buyers⁵, departureDateTime, departurePortCode, departureState, fishery, fisherySector⁴, isEFPTrip, isObserved, provider, resubmission, returnDateTime, returnPortCode, returnPortState, reviewerName⁴, source, submissionDatetime, tripNum, totalReviewTime⁴, vesselName, vesselNumber, year
-
-    h6(id="haulFields") Required Haul Fields
-    p(class="inst-desc") avgHooksPerSeg¹, catchHandlingPerformance, codendCapacity², endDateTime, endDepth, endLatitude, endLongitude, gear, gearLost¹, gearPerSet¹, haulNum, isCodendLost², netType², startDateTime, startDepth, startLatitude, startLongitude, systemPerformance
-
-    h6(id="catchFields") Required Catch Fields
-    p(class="inst-desc") calcWeightType, disposition, fate⁶, speciesCode, speciesCount³, speciesLength³, speciesWeight³, timeOnDeck⁷
-
-    | ¹ - required if gear = 'hook & line', 'fish pot', or 'longline (snap)'
-    br
-    | ² - required if gear = 'trawl'
-    br
-    | ³ - one of speciesWeight, speciesCount, speciesLength is required
-    br
-    | ⁴ - required for review only
-    br
-    | ⁵ - required for logbook only
-    br
-    | ⁶ - if disposition = 'Discarded' - review only
-    br
-    | ⁷ - required only if speciesCode = 101 (Pacific Halibut) - review only
-    br
-    br
 
 h6(id="submitLogbook") Submit Logbook Data
 p(class="inst-desc") Transcribed logbook data is submitted via POST request to&nbsp;
