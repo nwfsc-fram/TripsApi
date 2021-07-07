@@ -22,6 +22,56 @@ p(class="inst-desc" style="background-color: lightblue; padding: 10px")
     | ]
 
 div(style="padding-left: 30px")
+    h6(id="individualSubmissions") Individual Lengths + Pacific Halibut timeOnDeck value submissions
+    p(class="inst-desc") Catch submissions which inculde lenghts and/or timeOnDeck values should be supplied as individual catch rows:
+        br
+        br
+        |...catch: [
+        br
+        |&nbsp;&nbsp;{
+        br
+        |&nbsp;&nbsp;&nbsp;&nbsp;"disposition": "Discarded",
+        br
+        |&nbsp;&nbsp;&nbsp;&nbsp;"fate": "1",
+        br
+        |&nbsp;&nbsp;&nbsp;&nbsp;"speciesCode": 101,
+        br
+        |&nbsp;&nbsp;&nbsp;&nbsp;"speciesLength": 100,
+        br
+        |&nbsp;&nbsp;&nbsp;&nbsp;"timeOnDeck": 5
+        br
+        |&nbsp;&nbsp;},
+        br
+        |&nbsp;&nbsp;{
+        br
+        |&nbsp;&nbsp;&nbsp;&nbsp;"disposition": "Discarded",
+        br
+        |&nbsp;&nbsp;&nbsp;&nbsp;"fate": "1",
+        br
+        |&nbsp;&nbsp;&nbsp;&nbsp;"speciesCode": 101,
+        br
+        |&nbsp;&nbsp;&nbsp;&nbsp;"speciesLength": 93,
+        br
+        |&nbsp;&nbsp;&nbsp;&nbsp;"timeOnDeck": 7
+        br
+        |&nbsp;&nbsp;},
+        br
+        |&nbsp;&nbsp;{
+        br
+        |&nbsp;&nbsp;&nbsp;&nbsp;"disposition": "Discarded",
+        br
+        |&nbsp;&nbsp;&nbsp;&nbsp;"fate": "1",
+        br
+        |&nbsp;&nbsp;&nbsp;&nbsp;"speciesCode": 306,
+        br
+        |&nbsp;&nbsp;&nbsp;&nbsp;"speciesLength": 53
+        br
+        |&nbsp;&nbsp;}
+        br
+        | ]
+        br
+
+div(style="padding-left: 30px")
     h6(id="submissionFields") Submission Fields
     p(class="inst-desc") For a complete list of fields, data types, and descriptions, see ‘TripCatch’, ‘Haul’, and ‘Catch’ in the schemas section at the bottom of:
         a(class='nav-link' href='./docs') API Docs
