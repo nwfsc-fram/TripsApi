@@ -49,7 +49,7 @@ export async function validateApiTrip(apiTrip: any, mode: string) {
     const portsQuery = await masterDev.view('TripsApi', 'all_em_lookups', {reduce: false, include_docs: false, key: 'port'});
     const validPortCodes = portsQuery.rows.map( (row: any) => row.value[1] );
 
-    const fisheriesQuery = await masterDev.view('obs_web', 'all_doc_types', {reduce: false, include_docs: true, key: 'fishery'});
+    const fisheriesQuery = await masterDev.view('TripsApi', 'all_em_lookups', {reduce: false, include_docs: true, key: 'fishery'});
     const validFisheryNames = fisheriesQuery.rows.map( (row: any) => row.doc.description );
 
     // check if vesselId valid
