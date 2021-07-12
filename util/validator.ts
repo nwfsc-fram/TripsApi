@@ -49,7 +49,7 @@ export async function validateApiTrip(apiTrip: any, mode: string) {
     const portsQuery = await masterDev.view('TripsApi', 'all_em_lookups', {reduce: false, include_docs: false, key: 'port'});
     const validPortCodes = portsQuery.rows.map( (row: any) => row.value[1] );
 
-    const fisheriesQuery = await masterDev.view('TripsApi', 'all_em_lookups', {reduce: false, include_docs: true, key: 'fishery'});
+    const fisheriesQuery = await masterDev.view('obs_web', 'all_doc_types', {reduce: false, include_docs: true, key: 'fishery'});
     const validFisheryNames = fisheriesQuery.rows.map( (row: any) => row.doc.description );
 
     // check if vesselId valid
@@ -414,7 +414,9 @@ async function validateTrip(catchVal: Catches, tripNum: number) {
     const validVessel = vesselIdsQuery.rows.map( (row: any) => row.key );
 
     const sourceLookups = await getLookupList('em-source');
-    const fisheryLookups = await getLookupList('fishery');
+
+    const fisheriesQuery = await masterDev.view('TripsApi', 'all_em_lookups', {reduce: false, include_docs: true, key: 'fishery'});
+    const validFisheryNames = fisheriesQuery.rows.map( (row: any) => row.doc.description );
     const fisherySectorLookups = await getLookupList('fishery-sector');
 
     const validationChecks = {
@@ -437,8 +439,8 @@ async function validateTrip(catchVal: Catches, tripNum: number) {
                 return {
                     presence: {allowEmpty: false},
                     inclusion: {
-                        within: fisheryLookups,
-                        message: 'invalid, valid fisheries include ' + fisheryLookups
+                        within: validFisheryNames,
+                        message: 'invalid, valid fisheries include ' + validFisheryNames
                     }
                 }
             }
