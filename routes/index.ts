@@ -349,6 +349,7 @@ const newCatch = async (req, res) => {
             newTrip.createdDate = moment().format();
             newTrip.createdBy = req.res && req.res.user ? req.res.user.username : 'unknown';
             newTrip.revision = 0;
+            newTrip.history = [];
 
             // check trip doc for tripNum exists
             const tripDocs = await masterDev.view('TripsApi', 'all_api_trips', { "key": tripNum });
