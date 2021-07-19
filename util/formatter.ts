@@ -40,7 +40,7 @@ export async function format(tripNum: number, logbook: Catches, review: Catches,
 async function catchToHaul(catchVals: Catches) {
     const results: any[] = [];
     let pacfinSpeciesCode = "";
-    let wcgopSpeciesCode = "";
+    let wcgopSpeciesCode: number = null;
 
     for (const haul of get(catchVals, 'hauls', [])) {
         for (const catchVal of get(haul, 'catch', [])) {
@@ -52,10 +52,10 @@ async function catchToHaul(catchVals: Catches) {
                 { "key": speciesCode, "include_docs": false });
             if (typeof codeLookup.rows[0].key === 'string') {
                 pacfinSpeciesCode = codeLookup.rows[0].key;
-                wcgopSpeciesCode = codeLookup.rows[0].value;
+                wcgopSpeciesCode = parseInt(codeLookup.rows[0].value, 10);
             } else {
                 pacfinSpeciesCode = codeLookup.rows[0].value;
-                wcgopSpeciesCode = codeLookup.rows[0].key;
+                wcgopSpeciesCode = parseInt(codeLookup.rows[0].key, 10);
             }
             results.push({
                 disposition: catchVal.disposition,
@@ -89,7 +89,7 @@ async function setIFQHaulLevelData(catchResults: any[]) {
     const ifqHaulLevelData: any[] = [];
     for (const catchResult of catchResults) {
         const ifqGroupings = await masterDev.view('Ifq', 'speciesCode-to-ifq-grouping',
-            { "key": catchResult.wcgopSpeciesCode, "include_docs": true });
+            { "key": parseInt(catchResult.wcgopSpeciesCode, 10), "include_docs": true });
         if (ifqGroupings.rows.length > 1) {
             let groupName: string = '';
             for (const ifqGrouping of ifqGroupings.rows) {
