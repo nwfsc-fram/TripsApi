@@ -457,10 +457,10 @@ const updateCatch = async (req, res) => {
     set(reqDoc, 'updateDate', moment().format());
     set(reqDoc, 'revision', couchDoc.revision ? couchDoc.revision + 1 : 1);
     set(reqDoc, 'resubmission', true);
-    if (!reqDoc.history) {
-        reqDoc.history = [];
-    }
-    set(reqDoc, 'history', cloneDeep(couchDoc.history));
+    set(reqDoc, 'history', []);
+    if (couchDoc.history) {
+        set(reqDoc, 'history', cloneDeep(couchDoc.history));
+    };
     reqDoc.history.push(cloneDeep(omit(couchDoc, ['history']))); // don't store history array in history versions
     const errors: string = reqDoc.errors && reqDoc.errors.length > 0 ? ' Errors: ' + JSON.stringify(reqDoc.errors) : '';
     masterDev.bulk({ docs: [reqDoc] }).then((body) => {
