@@ -3,7 +3,7 @@ import { masterDev } from './couchDB';
 
 const jp = require('jsonpath');
 
-async function getSpeciesCodesForGrouping(children: string[], speciesCodes: string[]) {
+async function getSpeciesCodesForGrouping(children: string[], speciesCodes: any[]) {
     for (const child of children) {
         const species = await masterDev.view('Taxonomy', 'taxonomy-alias-by-taxonomy-id',
             { "include_docs": true, "key": child });
@@ -13,7 +13,7 @@ async function getSpeciesCodesForGrouping(children: string[], speciesCodes: stri
             speciesCodes.push(result.pacfinSpeciesCode.toString());
         }
         if (result.wcgopSpeciesCode) {
-            speciesCodes.push(result.wcgopSpeciesCode.toString());
+            speciesCodes.push(parseInt(result.wcgopSpeciesCode, 10));
         }
         if (result.taxonomy && result.taxonomy.children) {
             await getSpeciesCodesForGrouping(result.taxonomy.children, speciesCodes);
@@ -22,11 +22,11 @@ async function getSpeciesCodesForGrouping(children: string[], speciesCodes: stri
     return speciesCodes;
 }
 
-function getMembershipSpeciesCodes(members: TaxonomyAlias[]) {
-    const speciesCodes = [];
+function getMembershipSpeciesCodes(members: any[]) {
+    const speciesCodes: any = [];
     for (const member of members) {
         if (member.wcgopSpeciesCode) {
-            speciesCodes.push(member.wcgopSpeciesCode.toString());
+            speciesCodes.push(parseInt(member.wcgopSpeciesCode, 10));
         }
         if (member.pacfinSpeciesCode) {
             speciesCodes.push(member.pacfinSpeciesCode.toString());
