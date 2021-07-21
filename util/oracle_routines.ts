@@ -1,4 +1,5 @@
 import * as oracledb from 'oracledb';
+const moment = require('moment');
 
 const vmsOleConfig = require('../dbConfig.json').vmsOleConfig;
 
@@ -57,6 +58,40 @@ export async function getVesselFishTickets(req: any, res: any) {
         fishTicketRows.push(fishTicketRow);
       }
       res.status(200).json(fishTicketRows);
+    } else {
+      res.status(400).send('did not receive a response');
+    }
+  } catch (connErr) {
+    console.error(connErr.message);
+    res.status(400).send(connErr.message);
+  }
+}
+
+export async function getOracleTrips(req: any, res: any) {
+  const vesselId = req.query.vesselId ? req.query.vesselId : '';
+  const startDate = req.query.startDate ? moment(req.query.startDate).format('DD-MMM-YY') : '';
+  const endDate = req.query.endDate ? moment(req.query.endDate).format('DD-MMM-YY') : '';
+
+  let tripRows: any = [];
+
+  try {
+    const pool = getObsprodOraclePool();
+    const connection = await pool.getConnection();
+    const result = await connection.execute(
+      "select t.trip_id ,(select description from lookups where lookup_type = 'TRIP_STATUS' and lookup_value = t.trip_status) as trip_status ,p.program_name ,(select description from lookups where lookup_type = 'FISHERY' and lookup_value = t.fishery) as fishery ,v.vessel_name ,coalesce(v.state_reg_number, v.coast_guard_number) as vessel_drvid ,trim(coalesce(c.first_name, '') || ' ' || coalesce(c.last_name, '')) as skipper ,trim(coalesce(u.first_name, '') || ' ' || coalesce(u.last_name, '')) as observer ,to_char(t.departure_date, 'DD-MON-YY HH24:MI') as departure_date ,to_char(t.return_date, 'DD-MON-YY HH24:MI') as return_date ,rp.port_name as return_port ,dp.port_name as departure_port ,t.data_quality ,t.logbook_number ,t.observer_logbook ,t.license_number ,t.permit_number ,t.crew_size ,t.fish_processed ,t.partial_trip ,listagg(ft.fish_ticket_number, ',') over (partition by t.trip_id) as fish_tickets ,t.notes as trip_notes  from trips t join users u on t.created_by = u.user_id join vessels v on t.vessel_id = v.vessel_id left join contacts c on t.skipper_id = c.contact_id left join programs p on t.program_id = p.program_id left join ports dp on t.departure_port_id = dp.port_id left join ports rp on t.return_port_id = rp.port_id left join fish_tickets ft on t.trip_id = ft.trip_id  where coalesce(v.state_reg_number, v.coast_guard_number) = :vesselId and trunc(t.return_date) BETWEEN :startDate AND :endDate",
+      [vesselId, startDate, endDate],
+    ).catch( error => console.log(error));
+    closeOracleConnection(connection);
+
+    if (result) {
+      for (const row of result.rows) {
+        const tripRow = {};
+        for (const [i, column] of result.metaData.entries()) {
+          tripRow[column.name] = row[i]
+        }
+        tripRows.push(tripRow);
+      }
+      res.status(200).json(tripRows);
     } else {
       res.status(400).send('did not receive a response');
     }
