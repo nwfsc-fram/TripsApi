@@ -292,7 +292,7 @@ async function getTripErrors(catchVal: Catches, otsTrip?: any) {
                         message: 'missing from ticket# ' + fishTicket.fishTicketNumber
                     },
                     datetime: {
-                        earliest: catchVal.returnDateTime,
+                        earliest: moment(catchVal.returnDateTime).subtract(1, 'days'),
                         latest: moment(catchVal.returnDateTime).add(5, 'days'),
                         message: 'must be after return date and within 5 days.'
                     }
