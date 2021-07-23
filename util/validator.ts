@@ -652,7 +652,7 @@ async function validateCatchVal(catches: any, speciesCodes: any, source?: any) {
             }
         },
         fate: function (value, attributes) {
-            if (source === sourceType.thirdParty) {
+            if (source === sourceType.thirdParty && attributes.disposition === 'Discarded') {
                 return {
                     presence: {
                         allowEmpty: false,
