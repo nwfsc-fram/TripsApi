@@ -242,7 +242,7 @@ function gradeLogbook(result) {
             if (!grouping.review) {
                 console.log('grouping not in review - passing species');
                 grouping.grade = 'pass';
-            } else if (grouping.review && !grouping.lokgook) {
+            } else if (grouping.review && !grouping.logbook) {
                 if (['Cowcod rockfish', 'Yelloweye Rockfish'].includes(grouping)) {
                     if (grouping.review <= 2) {
                         console.log('grouping in review / not in logbook, and under 2 lbs - passing grouping');
