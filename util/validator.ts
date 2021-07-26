@@ -676,7 +676,7 @@ async function validateCatchVal(catches: any, speciesCodes: any, source?: any) {
                 }
             } else {
                 return {
-                    isEmpty: ' should be left empty except when species code is of type PHLB/101'
+                    isEmpty: ' should be left empty EXCEPT when species code is of type PHLB/101'
                 }
             }
         },
