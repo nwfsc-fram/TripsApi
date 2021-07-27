@@ -263,6 +263,7 @@ function gradeLogbook(result) {
         } else if (grouping.review && grouping.logbook) {
             if (grouping.logbook >= grouping.review) {
                 console.log('grouping logbook weight greater than or equal to review weight - passing grouping')
+                grouping.grade = 'pass';
             } else {
                 if (['Cowcod rockfish', 'Yelloweye Rockfish'].includes(grouping)) {
                     if (
