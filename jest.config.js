@@ -1,7 +1,9 @@
 module.exports = {
-  moduleNameMapper: {
-    "^lodash-es/(.*)$": "./node_modules/lodash/$1"
-  },
+  transformIgnorePatterns: ["./node_modules/?!lodash-es"],
+  transform: {
+    '^.+\.(ts|html)$': 'ts-jest',
+    '^.+\.js$': 'babel-jest'
+    },
   preset: 'ts-jest',
   testEnvironment: 'node',
 };
