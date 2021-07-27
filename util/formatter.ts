@@ -242,28 +242,34 @@ function gradeLogbook(result) {
             if (!grouping.review) {
                 console.log('grouping not in review - passing species');
                 grouping.grade = 'pass';
+                grouping.criteria = 'On LB only';
             } else if (grouping.review && !grouping.logbook) {
                 if (['Cowcod rockfish', 'Yelloweye Rockfish'].includes(grouping)) {
                     if (grouping.review <= 2) {
                         console.log('grouping in review / not in logbook, and under 2 lbs - passing grouping');
                         grouping.grade = 'pass';
+                        grouping.criteria = 'REV only + <= 2 lb';
                     } else {
                         console.log('grouping in review / not in logbook, and 2 or more lbs - failing grouping');
                         grouping.grade = 'fail';
+                        grouping.criteria = 'REV only + > 2 lb';
                     }
                 } else {
                     if (grouping.review <= 5) {
                         console.log('grouping in review / not in logbook, and under 5 lbs - passing grouping');
                         grouping.grade = 'pass';
+                        grouping.criteria = 'REV only + <= 5 lb';
                     } else {
                         console.log('grouping in review / not in logbook, and 5 or more lbs - failing grouping');
                         grouping.grade = 'fail';
+                        grouping.criteria = 'REV only + > 5 lb';
                     }
                 }
         } else if (grouping.review && grouping.logbook) {
             if (grouping.logbook >= grouping.review) {
                 console.log('grouping logbook weight greater than or equal to review weight - passing grouping')
                 grouping.grade = 'pass';
+                grouping.criteria = 'LB >= REV'
             } else {
                 if (['Cowcod rockfish', 'Yelloweye Rockfish'].includes(grouping)) {
                     if (
@@ -272,9 +278,11 @@ function gradeLogbook(result) {
                         ) {
                             console.log('logbook weight is less than review weight, but less than 2 lbs or 10% of EM - passing grouping');
                             grouping.grade = 'pass';
+                            grouping.criteria = 'LB < REV, < 2 lb or 10% of REV';
                     } else {
                         console.log('logbook weight is less than review weight and exceeds 2 lbs or 10% of EM - failing grouping');
                         grouping.grade = 'fail';
+                        grouping.criteria = 'LB < REV, > 2 lb or 10% of REV';
                     }
                 } else {
                     if (
@@ -283,9 +291,11 @@ function gradeLogbook(result) {
                         ) {
                             console.log('logbook weight is less than review weight, but less than 5 lbs or 25% of EM - passing grouping');
                             grouping.grade = 'pass';
+                            grouping.criteria = "LB < REV, < 5 lb or 25% of REV";
                     } else {
                         console.log('logbook weight is less than review weight and exceeds 5 lbs or 25% of EM - failing grouping');
                         grouping.grade = 'fail';
+                        grouping.criteria = "LB < REV, > 5 lb or 25% of REV";
                     }
                 }
             }
