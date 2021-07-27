@@ -58,6 +58,6 @@
     "ts-jest": "^25.2.1"
   },
   "jest": {
-    "preset": "ts-jest"
+    "preset": "ts-jest/presets/js-with-babel-esm"
   }
 }
