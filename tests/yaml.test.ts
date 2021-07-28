@@ -1,5 +1,4 @@
-console.log("KMS in test yaml. . . . \n\n\n")
-
+/*
 test('verify test environment', () => {
     expect(true).toBe(true);
 });
@@ -13,3 +12,4 @@ test('OpenAPI.yaml import', () => {
     const swaggerDocument = YAML.load(path.resolve(__dirname, '../openapi.yaml'));
     expect(swaggerDocument).toBeTruthy();
 })
+*/
