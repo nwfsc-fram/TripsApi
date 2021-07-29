@@ -4,9 +4,7 @@ test('verify test environment', () => {
 });
 
 
-import * as fs from 'fs';
 import * as path from 'path';
-import { resolve } from 'path';
 import * as YAML from 'yamljs';
 
 test('OpenAPI.yaml import', () => {
