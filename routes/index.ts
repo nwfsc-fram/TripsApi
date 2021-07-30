@@ -796,7 +796,7 @@ const mongoRead = async (req, res) => {
 
     await findDocuments(collection, (documents) => {
         response.push.apply(response, documents);
-    }, req.query)
+    }, req.query, req.body.query, req.body.options)
 
     if (response.length > 0) {
         res.status(200).send(response);

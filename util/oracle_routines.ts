@@ -1,5 +1,7 @@
+import _ = require('lodash');
 import * as oracledb from 'oracledb';
 const moment = require('moment');
+import { masterDev } from './couchDB';
 
 const vmsOleConfig = require('../dbConfig.json').vmsOleConfig;
 
@@ -122,6 +124,25 @@ export async function insertRow() {
     console.error(connErr.message);
     throw new Error(connErr.message);
   }
+}
+
+export async function insertResultToIFQStaging(result) {
+  let apiTrip = await masterDev.view('TripsApi', 'all_api_trips', {key: result.tripNum, reduce: false, include_docs: true});
+  let logbook = await masterDev.view('TripsApi', 'all_api_catch', {key: result.tripNum, reduce: false, include_docs: true});
+  logbook = logbook.rows.map( (row) => row.doc).filter( (row) => row.source === 'logbook');
+  apiTrip = apiTrip.rows[0].doc;
+  const vesselId = apiTrip.vesselId;
+  console.log(vesselId);
+  const year = moment(logbook.returnDateTime).format('YYYY');
+  console.log(year);
+  const pool = getObsprodOraclePool();
+  const connection = await pool.getConnection();
+  let vesselAccount = await connection.execute(
+    "SELECT account_identifier FROM vessel_to_permit_v WHERE quota_year = :year AND status = 'Active' AND vessel_registration_number = :vesselId", [year, vesselId]
+  )
+  vesselAccount = vesselAccount.rows[0][0];
+  closeOracleConnection(connection);
+  console.log(vesselAccount);
 }
 
 export async function getVesselSelections(req: any, res: any) {

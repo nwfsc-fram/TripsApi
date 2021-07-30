@@ -2,9 +2,9 @@ const { MongoClient } = require('mongodb');
 import { cloneDeep } from 'lodash';
 
 const mongoUri = require('../dbConfig.json').mongoUri;
-const mongoDbName = 'common';
+const mongoDbName = 'lookupsdb';
 
-export async function findDocuments(collectionName, callback, query?) {
+export async function findDocuments(collectionName, callback, query?, bodyQuery?, bodyOptions?) {
     try {
         const mongoClient = new MongoClient(mongoUri);
         await mongoClient.connect()
@@ -12,20 +12,30 @@ export async function findDocuments(collectionName, callback, query?) {
 
         const collection = db.collection(collectionName);
 
-        let formattedQuery = cloneDeep(query);
-        for (const queryKey of Object.keys(formattedQuery) ) {
-            if (formattedQuery[queryKey] === 'true') {
-                formattedQuery[queryKey] = true;
-            }
-            if (parseInt(formattedQuery[queryKey], 10)) {
-                formattedQuery[queryKey] = parseInt(formattedQuery[queryKey], 10);
-            }
+        if (!bodyOptions) {
+            bodyOptions = {};
         }
+        if (bodyQuery) {
+            await collection.find(bodyQuery, bodyOptions).toArray(function(err, docs) {
+                callback(docs)
+            });
+            await mongoClient.close();
+        } else {
+            let formattedQuery = cloneDeep(query);
+            for (const queryKey of Object.keys(formattedQuery) ) {
+                if (formattedQuery[queryKey] === 'true') {
+                    formattedQuery[queryKey] = true;
+                }
+                if (parseInt(formattedQuery[queryKey], 10)) {
+                    formattedQuery[queryKey] = parseInt(formattedQuery[queryKey], 10);
+                }
+            }
 
-        await collection.find(formattedQuery).toArray(function(err, docs) {
-            callback(docs)
-        });
-        await mongoClient.close();
+            await collection.find(formattedQuery).toArray(function(err, docs) {
+                callback(docs)
+            });
+            await mongoClient.close();
+        }
     } catch(err) {
         console.error(err);
     }

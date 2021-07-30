@@ -1,6 +1,6 @@
 const jp = require('jsonpath');
 import { cloneDeep, flattenDeep, set } from 'lodash';
-import { getFishTicket } from './oracle_routines';
+import { getFishTicket, insertResultToIFQStaging } from './oracle_routines';
 import { unsortedCatch, lostCodend, selectiveDiscards, discardMortalityRates, missingWeight, lostFixedGear } from '@boatnet/bn-expansions';
 import { Catches, ResponseCatchTypeName, MinimalResponseCatchTypeName } from '@boatnet/bn-models';
 import { format } from './formatter';
@@ -107,6 +107,7 @@ export async function catchEvaluator(tripNum: number, expansionType: string) {
                 set(result, 'createDate', moment().format());
             }
             await masterDev.bulk({ docs: [result] });
+            await insertResultToIFQStaging(result);
         } catch (err) {
             console.log(err);
         }
