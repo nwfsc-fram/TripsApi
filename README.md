@@ -42,7 +42,10 @@ Prod endpoint: https://www.webapps.nwfsc.noaa.gov/trips/api/v1/login
 ```
   {
      "username": "xxx",
-     "password": "pw"
+     "password": "pw",
+     "encodeCouchPassword": true,
+     "clientVersion": "Auth v1",
+     "applicationName": "BOATNET_OBSERVER"
  }
 ```
 <img src="./login.PNG" alt="Login">
