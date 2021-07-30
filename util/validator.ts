@@ -406,6 +406,9 @@ async function validateFishTickets(catchVal: Catches, speciesCodes: string[]) {
 
 async function validateTrip(catchVal: Catches, tripNum: number) {
 
+    let apiTrip = await masterDev.view('TripsApi', 'all_api_trips', {reduce: false, include_docs: true, key: tripNum});
+    apiTrip = apiTrip.rows[0].doc;
+
     const portsQuery = await masterDev.view('TripsApi', 'all_em_lookups', {reduce: false, include_docs: false, key: 'port'});
     const validPortCodes = portsQuery.rows.map( (row: any) => row.value[1] );
 
@@ -472,12 +475,17 @@ async function validateTrip(catchVal: Catches, tripNum: number) {
         vesselNumber: {
             presence: {allowEmpty: false},
             inclusion: {
-                within: validVessel
+                within: [apiTrip.vesselId],
+                message: 'vessel number must match trip vessel info'
             }
         },
         vesselName: {
             type: "string",
             presence: {allowEmpty: false},
+            inclusion: {
+                within: [apiTrip.vesselName],
+                message: 'vessel name must match trip vessel info'
+            }
         },
         departurePortCode: {
             presence: {allowEmpty: false},
@@ -575,13 +583,17 @@ async function validateHaul(haul: any, tripInfo: Catches) {
                 }
             }
         },
-        startDateTime: {
-            datetime: {
-                earliest: tripInfo.departureDateTime,
-                latest: haul.endDateTime,
-                message: 'must occur after trip departure date time: ' + tripInfo.departureDateTime + ' and before haul end date ' + haul.endDateTime
-            },
-            presence: {allowEmpty: false}
+        startDateTime: function (value, attributes) {
+            if (attributes.gear === 'trawl') {
+                return {
+                    datetime: {
+                        earliest: tripInfo.departureDateTime,
+                        latest: haul.endDateTime,
+                        message: 'must occur after trip departure date time: ' + tripInfo.departureDateTime + ' and before haul end date ' + haul.endDateTime
+                    },
+                    presence: {allowEmpty: false}
+                }
+            }
         },
         startLongitude: {
             presence: {allowEmpty: false},
@@ -659,7 +671,11 @@ async function validateCatchVal(catches: any, speciesCodes: any, source?: any) {
                         message: 'required for review submission'
                     }
                 }
-            }
+            } else if (source === sourceType.thirdParty && attributes.disposition === 'Retained' && attributes.fate) {
+                return {
+                        isEmpty: ' fate should be left empty when disposition is Retained'
+                    }
+                }
         },
         speciesCount: function (value, attributes) {
             const index = validCodes.indexOf(attributes.speciesCode);
