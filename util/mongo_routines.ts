@@ -4,11 +4,11 @@ import { cloneDeep } from 'lodash';
 const mongoUri = require('../dbConfig.json').mongoUri;
 const mongoDbName = 'lookupsdb';
 
-export async function findDocuments(collectionName, callback, query?, bodyQuery?, bodyOptions?) {
+export async function findDocuments(database, collectionName, callback, query?, bodyQuery?, bodyOptions?) {
     try {
         const mongoClient = new MongoClient(mongoUri);
         await mongoClient.connect()
-        const db = mongoClient.db(mongoDbName)
+        const db = mongoClient.db(database)
 
         const collection = db.collection(collectionName);
 
