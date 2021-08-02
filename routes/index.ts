@@ -790,11 +790,12 @@ const emailCoordinator = async (req, res) => {
 
 const mongoRead = async (req, res) => {
     let response = [];
-    let collection = req.params.collection
+    let collection = req.params.collection;
+    let database = req.params.database;
 
     console.log(req.query);
 
-    await findDocuments(collection, (documents) => {
+    await findDocuments(database, collection, (documents) => {
         response.push.apply(response, documents);
     }, req.query, req.body.query, req.body.options)
 
@@ -893,7 +894,7 @@ router.put('/api/' + API_VERSION + '/tripCatch/:tripNum', updateCatch);
 
 router.use('/api/' + API_VERSION + '/mongo', getPubKey);
 router.use('/api/' + API_VERSION + '/mongo', validateJwtRequest);
-router.get('/api/' + API_VERSION + '/mongo/:collection', mongoRead);
+router.get('/api/' + API_VERSION + '/mongo/:database/:collection', mongoRead);
 router.post('/api/' + API_VERSION + '/mongo', mongoWrite);
 router.put('/api/' + API_VERSION + '/mongo', mongoUpdate);
 router.delete('/api/' + API_VERSION + '/mongo', mongoDelete);
