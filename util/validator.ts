@@ -593,6 +593,11 @@ async function validateHaul(haul: any, tripInfo: Catches) {
                     },
                     presence: {allowEmpty: false}
                 }
+            } else {
+                return {
+                        presence: {allowEmpty: false},
+                        datetime: true
+                    }
             }
         },
         startLongitude: {
