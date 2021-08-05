@@ -61,13 +61,18 @@ export async function runTripErrorChecks (req, res) {
         runMSOTCOver300KCheck(tripErrorDoc, trip, operation);
         runFishActivityWithNoDispositionCheck(tripErrorDoc, trip, operation);
         runRetrievalDepthGreater500FMCheck(tripErrorDoc, trip, operation);
+        runSetDepthGreater400FMCheck(tripErrorDoc, trip, operation);
+        runSetDepthGreater500FMCheck(tripErrorDoc, trip, operation);
         runWrongOTCPartialGearCheck(tripErrorDoc, trip, operation);
         runShrimpPotOTCGreater1000Check(tripErrorDoc, trip, operation);
-        runLineOTCGreater1000Check(tripErrorDoc, trip, operation);
+        runLineOTCGreater1000Check(tripErrorDoc, trip, operation); 
      
         for (let catchDoc of operation.catches)
         {
             runOpenAccess500CatchWeightCheck(tripErrorDoc, trip, operation, catchDoc);
+            runCatchMethod5Check(tripErrorDoc, trip, operation, catchDoc);
+            runFixedGearSampleWeightBlankCheck(tripErrorDoc, trip, operation, catchDoc);
+            runFixedGearSampleWeightGreater8000Check(tripErrorDoc, trip, operation, catchDoc);
         }
 
     }
@@ -717,6 +722,8 @@ function runOpenAccess500CatchWeightCheck(tripErrorDoc: WcgopTripError, trip: Wc
         status: StatusType.valid,
         operationId: operation._id,
         operationNum: operation.operationNum,
+        catchId: catchDoc.legacy.catchId,
+        catchNum: catchDoc.catchNum,
         errorItem: 'Weight',
         errorValue: null,
         notes: '',
@@ -893,4 +900,170 @@ function runLineOTCGreater1000Check(tripErrorDoc: WcgopTripError, trip: WcgopTri
         tripErrorDoc.errors.push( error );
     }
     
+}
+
+
+//trip check code 7150 
+function runCatchMethod5Check(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation, catchDoc: WcgopCatch ) {
+
+    let error = {severity: Severity.warning,
+        description: 'Catch Weight Method 5 is not common',
+        dateCreated: moment().format(),
+        observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+        status: StatusType.valid,
+        operationId: operation._id,
+        operationNum: operation.operationNum,
+        catchId: catchDoc.legacy.catchId,
+        catchNum: catchDoc.catchNum,
+        errorItem: 'Catch Weight Method',
+        errorValue: null,
+        notes: '',
+        legacy:{
+            checkCode : 7150 
+        }
+    };
+    if ( catchDoc.weightMethod.description === "OTC - retained" && // catch_weight_method = 5
+            moment(trip.returnDate).isAfter( moment('2011-01-01') ))
+    { 
+        error.errorValue = catchDoc.weightMethod.description;
+        tripErrorDoc.errors.push( error );
+    }
+    
+}
+
+//trip check code 31600 
+function runFixedGearSampleWeightBlankCheck(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation, catchDoc: WcgopCatch ) {
+
+    let error = {severity: Severity.error,
+        description: 'Fixed gear sample weight is negative, zero or blank',
+        dateCreated: moment().format(),
+        observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+        status: StatusType.valid,
+        operationId: operation._id,
+        operationNum: operation.operationNum,
+        catchId: catchDoc.legacy.catchId,
+        catchNum: catchDoc.catchNum,
+        errorItem: 'Sample Weight',
+        errorValue: null,
+        notes: '',
+        legacy:{
+            checkCode : 31600 
+        }
+    };
+    if ( (operation.gearType.description === "Longline (snap)" || 
+            operation.gearType.description === "Pole (commercial)" || 
+            operation.gearType.description === "Other hook and line gear" || 
+            operation.gearType.description === "Fish pot" || 
+            operation.gearType.description === "All troll gear" || 
+            operation.gearType.description === "Longline" || 
+            operation.gearType.description === "Vertical hook and line gear" || 
+            operation.gearType.description === "Hook & Line" ) && //gear_type IN (20,8,9,10,15,6,7,19)
+            catchDoc.sampleWeight.value === undefined ||  catchDoc.sampleWeight.value === null 
+            ||    catchDoc.sampleWeight.value <= 0)
+    { 
+        error.errorValue = catchDoc.sampleWeight.value;
+        tripErrorDoc.errors.push( error );
+    }
+    
+}
+
+//trip check code 91300 
+function runFixedGearSampleWeightGreater8000Check(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation, catchDoc: WcgopCatch ) {
+
+    let error = {severity: Severity.warning,
+        description: 'Fixed gear sample weight is greater than 8000 lbs',
+        dateCreated: moment().format(),
+        observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+        status: StatusType.valid,
+        operationId: operation._id,
+        operationNum: operation.operationNum,
+        catchId: catchDoc.legacy.catchId,
+        catchNum: catchDoc.catchNum,
+        errorItem: 'Weight',
+        errorValue: null,
+        notes: '',
+        legacy:{
+            checkCode : 91300 
+        }
+    };
+    if ( (  operation.gearType.description === "Longline" || 
+            operation.gearType.description === "Fish pot" ) && //gear_type IN (6,10)
+            catchDoc.sampleWeight.value > 8000)
+    { 
+        error.errorValue = catchDoc.sampleWeight.value;
+        tripErrorDoc.errors.push( error );
+    }
+    
+}
+
+//trip check code 100201 
+function runSetDepthGreater400FMCheck(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation) {
+
+    for (const operationLocation of operation.locations)
+    {
+        if ( operationLocation.depth.value >400 && operationLocation.depth.units === "FM" && operationLocation.position === -1 &&
+            (operation.gearType.description ==="Midwater trawl")  //gear_type = 3
+        )
+        {
+            let error = {severity: Severity.warning,
+                description: 'Set depth is greater than 400 fathoms. Confirm value is fishing depth, not bottom depth',
+                dateCreated: moment().format(),
+                observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+                status: StatusType.valid,
+                operationId: operation._id,
+                operationNum: operation.operationNum,
+                fishingLocation: operationLocation,
+                errorItem: 'Depth',
+                errorValue: operationLocation.depth.value.toString(),
+                notes: '',
+                legacy:{
+                    checkCode : 100201 
+                }
+            };
+
+            tripErrorDoc.errors.push( error );
+    
+        }
+    }
+}
+
+
+//trip check code 100202 
+function runSetDepthGreater500FMCheck(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation) {
+
+    for (const operationLocation of operation.locations)
+    {
+        if ( operationLocation.depth.value >500 && operationLocation.depth.units === "FM" && operationLocation.position === 0 &&
+            (operation.gearType.description ==="Groundfish trawl, footrope < 8 inches (small footrope)" || 
+                operation.gearType.description ==="Groundfish trawl, footrope > 8 inches (large footrope)" || 
+                operation.gearType.description ==="Danish/Scottish Seine (trawl)" || 
+                operation.gearType.description ==="Other trawl gear" || 
+                operation.gearType.description ==="Prawn trawl" || 
+                operation.gearType.description ==="Shrimp trawl, single rigged" || 
+                operation.gearType.description ==="Shrimp trawl, double rigged" || 
+                operation.gearType.description ==="All net gear except trawl" || 
+                operation.gearType.description ==="All other miscellaneous gear" || 
+                operation.gearType.description ==="Oregon set-back flatfish net")  //gear_type IN (1, 2, 4, 5, 11, 12, 13, 14 ,16, 17)
+        )
+        {
+            let error = {severity: Severity.warning,
+                description: 'Set depth is greater than 500 fathoms',
+                dateCreated: moment().format(),
+                observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+                status: StatusType.valid,
+                operationId: operation._id,
+                operationNum: operation.operationNum,
+                fishingLocation: operationLocation,
+                errorItem: 'Depth',
+                errorValue: operationLocation.depth.value.toString(),
+                notes: '',
+                legacy:{
+                    checkCode : 100202 
+                }
+            };
+
+            tripErrorDoc.errors.push( error );
+    
+        }
+    }
 }
