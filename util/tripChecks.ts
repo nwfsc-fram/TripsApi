@@ -61,6 +61,7 @@ export async function runTripErrorChecks (req, res) {
         runMSOTCOver300KCheck(tripErrorDoc, trip, operation);
         runFishActivityWithNoDispositionCheck(tripErrorDoc, trip, operation);
         runRetrievalDepthGreater500FMCheck(tripErrorDoc, trip, operation);
+        runRetrievalDepthGreater400FMCheck(tripErrorDoc, trip, operation);
         runWrongOTCPartialGearCheck(tripErrorDoc, trip, operation);
         runShrimpPotOTCGreater1000Check(tripErrorDoc, trip, operation);
         runLineOTCGreater1000Check(tripErrorDoc, trip, operation);
@@ -992,4 +993,35 @@ function runFixedGearSampleWeightGreater8000Check(tripErrorDoc: WcgopTripError, 
         tripErrorDoc.errors.push( error );
     }
     
+}
+
+//trip check code 100201 
+function runRetrievalDepthGreater400FMCheck(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation) {
+
+    for (const operationLocation of operation.locations)
+    {
+        if ( operationLocation.depth.value >400 && operationLocation.depth.units === "FM" && operationLocation.position === -1 &&
+            (operation.gearType.description ==="Midwater trawl")  //gear_type = 3
+        )
+        {
+            let error = {severity: Severity.warning,
+                description: 'Set depth is greater than 400 fathoms. Confirm value is fishing depth, not bottom depth',
+                dateCreated: moment().format(),
+                observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+                status: StatusType.valid,
+                operationId: operation._id,
+                operationNum: operation.operationNum,
+                fishingLocation: operationLocation,
+                errorItem: 'Depth',
+                errorValue: operationLocation.depth.value.toString(),
+                notes: '',
+                legacy:{
+                    checkCode : 100201 
+                }
+            };
+
+            tripErrorDoc.errors.push( error );
+    
+        }
+    }
 }
