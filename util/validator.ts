@@ -144,7 +144,7 @@ export async function validateCatch(catchVal: Catches, tripNum: number, otsTrip?
 
     // validate trip - find errors that would cause the request to be rejected
     let validationResults: string = await validateTrip(catchVal, tripNum);
-    validationResults += await validateFishTickets(catchVal, validCodes);
+    // validationResults += await validateFishTickets(catchVal, validCodes); -- disabling for now to supress validation errors unrelated to submission - will evaluate downstream effects.
     // find errors, the trip will still be accepted, but errors logged in the doc
     errors = errors.concat(await getTripErrors(catchVal, otsTrip));
 
@@ -609,7 +609,8 @@ async function validateHaul(haul: any, tripInfo: Catches) {
         startLatitude: {
             presence: {allowEmpty: false},
             numericality: {
-                lessThan: 49
+                lessThan: 49,
+                greaterThan: 32.5
             }
         },
         endDepth: function (value, attributes) {
@@ -628,7 +629,8 @@ async function validateHaul(haul: any, tripInfo: Catches) {
         endLatitude: {
             presence: {allowEmpty: false},
             numericality: {
-                lessThan: 49
+                lessThan: 49,
+                greaterThan: 32.5
             }
         },
         endDateTime: {
