@@ -128,7 +128,7 @@ async function setIFQHaulLevelData(catchResults: any[], tripNum, source) {
     const ifqHaulLevelData: any[] = [];
     for (const catchResult of catchResults) {
         const ifqGroupings = await masterDev.view('Ifq', 'speciesCode-to-ifq-grouping',
-            { "key": parseInt(catchResult.wcgopSpeciesCode, 10), "include_docs": true });
+            { "keys": [parseInt(catchResult.wcgopSpeciesCode, 10), catchResult.wcgopSpeciesCode.toString()], "include_docs": true });
         // if (ifqGroupings.rows.length > 1) {
         let groupName: string = '';
         let speciesGroupId: number | string = null;
