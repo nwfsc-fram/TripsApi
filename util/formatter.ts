@@ -206,17 +206,17 @@ async function setIFQHaulLevelData(catchResults: any[], tripNum, source) {
             newGroupCatch.ifqGrouping = name2;
             newGroupCatch.speciesGroupId = id2;
             catchResults.push(newGroupCatch);
-            const groupingError = await masterDev.post(
-                {
-                    "type": "boatnet-error",
-                    "context": source + "- IFQ grouping",
-                    "app": "TripsApi",
-                    "error": catchResult.wcgopSpeciesCode + " catch split into 2 groupings: " + name1 + " and " + name2 + " based on startLatitude " + catchResult.startLatidue + " and endLatitude: " + catchResult.endLatitude,
-                    "date": moment().format(),
-                    "tripNum": tripNum,
-                    "haulNum": catchResult.haulNum
-                }
-            )
+            // const groupingError = await masterDev.post(
+            //     {
+            //         "type": "boatnet-error",
+            //         "context": source + "- IFQ grouping",
+            //         "app": "TripsApi",
+            //         "error": catchResult.wcgopSpeciesCode + " catch split into 2 groupings: " + name1 + " and " + name2 + " based on startLatitude " + catchResult.startLatidue + " and endLatitude: " + catchResult.endLatitude,
+            //         "date": moment().format(),
+            //         "tripNum": tripNum,
+            //         "haulNum": catchResult.haulNum
+            //     }
+            // )
         }
         catchResult.fishingArea = await determineFishingArea(catchResult);
         if (catchResult.fishingArea.indexOf('/') !== -1) {
@@ -227,17 +227,17 @@ async function setIFQHaulLevelData(catchResults: any[], tripNum, source) {
             let newAreaCatch = cloneDeep(catchResult);
             newAreaCatch.fishingArea = fishingArea2;
             catchResults.push(newAreaCatch);
-            const fishingAreaError = await masterDev.post(
-                {
-                    "type": "boatnet-error",
-                    "context": source +  "- Fishing Areas",
-                    "error": catchResult.wcgopSpeciesCode + " catch split into 2 fishing areas: " + fishingArea1 + " and " + fishingArea2 + " based on startLatitude " + catchResult.startLatidue + " and endLatitude: " + catchResult.endLatitude,
-                    "createdDate": moment().format(),
-                    "createdBy": "TripsApi",
-                    "tripNum": tripNum,
-                    "haulNum": catchResult.haulNum
-                }
-            )
+            // const fishingAreaError = await masterDev.post(
+            //     {
+            //         "type": "boatnet-error",
+            //         "context": source +  "- Fishing Areas",
+            //         "error": catchResult.wcgopSpeciesCode + " catch split into 2 fishing areas: " + fishingArea1 + " and " + fishingArea2 + " based on startLatitude " + catchResult.startLatidue + " and endLatitude: " + catchResult.endLatitude,
+            //         "createdDate": moment().format(),
+            //         "createdBy": "TripsApi",
+            //         "tripNum": tripNum,
+            //         "haulNum": catchResult.haulNum
+            //     }
+            // )
         }
         ifqHaulLevelData.push(catchResult);
     }
