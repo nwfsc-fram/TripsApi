@@ -126,7 +126,7 @@ export async function catchEvaluator(tripNum: number, expansionType: string) {
             }
 
             // does catch contain pacific halibut, lingcod, or sablefish?
-            if (expansionType === ResponseCatchTypeName && flattenedCatch.find((row: any) => ['PHLB', '101', 'LCOD', '603', 'SABL', '203'].includes(row.speciesCode.toString()))) {
+            if (expansionType === ResponseCatchTypeName && flattenedCatch.find((row: any) => ['PHLB', 101, '101', 'LCOD', 603, '603', 'SABL', 203, '203'].includes(row.speciesCode.toString()))) {
                 console.log('discard mortality rate species found');
                 const dmr: discardMortalityRates = new discardMortalityRates();
                 currCatch = cloneDeep(dmr.expand({ currCatch, speciesCodeLookup }));
@@ -134,7 +134,7 @@ export async function catchEvaluator(tripNum: number, expansionType: string) {
 
             // is any catch unsorted catch? ('UNST' or '999' speciesCode) (Net Bleed)?
             if (
-                flattenedCatch.find((row: any) => ['UNST', '999'].includes(row.speciesCode.toString())) &&
+                flattenedCatch.find((row: any) => ['UNST', 999, '999'].includes(row.speciesCode.toString())) &&
                 currCatch.hauls.find((row: any) => row.gear === 'trawl')
             ) {
                 console.log('unsorted catch (net bleed) found');

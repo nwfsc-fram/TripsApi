@@ -408,6 +408,18 @@ const newCatch = async (req, res) => {
     }, 300)
 }
 
+const evalCatch = async (req, res) => {
+    const tripNum = parseInt(req.params.tripNum, 10);
+    try {
+        await catchEvaluator(tripNum, ResponseCatchTypeName);
+        await catchEvaluator(tripNum, MinimalResponseCatchTypeName);
+        res.status(200).send('Catch doc with tripNum:' + tripNum + ' successfully evaluated');
+    } catch (err) {
+        res.status(500).send('Something went wrong - unable to evaluate catch for trip number ' + tripNum + ' Error: ' + err);
+    }
+}
+
+
 const updateCatch = async (req, res) => {
     if (req.headers['content-type'] == "application/xml") { stringParser(req); }
     const tripNum = parseInt(req.params.tripNum, 10);
@@ -891,6 +903,10 @@ router.use('/api/' + API_VERSION + '/tripCatch/:tripNum', validateJwtRequest);
 router.get('/api/' + API_VERSION + '/tripCatch/:tripNum', getCatch);
 router.post('/api/' + API_VERSION + '/tripCatch/:tripNum', newCatch);
 router.put('/api/' + API_VERSION + '/tripCatch/:tripNum', updateCatch);
+
+router.use('/api/' + API_VERSION + '/evalCatch/:tripNum', getPubKey);
+router.use('/api/' + API_VERSION + '/evalCatch/:tripNum', validateJwtRequest);
+router.get('/api/' + API_VERSION + '/evalCatch/:tripNum', evalCatch);
 
 router.use('/api/' + API_VERSION + '/mongo', getPubKey);
 router.use('/api/' + API_VERSION + '/mongo', validateJwtRequest);
