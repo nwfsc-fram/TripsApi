@@ -63,9 +63,12 @@ export async function runTripErrorChecks (req, res) {
         runRetrievalDepthGreater500FMCheck(tripErrorDoc, trip, operation);
         runSetDepthGreater400FMCheck(tripErrorDoc, trip, operation);
         runSetDepthGreater500FMCheck(tripErrorDoc, trip, operation);
+        runSetDepthGreater700FMCheck(tripErrorDoc, trip, operation);
         runWrongOTCPartialGearCheck(tripErrorDoc, trip, operation);
         runShrimpPotOTCGreater1000Check(tripErrorDoc, trip, operation);
         runLineOTCGreater1000Check(tripErrorDoc, trip, operation); 
+        runTotalPotsOver100Check(tripErrorDoc, trip, operation); 
+        runOTCGreater300000heck(tripErrorDoc, trip, operation);
      
         for (let catchDoc of operation.catches)
         {
@@ -1033,7 +1036,7 @@ function runSetDepthGreater500FMCheck(tripErrorDoc: WcgopTripError, trip: WcgopT
 
     for (const operationLocation of operation.locations)
     {
-        if ( operationLocation.depth.value >500 && operationLocation.depth.units === "FM" && operationLocation.position === 0 &&
+        if ( operationLocation.depth.value >500 && operationLocation.depth.units === "FM" && operationLocation.position === -1 &&
             (operation.gearType.description ==="Groundfish trawl, footrope < 8 inches (small footrope)" || 
                 operation.gearType.description ==="Groundfish trawl, footrope > 8 inches (large footrope)" || 
                 operation.gearType.description ==="Danish/Scottish Seine (trawl)" || 
@@ -1043,7 +1046,7 @@ function runSetDepthGreater500FMCheck(tripErrorDoc: WcgopTripError, trip: WcgopT
                 operation.gearType.description ==="Shrimp trawl, double rigged" || 
                 operation.gearType.description ==="All net gear except trawl" || 
                 operation.gearType.description ==="All other miscellaneous gear" || 
-                operation.gearType.description ==="Oregon set-back flatfish net")  //gear_type IN (1, 2, 4, 5, 11, 12, 13, 14 ,16, 17)
+                operation.gearType.description ==="Oregon set-back flatfish net")  //gear_type IN (1, 2, 4, 5, 11, 12, 13, 14 ,16, 17) 
         )
         {
             let error = {severity: Severity.warning,
@@ -1066,4 +1069,100 @@ function runSetDepthGreater500FMCheck(tripErrorDoc: WcgopTripError, trip: WcgopT
     
         }
     }
+}
+
+
+//trip check code 100200 
+function runSetDepthGreater700FMCheck(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation) {
+
+    for (const operationLocation of operation.locations)
+    {
+        if ( operationLocation.depth.value >700 && operationLocation.depth.units === "FM" && operationLocation.position === -1 &&
+            (operation.gearType.description ==="Vertical hook and line gear" || 
+                operation.gearType.description ==="Pole (commercial)" || 
+                operation.gearType.description ==="Other hook and line gear" || 
+                operation.gearType.description ==="Fish pot" || 
+                operation.gearType.description ==="All troll gear" || 
+                operation.gearType.description ==="Prawn trap" || 
+                operation.gearType.description ==="Hook & Line" || 
+                operation.gearType.description ==="Longline (snap)")  //gear_type IN (7, 8, 9, 10, 15, 18, 19, 20)
+        )
+        {
+            let error = {severity: Severity.warning,
+                description: 'Set depth is greater than 700 fathoms.',
+                dateCreated: moment().format(),
+                observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+                status: StatusType.valid,
+                operationId: operation._id,
+                operationNum: operation.operationNum,
+                fishingLocation: operationLocation,
+                errorItem: 'Depth',
+                errorValue: operationLocation.depth.value.toString(),
+                notes: '',
+                legacy:{
+                    checkCode : 100200 
+                }
+            };
+
+            tripErrorDoc.errors.push( error );
+    
+        }
+    }
+}
+
+//trip check code 99800 
+function runTotalPotsOver100Check(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation) {
+
+    if ( operation.totalHooks > 100 
+            && operation.gearType.description ==="Fish pot" )
+    {
+        let error = {severity: Severity.warning,
+            description: 'Total pots count > 100',
+            dateCreated: moment().format(),
+            observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+            status: StatusType.valid,
+            operationId: operation._id,
+            operationNum: operation.operationNum,
+            errorItem: 'Gear Type',
+            errorValue: operation.totalHooks.toString(),
+            notes: '',
+            legacy:{
+                checkCode : 99800 
+            }
+        };
+
+        tripErrorDoc.errors.push( error );
+
+    }
+    
+}
+
+//trip check code 98600 
+function runOTCGreater300000heck(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation) {
+
+    if ( (trip.fishery.description === "Pacific Hake" || 
+            trip.fishery.description === "Shoreside Hake" || 
+            trip.fishery.description === "Mothership Catcher-Vessel") && 
+            operation.observerTotalCatch.measurement.value>300000 && 
+            operation.gearType.description ==="Midwater trawl" )
+    {
+        let error = {severity: Severity.warning,
+            description: 'Gear type 3 used and OTC is greater than 300000 lbs',
+            dateCreated: moment().format(),
+            observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+            status: StatusType.valid,
+            operationId: operation._id,
+            operationNum: operation.operationNum,
+            errorItem: 'Fishery',
+            errorValue: operation.totalHooks.toString(),
+            notes: '',
+            legacy:{
+                checkCode : 98600 
+            }
+        };
+
+        tripErrorDoc.errors.push( error );
+
+    }
+    
 }
