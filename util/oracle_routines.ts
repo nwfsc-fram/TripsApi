@@ -140,6 +140,7 @@ export async function insertResultToIFQStaging(result) {
   let vesselAccount = await connection.execute(
     "SELECT account_identifier FROM vessel_to_permit_v WHERE quota_year = :year AND status = 'Active' AND vessel_registration_number = :vesselId", [year, vesselId]
   )
+  console.log(vesselAccount);
   vesselAccount = vesselAccount.rows[0][0];
   closeOracleConnection(connection);
   console.log(vesselAccount);

@@ -127,22 +127,27 @@ async function setIFQHaulLevelData(catchResults: any[], tripNum, source) {
     // get ifq grouping name for each record based speciesCode and lat and long
     const ifqHaulLevelData: any[] = [];
     for (const catchResult of catchResults) {
-        const ifqGroupings = await masterDev.view('Ifq', 'speciesCode-to-ifq-grouping',
+        let ifqGroupings = await masterDev.view('Ifq', 'speciesCode-to-ifq-grouping',
             { "keys": [parseInt(catchResult.wcgopSpeciesCode, 10), catchResult.wcgopSpeciesCode.toString()], "include_docs": true });
+        ifqGroupings = ifqGroupings.rows.map( (row: any) => row.doc );
         // if (ifqGroupings.rows.length > 1) {
         let groupName: string = '';
         let speciesGroupId: number | string = null;
 
-        const startGrouping = ifqGroupings.rows.map( (row: any) => row.doc.regulationAreas ).find( (area: any) => {
-            return area.taxonomyAliases.some( (ta: any) => ta.wcgopSpeciesCode === catchResult.wcgopSpeciesCode ) &&
-                catchResult.startLatitude >= area.lowerLatitude ? area.lowerLatitude : 32.5 &&
-                catchResult.startLatitude <= area.upperLatitude ? area.upperLatitude : 49
+        const startGrouping = ifqGroupings.find( (grouping: any) => {
+            return grouping.regulationAreas.some( (ra: any) => {
+                return ra.taxonomyAliases.some((ta: any) => ta.wcgopSpeciesCode === catchResult.wcgopSpeciesCode) &&
+                catchResult.startLatitude >= ra.lowerLatitude ? ra.lowerLatitude : 32.5 &&
+                catchResult.startLatitude <= ra.upperLatitude ? ra.upperLatitude : 49
+            })
         })
 
-        const endGrouping = ifqGroupings.rows.map( (row: any) => row.doc.regulationAreas ).find( (area: any) => {
-            return area.taxonomyAliases.some( (ta: any) => ta.wcgopSpeciesCode === catchResult.wcgopSpeciesCode ) &&
-                catchResult.endLatitude >= area.lowerLatitude ? area.lowerLatitude : 32.5 &&
-                catchResult.endLatitude <= area.upperLatitude ? area.upperLatitude : 49
+        const endGrouping = ifqGroupings.find( (grouping: any) => {
+            return grouping.regulationAreas.some( (ra: any) => {
+                return ra.taxonomyAliases.some((ta: any) => ta.wcgopSpeciesCode === catchResult.wcgopSpeciesCode) &&
+                catchResult.endLatitude >= ra.lowerLatitude ? ra.lowerLatitude : 32.5 &&
+                catchResult.endLatitude <= ra.upperLatitude ? ra.upperLatitude : 49
+            })
         })
 
         if (startGrouping && endGrouping && startGrouping.groupName === endGrouping.groupName) {
@@ -189,16 +194,16 @@ async function setIFQHaulLevelData(catchResults: any[], tripNum, source) {
         //         ifqHaulLevelData.push(catchResult);
         //     }
         // }
-        if (catchResult.groupName.indexOf('/') !== -1) {
-            const name1 = catchResult.groupName.split('/')[0];
+        if (catchResult.ifqGrouping.indexOf('/') !== -1) {
+            const name1 = catchResult.ifqGrouping.split('/')[0];
             const id1 = catchResult.speciesGroupId.split('/')[0];
-            const name2 = catchResult.groupName.split('/')[1];
+            const name2 = catchResult.ifqGrouping.split('/')[1];
             const id2 = catchResult.speciesGroupId.split('/')[1];
             catchResult.speciesWeight = catchResult.speciesWeight / 2;
-            catchResult.groupName = name1;
+            catchResult.ifqGrouping = name1;
             catchResult.speciesGroupId = id1;
             let newGroupCatch = cloneDeep(catchResult);
-            newGroupCatch.groupName = name2;
+            newGroupCatch.ifqGrouping = name2;
             newGroupCatch.speciesGroupId = id2;
             catchResults.push(newGroupCatch);
             await masterDev.post(
@@ -215,7 +220,7 @@ async function setIFQHaulLevelData(catchResults: any[], tripNum, source) {
         }
         catchResult.fishingArea = await determineFishingArea(catchResult);
         if (catchResult.fishingArea.indexOf('/') !== -1) {
-            const fishingArea1 = catchResult.groupName.split('/')[0];
+            const fishingArea1 = catchResult.ifqGrouping.split('/')[0];
             const fishingArea2 = catchResult.speciesGroupId.split('/')[1];
             catchResult.speciesWeight = catchResult.speciesWeight / 2;
             catchResult.fishingArea = fishingArea1;
