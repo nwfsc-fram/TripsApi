@@ -68,7 +68,7 @@ export async function runTripErrorChecks (req, res) {
         runShrimpPotOTCGreater1000Check(tripErrorDoc, trip, operation);
         runLineOTCGreater1000Check(tripErrorDoc, trip, operation); 
         runTotalPotsOver100Check(tripErrorDoc, trip, operation); 
-        runOTCGreater300000heck(tripErrorDoc, trip, operation);
+        runOTCGreater300000Check(tripErrorDoc, trip, operation);
      
         for (let catchDoc of operation.catches)
         {
@@ -1138,7 +1138,7 @@ function runTotalPotsOver100Check(tripErrorDoc: WcgopTripError, trip: WcgopTrip,
 }
 
 //trip check code 98600 
-function runOTCGreater300000heck(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation) {
+function runOTCGreater300000Check(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation) {
 
     if ( (trip.fishery.description === "Pacific Hake" || 
             trip.fishery.description === "Shoreside Hake" || 
