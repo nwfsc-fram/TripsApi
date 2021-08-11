@@ -67,6 +67,8 @@ export async function runTripErrorChecks (req, res) {
         runWrongOTCPartialGearCheck(tripErrorDoc, trip, operation);
         runShrimpPotOTCGreater1000Check(tripErrorDoc, trip, operation);
         runLineOTCGreater1000Check(tripErrorDoc, trip, operation); 
+        runTotalPotsOver100Check(tripErrorDoc, trip, operation); 
+        runOTCGreater300000heck(tripErrorDoc, trip, operation);
      
         for (let catchDoc of operation.catches)
         {
@@ -1106,4 +1108,61 @@ function runSetDepthGreater700FMCheck(tripErrorDoc: WcgopTripError, trip: WcgopT
     
         }
     }
+}
+
+//trip check code 99800 
+function runTotalPotsOver100Check(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation) {
+
+    if ( operation.totalHooks > 100 
+            && operation.gearType.description ==="Fish pot" )
+    {
+        let error = {severity: Severity.warning,
+            description: 'Total pots count > 100',
+            dateCreated: moment().format(),
+            observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+            status: StatusType.valid,
+            operationId: operation._id,
+            operationNum: operation.operationNum,
+            errorItem: 'Gear Type',
+            errorValue: operation.totalHooks.toString(),
+            notes: '',
+            legacy:{
+                checkCode : 99800 
+            }
+        };
+
+        tripErrorDoc.errors.push( error );
+
+    }
+    
+}
+
+//trip check code 98600 
+function runOTCGreater300000heck(tripErrorDoc: WcgopTripError, trip: WcgopTrip, operation: WcgopOperation) {
+
+    if ( (trip.fishery.description === "Pacific Hake" || 
+            trip.fishery.description === "Shoreside Hake" || 
+            trip.fishery.description === "Mothership Catcher-Vessel") && 
+            operation.observerTotalCatch.measurement.value>300000 && 
+            operation.gearType.description ==="Midwater trawl" )
+    {
+        let error = {severity: Severity.warning,
+            description: 'Gear type 3 used and OTC is greater than 300000 lbs',
+            dateCreated: moment().format(),
+            observer: trip.observer.firstName + ' ' + trip.observer.lastName,
+            status: StatusType.valid,
+            operationId: operation._id,
+            operationNum: operation.operationNum,
+            errorItem: 'Fishery',
+            errorValue: operation.totalHooks.toString(),
+            notes: '',
+            legacy:{
+                checkCode : 98600 
+            }
+        };
+
+        tripErrorDoc.errors.push( error );
+
+    }
+    
 }
