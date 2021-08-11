@@ -206,7 +206,7 @@ async function setIFQHaulLevelData(catchResults: any[], tripNum, source) {
             newGroupCatch.ifqGrouping = name2;
             newGroupCatch.speciesGroupId = id2;
             catchResults.push(newGroupCatch);
-            await masterDev.post(
+            const groupingError = await masterDev.post(
                 {
                     "type": "boatnet-error",
                     "context": source + "- IFQ grouping",
@@ -227,7 +227,7 @@ async function setIFQHaulLevelData(catchResults: any[], tripNum, source) {
             let newAreaCatch = cloneDeep(catchResult);
             newAreaCatch.fishingArea = fishingArea2;
             catchResults.push(newAreaCatch);
-            await masterDev.post(
+            const fishingAreaError = await masterDev.post(
                 {
                     "type": "boatnet-error",
                     "context": source +  "- Fishing Areas",
