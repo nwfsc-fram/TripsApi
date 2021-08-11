@@ -221,7 +221,7 @@ async function setIFQHaulLevelData(catchResults: any[], tripNum, source) {
         catchResult.fishingArea = await determineFishingArea(catchResult);
         if (catchResult.fishingArea.indexOf('/') !== -1) {
             const fishingArea1 = catchResult.ifqGrouping.split('/')[0];
-            const fishingArea2 = catchResult.speciesGroupId.split('/')[1];
+            const fishingArea2 = catchResult.ifqGrouping.split('/')[1];
             catchResult.speciesWeight = catchResult.speciesWeight / 2;
             catchResult.fishingArea = fishingArea1;
             let newAreaCatch = cloneDeep(catchResult);
