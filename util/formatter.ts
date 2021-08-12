@@ -1,10 +1,12 @@
-import { Catches, CatchResults, ResponseCatchTypeName, MinimalResponseCatchTypeName, Disposition, sourceType, ManagementArea } from '@boatnet/bn-models';
+import { Catches, CatchResults, ResponseCatchTypeName, MinimalResponseCatchTypeName, Disposition, sourceType, ManagementArea, DcsRowTypeName } from '@boatnet/bn-models';
 import { set, get, uniqBy, sumBy, cloneDeep } from 'lodash';
+import { end } from 'routes/docs-content';
 import { masterDev } from './couchDB';
 const jp = require('jsonpath');
 const moment = require('moment');
 
 export async function format(tripNum: number, logbook: Catches, review: Catches, audit: Catches, expansionType: string) {
+    console.log('formatting results');
     let result: CatchResults = {
         type: expansionType,
         tripNum: tripNum
@@ -16,9 +18,10 @@ export async function format(tripNum: number, logbook: Catches, review: Catches,
     set(result, 'thirdPartyReviewCatch', reviewCatch);
     set(result, 'nwfscAuditCatch', auditCatch);
 
-    const ifqLogbookCatchHaulLevel = await setIFQHaulLevelData(result.logbookCatch, tripNum, 'logbook');
-    const ifqThirdPartyReviewCatchHaulLevel = await setIFQHaulLevelData(result.thirdPartyReviewCatch, tripNum, 'review');
-    const ifqNwfscAuditHaulLevel = await setIFQHaulLevelData(result.nwfscAuditCatch, tripNum, 'audit');
+    console.log('ifq grouping');
+    const ifqLogbookCatchHaulLevel = await setIFQHaulLevelData(cloneDeep(result.logbookCatch), tripNum, 'logbook');
+    const ifqThirdPartyReviewCatchHaulLevel = await setIFQHaulLevelData(cloneDeep(result.thirdPartyReviewCatch), tripNum, 'review');
+    const ifqNwfscAuditHaulLevel = await setIFQHaulLevelData(cloneDeep(result.nwfscAuditCatch), tripNum, 'audit');
     set(result, 'ifqLogbookCatchHaulLevel', ifqLogbookCatchHaulLevel);
     set(result, 'ifqThirdPartyReviewCatchHaulLevel', ifqThirdPartyReviewCatchHaulLevel);
     set(result, 'ifqNwfscAuditHaulLevel', ifqNwfscAuditHaulLevel);
@@ -32,7 +35,9 @@ export async function format(tripNum: number, logbook: Catches, review: Catches,
 
     const ifqTripReporting = await setIFQTripReporting(result);
     set(result, 'ifqTripReporting', ifqTripReporting);
+    console.log('ifq grouping complete');
 
+    console.log('grading logbook');
     result = gradeLogbook(result);
 
     return result;
@@ -85,40 +90,21 @@ async function catchToHaul(catchVals: Catches) {
     return results;
 }
 
-async function determineFishingArea(catchResult) {
+async function determineFishingArea(latitude) {
+    console.log('determining fishing area');
     let managementAreaBounds = await masterDev.view('obs_web', 'all_doc_types', {reduce: false, include_docs: true, key: 'fishing-area-lat-bounds'});
     managementAreaBounds = managementAreaBounds.rows[0].doc.latBounds;
 
     let fishingArea: string = '';
 
-    if (catchResult.startLatitude > managementAreaBounds['100'].lowerLimit) {
-        if (catchResult.endLatitude > managementAreaBounds['100'].lowerLimit) {
-            fishingArea = '100';
-        } else {
-            fishingArea = '100/200'
-        }
-    } else if (catchResult.startLatitude >= managementAreaBounds['200'].lowerLimit && catchResult.startLatitude <= managementAreaBounds['200'].upperLimit) {
-        if (catchResult.endLatitude >= managementAreaBounds['200'].lowerLimit && catchResult.endLatitude <= managementAreaBounds['200'].upperLimit) {
-            fishingArea = '200';
-        } else if (catchResult.endLatitude > managementAreaBounds['200'].upperLimit) {
-            fishingArea = '100/200';
-        } else if (catchResult.endLatitude < managementAreaBounds['200'].lowerLimit) {
-            fishingArea = '200/300';
-        }
-    } else if (catchResult.startLatitude >= managementAreaBounds['300'].lowerLimit && catchResult.startLatitude <= managementAreaBounds['300'].upperLimit) {
-        if (catchResult.endLatitude >= managementAreaBounds['300'].lowerLimit && catchResult.endLatitude <= managementAreaBounds['300'].upperLimit) {
-            fishingArea = '300';
-        } else if (catchResult.endLatitude > managementAreaBounds['300'].upperLimit) {
-            fishingArea = '200/300';
-        } else if (catchResult.endLatitude < managementAreaBounds['300'].lowerLimit) {
-            fishingArea = '300/400';
-        }
+    if (latitude > managementAreaBounds['100'].lowerLimit) {
+        fishingArea = '100';
+    } else if (latitude >= managementAreaBounds['200'].lowerLimit && latitude <= managementAreaBounds['200'].upperLimit) {
+        fishingArea = '200';
+    } else if (latitude >= managementAreaBounds['300'].lowerLimit && latitude <= managementAreaBounds['300'].upperLimit) {
+        fishingArea = '300';
     } else {
-        if (catchResult.endLatitude < managementAreaBounds['300'].upperLimit) {
-            fishingArea = '400';
-        } else {
-            fishingArea = '300/400'
-        }
+        fishingArea = '400';
     }
     return fishingArea;
 }
@@ -127,73 +113,69 @@ async function setIFQHaulLevelData(catchResults: any[], tripNum, source) {
     // get ifq grouping name for each record based speciesCode and lat and long
     const ifqHaulLevelData: any[] = [];
     for (const catchResult of catchResults) {
+        let groupName: string | null = null;
+        let speciesGroupId: number | string = null;
         let ifqGroupings = await masterDev.view('Ifq', 'speciesCode-to-ifq-grouping',
             { "keys": [parseInt(catchResult.wcgopSpeciesCode, 10), catchResult.wcgopSpeciesCode.toString()], "include_docs": true });
         ifqGroupings = ifqGroupings.rows.map( (row: any) => row.doc );
-        // if (ifqGroupings.rows.length > 1) {
-        let groupName: string = '';
-        let speciesGroupId: number | string = null;
 
-        const startGrouping = ifqGroupings.find( (grouping: any) => {
-            return grouping.regulationAreas.some( (ra: any) => {
-                return ra.taxonomyAliases.some((ta: any) => ta.wcgopSpeciesCode === catchResult.wcgopSpeciesCode) &&
-                catchResult.startLatitude >= ra.lowerLatitude ? ra.lowerLatitude : 32.5 &&
-                catchResult.startLatitude <= ra.upperLatitude ? ra.upperLatitude : 49
-            })
-        })
-
-        const endGrouping = ifqGroupings.find( (grouping: any) => {
-            return grouping.regulationAreas.some( (ra: any) => {
-                return ra.taxonomyAliases.some((ta: any) => ta.wcgopSpeciesCode === catchResult.wcgopSpeciesCode) &&
-                catchResult.endLatitude >= ra.lowerLatitude ? ra.lowerLatitude : 32.5 &&
-                catchResult.endLatitude <= ra.upperLatitude ? ra.upperLatitude : 49
-            })
-        })
+        console.log('getting start and end grouping');
+        let startGrouping = null;
+        let endGrouping = null;
+        const startFishingArea = await determineFishingArea(catchResult.startLatitude);
+        const endFishingArea = await determineFishingArea(catchResult.endLatitude);
+        let splitGroupings = [];
+        for (const grouping of ifqGroupings) {
+            for (const ra of grouping.regulationAreas) {
+                for (const ta of ra.taxonomyAliases) {
+                    if (
+                        (parseInt(ta.wcgopSpeciesCode, 10) === parseInt(catchResult.wcgopSpeciesCode, 10)) &&
+                        (catchResult.startLatitude >= (ra.lowerLatitude ? ra.lowerLatitude : 32.5)) &&
+                        (catchResult.startLatitude <= (ra.upperLatitude ? ra.upperLatitude : 49))
+                    ) {
+                        startGrouping = grouping;
+                        console.log(catchResult.wcgopSpeciesCode + ' | ' +  grouping.groupName)
+                        console.log(catchResult.startLatitude + ' | ' + (ra.lowerLatitude ? ra.lowerLatitude : 32.5))
+                        console.log(catchResult.startLatitude + ' | ' + (ra.upperLatitude ? ra.upperLatitude : 49))
+                    }
+                    if (
+                        (parseInt(ta.wcgopSpeciesCode, 10) === parseInt(catchResult.wcgopSpeciesCode, 10)) &&
+                        (catchResult.endLatitude >= (ra.lowerLatitude ? ra.lowerLatitude : 32.5)) &&
+                        (catchResult.endLatitude <= (ra.upperLatitude ? ra.upperLatitude : 49))
+                    ) {
+                        endGrouping = grouping;
+                        console.log(catchResult.wcgopSpeciesCode + ' | ' +  grouping.groupName)
+                        console.log(catchResult.endLatitude + ' | ' + (ra.lowerLatitude ? ra.lowerLatitude : 32.5))
+                        console.log(catchResult.endLatitude + ' | ' + (ra.upperLatitude ? ra.upperLatitude : 49))
+                    }
+                }
+            }
+        }
 
         if (startGrouping && endGrouping && startGrouping.groupName === endGrouping.groupName) {
             groupName = startGrouping.groupName;
             speciesGroupId = startGrouping.speciesGroupId;
+            catchResult.fishingArea = startFishingArea;
         } else if (startGrouping && endGrouping && startGrouping.groupName !== endGrouping.groupName) {
             groupName = startGrouping.groupName + '/' + endGrouping.groupName;
             speciesGroupId = startGrouping.speciesGroupId + '/' + endGrouping.speciesGroupId;
+            catchResult.fishingArea = startFishingArea;
         } else if (startGrouping) {
             groupName = startGrouping.groupName;
             speciesGroupId = startGrouping.speciesGroupId;
+            catchResult.fishingArea = startFishingArea;
         } else if (endGrouping) {
             groupName = endGrouping.groupName;
             speciesGroupId = endGrouping.speciesGroupId;
+            catchResult.fishingArea = endFishingArea;
         }
 
-        // for (const ifqGrouping of ifqGroupings.rows) {
-        //     const startLat = catchResult.startLatitude;
-        //     const endLat = catchResult.endLatitude;
-        //     const lowerLat = ifqGrouping.doc.regulationAreas[0].lowerLatitude;
-        //     const upperLat = ifqGrouping.doc.regulationAreas[0].upperLatitude;
-
-        //     if (lowerLat && upperLat && startLat > lowerLat && endLat > lowerLat && startLat < upperLat && endLat < upperLat) {
-        //         groupName = ifqGrouping.value;
-        //         speciesGroupId = ifqGrouping.doc.speciesGroupId;
-        //     } else if (lowerLat && !upperLat && startLat > lowerLat && endLat > lowerLat) {
-        //         groupName = ifqGrouping.value;
-        //         speciesGroupId = ifqGrouping.doc.speciesGroupId;
-        //     } else if (!lowerLat && upperLat && startLat < upperLat && endLat < upperLat) {
-        //         groupName = ifqGrouping.value;
-        //         speciesGroupId = ifqGrouping.doc.speciesGroupId;
-        //     }
-        // }
-
-        if (groupName.length !== 0) {
+        if (groupName) {
+            console.log('catch assigned to group - ' + groupName);
             catchResult.ifqGrouping = groupName;
             catchResult.speciesGroupId = speciesGroupId;
-            // } else {
-            //     // unclear if this is valid - could the catch be outside the valid bounds for the one grouping?
-            //     if (ifqGroupings.rows[0] && ifqGroupings.rows[0].value) {
-            //         catchResult.ifqGrouping = ifqGroupings.rows[0].value;
-            //         catchResult.speciesGroupId = ifqGroupings.rows[0].doc.speciesGroupId;
-            //         ifqHaulLevelData.push(catchResult);
-            //     }
-            // }
             if (catchResult.ifqGrouping.indexOf('/') !== -1) {
+                console.log('found split grouping');
                 const name1 = catchResult.ifqGrouping.split('/')[0];
                 const id1 = catchResult.speciesGroupId.split('/')[0];
                 const name2 = catchResult.ifqGrouping.split('/')[1];
@@ -204,42 +186,62 @@ async function setIFQHaulLevelData(catchResults: any[], tripNum, source) {
                 let newGroupCatch = cloneDeep(catchResult);
                 newGroupCatch.ifqGrouping = name2;
                 newGroupCatch.speciesGroupId = id2;
-                catchResults.push(newGroupCatch);
-                // const groupingError = await masterDev.post(
-                //     {
-                //         "type": "boatnet-error",
-                //         "context": source + "- IFQ grouping",
-                //         "app": "TripsApi",
-                //         "error": catchResult.wcgopSpeciesCode + " catch split into 2 groupings: " + name1 + " and " + name2 + " based on startLatitude " + catchResult.startLatidue + " and endLatitude: " + catchResult.endLatitude,
-                //         "date": moment().format(),
-                //         "tripNum": tripNum,
-                //         "haulNum": catchResult.haulNum
-                //     }
-                // )
-            }
-            catchResult.fishingArea = await determineFishingArea(catchResult);
-            if (catchResult.fishingArea.indexOf('/') !== -1) {
-                const fishingArea1 = catchResult.ifqGrouping.split('/')[0];
-                const fishingArea2 = catchResult.ifqGrouping.split('/')[1];
-                catchResult.speciesWeight = catchResult.speciesWeight / 2;
-                catchResult.fishingArea = fishingArea1;
+                newGroupCatch.fishingArea = endFishingArea;
+                splitGroupings.push(newGroupCatch);
+
+                let oldErrors = await masterDev.view(
+                    'obs_web',
+                    'boatnet-errors',
+                    {'key': tripNum, "include_docs": true}
+                )
+                oldErrors = oldErrors.rows.map( (row) => {
+                        row.doc._deleted = true;
+                        return row.doc;
+                    }
+                );
+                await masterDev.bulk({docs: oldErrors});
+
+                const groupingError = {
+                    "type": "boatnet-error",
+                    "context": source + "- IFQ grouping",
+                    "app": "TripsApi",
+                    "error": catchResult.wcgopSpeciesCode + " catch split into 2 groupings: " + name1 + " and " + name2 + " based on startLatitude " + catchResult.startLatitude + " and endLatitude: " + catchResult.endLatitude,
+                    "date": moment().format(),
+                    "tripNum": tripNum,
+                    "haulNum": catchResult.haulNum
+                }
+                if ((startFishingArea !== endFishingArea) && source === 'logbook') {
+                    const fishingAreaError = {
+                        "type": "boatnet-error",
+                        "context": source +  "- Fishing Areas",
+                        "error": catchResult.wcgopSpeciesCode + " catch split into 2 fishing areas: " + startFishingArea + " and " + endFishingArea + " based on startLatitude " + catchResult.startLatitude + " and endLatitude: " + catchResult.endLatitude,
+                        "createdDate": moment().format(),
+                        "createdBy": "TripsApi",
+                        "tripNum": tripNum,
+                        "haulNum": catchResult.haulNum
+                    };
+                    await masterDev.bulk({ docs: [groupingError, fishingAreaError] });
+                } else if (source === 'logbook') {
+                    await masterDev.bulk({ docs: [groupingError] });
+                }
+            } else if ((startFishingArea !== endFishingArea) && source === 'logbook') {
                 let newAreaCatch = cloneDeep(catchResult);
-                newAreaCatch.fishingArea = fishingArea2;
-                catchResults.push(newAreaCatch);
-                // const fishingAreaError = await masterDev.post(
-                //     {
-                //         "type": "boatnet-error",
-                //         "context": source +  "- Fishing Areas",
-                //         "error": catchResult.wcgopSpeciesCode + " catch split into 2 fishing areas: " + fishingArea1 + " and " + fishingArea2 + " based on startLatitude " + catchResult.startLatidue + " and endLatitude: " + catchResult.endLatitude,
-                //         "createdDate": moment().format(),
-                //         "createdBy": "TripsApi",
-                //         "tripNum": tripNum,
-                //         "haulNum": catchResult.haulNum
-                //     }
-                // )
+                newAreaCatch.fishingArea = endFishingArea;
+                splitGroupings.push(newAreaCatch);
+                const fishingAreaError = {
+                    "type": "boatnet-error",
+                    "context": source +  "- Fishing Areas",
+                    "error": catchResult.wcgopSpeciesCode + " catch split into 2 fishing areas: " + startFishingArea + " and " + endFishingArea + " based on startLatitude " + catchResult.startLatitude + " and endLatitude: " + catchResult.endLatitude,
+                    "createdDate": moment().format(),
+                    "createdBy": "TripsApi",
+                    "tripNum": tripNum,
+                    "haulNum": catchResult.haulNum
+                }
+                await masterDev.bulk({ docs: [fishingAreaError] });
             }
             ifqHaulLevelData.push(catchResult);
         }
+        ifqHaulLevelData.push.apply(ifqHaulLevelData, splitGroupings);
     }
 
     // agg at haul level by ifqGrouping and disposition
