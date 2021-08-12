@@ -11,6 +11,7 @@ import { masterDev } from './couchDB';
 export async function catchEvaluator(tripNum: number, expansionType: string) {
     //  wait for a while to be sure data is fully submitted to couch
     setTimeout(async () => {
+        console.log('started evaluating catch');
 
         const codesQuery = await masterDev.view('em-views', 'wc2pc-map-with-pri-and-pro', { include_docs: false });
         const speciesCodeLookup = {};
@@ -106,13 +107,16 @@ export async function catchEvaluator(tripNum: number, expansionType: string) {
             } else {
                 set(result, 'createDate', moment().format());
             }
+            console.log('writing result doc');
             await masterDev.bulk({ docs: [result] });
+            console.log('staging ifq results');
             await insertResultToIFQStaging(result);
         } catch (err) {
             console.log(err);
         }
 
         async function evaluatecurrCatch(currCatch: Catches, expansionType: string) {
+            console.log('running expansions');
             let flattenedCatch: any[] = jp.query(currCatch, '$.hauls..catch');
             flattenedCatch = flattenDeep(flattenedCatch);
 
