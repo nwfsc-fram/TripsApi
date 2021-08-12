@@ -134,9 +134,6 @@ async function setIFQHaulLevelData(catchResults: any[], tripNum, source) {
                         (catchResult.startLatitude <= (ra.upperLatitude ? ra.upperLatitude : 49))
                     ) {
                         startGrouping = grouping;
-                        console.log(catchResult.wcgopSpeciesCode + ' | ' +  grouping.groupName)
-                        console.log(catchResult.startLatitude + ' | ' + (ra.lowerLatitude ? ra.lowerLatitude : 32.5))
-                        console.log(catchResult.startLatitude + ' | ' + (ra.upperLatitude ? ra.upperLatitude : 49))
                     }
                     if (
                         (parseInt(ta.wcgopSpeciesCode, 10) === parseInt(catchResult.wcgopSpeciesCode, 10)) &&
@@ -144,9 +141,6 @@ async function setIFQHaulLevelData(catchResults: any[], tripNum, source) {
                         (catchResult.endLatitude <= (ra.upperLatitude ? ra.upperLatitude : 49))
                     ) {
                         endGrouping = grouping;
-                        console.log(catchResult.wcgopSpeciesCode + ' | ' +  grouping.groupName)
-                        console.log(catchResult.endLatitude + ' | ' + (ra.lowerLatitude ? ra.lowerLatitude : 32.5))
-                        console.log(catchResult.endLatitude + ' | ' + (ra.upperLatitude ? ra.upperLatitude : 49))
                     }
                 }
             }
@@ -199,7 +193,9 @@ async function setIFQHaulLevelData(catchResults: any[], tripNum, source) {
                         return row.doc;
                     }
                 );
-                await masterDev.bulk({docs: oldErrors});
+                if (oldErrors.length > 0) {
+                    await masterDev.bulk({docs: oldErrors});
+                };
 
                 const groupingError = {
                     "type": "boatnet-error",
@@ -350,7 +346,6 @@ function selectDebitSource(emCatch, logbookCatch) {
 
 function gradeLogbook(result) {
     if (result.type === MinimalResponseCatchTypeName) {
-        console.log(JSON.stringify(result.ifqThirdPartyReviewCatchHaulLevel))
 
         const reviewedHaulNums = result.ifqThirdPartyReviewCatchHaulLevel.map( (row) => row.haulNum);
         const reviewedIfqGroupings = result.ifqThirdPartyReviewCatchHaulLevel.map( (row) => row.ifqGrouping);
