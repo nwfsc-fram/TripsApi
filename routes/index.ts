@@ -38,7 +38,7 @@ import { stringParser } from '../util/string-parser';
 import { validateCatch, validateApiTrip } from '../util/validator';
 import { runTripErrorChecks } from '../util/tripChecks';
 import { selectHaulsForReview } from '../util/haulSelection';
-import { findDocuments, writeDocuments, updateDocument, deleteDocument } from '../util/mongo_routines';
+import { findDocuments, writeDocuments, updateDocument, deleteDocument, getDocById } from '../util/mongo_routines';
 
 let token = '';
 export let key = '';
@@ -819,6 +819,25 @@ const mongoRead = async (req, res) => {
 
 }
 
+
+const mongoGet = async (req, res) => {
+    let response = [];
+    let collection = req.params.collection;
+    let database = req.params.database;
+    let id = req.params.id;
+
+    await getDocById(database, collection, (document) => {
+        response.push(document);
+    }, id)
+
+    if (response.length > 0) {
+        res.status(200).send(response);
+    } else {
+        res.status(400).send('no matching results found');
+    }
+
+}
+
 const mongoWrite = async (req, res) => {
     let response = '';
     let documents = [];
@@ -911,6 +930,7 @@ router.get('/api/' + API_VERSION + '/evalCatch/:tripNum', evalCatch);
 router.use('/api/' + API_VERSION + '/mongo', getPubKey);
 router.use('/api/' + API_VERSION + '/mongo', validateJwtRequest);
 router.get('/api/' + API_VERSION + '/mongo/:database/:collection', mongoRead);
+router.get('/api/' + API_VERSION + '/mongo/get/:database/:collection/:id', mongoGet);
 router.post('/api/' + API_VERSION + '/mongo', mongoWrite);
 router.put('/api/' + API_VERSION + '/mongo', mongoUpdate);
 router.delete('/api/' + API_VERSION + '/mongo', mongoDelete);
