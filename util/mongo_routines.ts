@@ -1,5 +1,6 @@
 const { MongoClient } = require('mongodb');
 import { cloneDeep } from 'lodash';
+const ObjectId = require('mongodb').ObjectID;
 
 const mongoUri = require('../dbConfig.json').mongoUri;
 const mongoDbName = 'lookupsdb';
@@ -36,6 +37,23 @@ export async function findDocuments(database, collectionName, callback, query?, 
             });
             await mongoClient.close();
         }
+    } catch(err) {
+        console.error(err);
+    }
+}
+
+export async function getDocById(database, collectionName, callback, id) {
+    try {
+        const mongoClient = new MongoClient(mongoUri);
+        await mongoClient.connect()
+        const db = mongoClient.db(database)
+
+        const collection = db.collection(collectionName);
+        const queryId = new ObjectId(id)
+        const docs = await collection.findOne({_id: queryId});
+        callback(docs);
+        await mongoClient.close();
+
     } catch(err) {
         console.error(err);
     }
