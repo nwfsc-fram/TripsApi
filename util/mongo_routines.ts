@@ -42,6 +42,23 @@ export async function findDocuments(database, collectionName, callback, query?, 
     }
 }
 
+export async function aggregate(database, collectionName, callback, pipeline) {
+    try {
+        const mongoClient = new MongoClient(mongoUri);
+        await mongoClient.connect()
+        const db = mongoClient.db(database)
+
+        const collection = db.collection(collectionName);
+
+        await collection.aggregate(pipeline).toArray(function(err, docs) {
+            callback(docs)
+        });
+        await mongoClient.close();
+    } catch(err) {
+        console.error(err);
+    }
+}
+
 export async function getDocById(database, collectionName, callback, id) {
     try {
         const mongoClient = new MongoClient(mongoUri);
@@ -52,6 +69,28 @@ export async function getDocById(database, collectionName, callback, id) {
         const queryId = new ObjectId(id)
         const docs = await collection.findOne({_id: queryId});
         callback(docs);
+        await mongoClient.close();
+
+    } catch(err) {
+        console.error(err);
+    }
+}
+
+export async function getDocsById(database, collectionName, callback, ids) {
+    try {
+        const mongoClient = new MongoClient(mongoUri);
+        await mongoClient.connect()
+        const db = mongoClient.db(database)
+
+        const collection = db.collection(collectionName);
+        let queryIds = [];
+        for (const id of ids) {
+            const queryId = new ObjectId(id);
+            queryIds.push({_id: queryId});
+        }
+        await collection.find({"$or": queryIds }).toArray(function(err, docs) {
+            callback(docs)
+        });
         await mongoClient.close();
 
     } catch(err) {
