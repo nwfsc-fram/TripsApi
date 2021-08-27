@@ -805,7 +805,7 @@ const mongoRead = async (req, res) => {
     let collection = req.params.collection;
     let database = req.params.database;
 
-    console.log(req.query);
+    console.log(req);
 
     await findDocuments(database, collection, (documents) => {
         response.push.apply(response, documents);
