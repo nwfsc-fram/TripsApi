@@ -17,6 +17,7 @@ export async function findDocuments(database, collectionName, callback, query?, 
             bodyOptions = {};
         }
         if (bodyQuery) {
+            console.log("body query: " + bodyQuery)
             await collection.find(bodyQuery, bodyOptions).toArray(function(err, docs) {
                 callback(docs)
             });
