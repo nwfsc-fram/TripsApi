@@ -28,7 +28,7 @@ export async function findDocuments(database, collectionName, callback, query?, 
                 if (formattedQuery[queryKey] === 'true') {
                     formattedQuery[queryKey] = true;
                 }
-                if (parseInt(formattedQuery[queryKey], 10)) {
+                if (typeof formattedQuery[queryKey] === 'number') {
                     formattedQuery[queryKey] = parseInt(formattedQuery[queryKey], 10);
                 }
             }
