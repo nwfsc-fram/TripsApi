@@ -844,7 +844,7 @@ const mongoGetMany = async (req, res) => {
     let ids = req.body.ids;
 
     await getDocsById(database, collection, (document) => {
-        response.push(document);
+        response.push.apply(response, document);
     }, ids)
 
     if (response.length > 0) {
