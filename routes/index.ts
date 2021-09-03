@@ -26,7 +26,7 @@ const path = require('path');
 import { resolve } from 'path';
 
 import { validateJwtRequest } from '../get-user.middleware';
-import { getFishTicket, vmsDBTest, insertRow, getVesselSelections, getVesselWaivers, fishTicketQuery, getVesselFishTickets, getOracleTrips } from '../util/oracle_routines';
+import { getFishTicket, vmsDBTest, insertRow, getVesselSelections, getWaivers, fishTicketQuery, getVesselFishTickets, getOracleTrips } from '../util/oracle_routines';
 import { catchEvaluator } from '../util/trip-functions';
 import { Catches, sourceType, EmReviewSelectionRate, EMHaulReviewSelection, EmHaulReviewSelectionTypeName } from '@boatnet/bn-models';
 import { set, cloneDeep, omit, pick, union, keys, reduce, isEqual, differenceBy, differenceWith, sampleSize, sortBy } from 'lodash';
@@ -638,6 +638,105 @@ const getDocs = async (req, res ) => {
 //     res.status(200).send('see console');
 // }
 
+const getRolloverStatus = async (selection: any, allWaivers: any) => {
+    if (moment(selection.PERIOD_END).isBefore(moment(), 'year')) {
+        return "- previous year";
+    } else if ( moment(selection.PERIOD_END).isBefore(moment()) ) {
+        const trips = await getOracleTrips(selection.VESSEL_DRVID, moment(selection.PERIOD_START).format('DD-MMM-YY'), moment().format('DD-MMM-YY')) as any;
+        trips.sort( (a: any, b: any) => {
+            return a.RETURN_DATE > b.RETURN_DATE ? 1 : a.RETURN_DATE < b.RETURN_DATE ? -1 : 0;
+        } );
+        let fishTickets: any[] = [];
+        try {
+            fishTickets = await getVesselFishTickets(selection.VESSEL_DRVID, moment(selection.PERIOD_START).format('YYYY-MM-DD'), moment().format('YYYY-MM-DD')) as any;
+        } catch (err) {
+            console.log(err);
+        }
+        if (trips.length > 0) {
+            // const allTripsticketNumbers = jp.query(trips, '$..fishTicketNumber');
+            for (const trip of trips) {
+                if (trip.FISHERY === selection.FISHERY) {
+                    if (trip.FISH_TICKETS && trip.FISH_TICKETS.split(',')[0]) {
+                        for (const ticket of trip.FISH_TICKETS.split(',')) {
+                            let tripTicket = null;
+                            if (fishTickets) {
+                                tripTicket = fishTickets.find( (row: any) => row.FTID === ticket || row.FTID === ticket + 'E');
+                            }
+                            if (tripTicket && tripTicket.LANDED_WEIGHT_LBS && tripTicket.LANDED_WEIGHT_LBS > 0) {
+                                return "N - observed w/ landed lbs - " + moment(tripTicket.LANDING_DATE).format('MM/DD/YYYY');
+                            }
+                        }
+                    }
+                }
+            }
+            if (!selection.rolloverStatus) {
+                return "Y - no landed lbs";
+            }
+        } else {
+            let licenseNums = [];
+            if (fishTickets) {
+                licenseNums = [ ...new Set(fishTickets.map( (row: any) => row.FISHER_LICENSE_NUM ).filter( (lic: any) => lic !== null ))];
+            }
+
+            if (licenseNums.length > 0 && selection.LICENSE_NUMBER && licenseNums.includes( selection.LICENSE_NUMBER ) ) {
+                // get waivers for period
+                if (allWaivers.map( (row: any) => row.PERMIT_OR_LICENSE || row.certificateNumber ).find( (num: any) => num === selection.LICENSE_NUMBER )) {
+                    return "Possibly Waived";
+                } else {
+                    return "Possible Out of Compliance";
+                }
+            } else {
+                return "Y - no observerd trips";
+            }
+        }
+    } else if ( moment(selection.PERIOD_START).isBefore(moment()) && moment(selection.PERIOD_END).isAfter(moment()) ) {
+        return "- in period";
+    } else {
+        return "- before period";
+    }
+}
+
+const rolloverCheck = async (req, res) => {
+    if (req.query.taskAuthorization === taskAuthorization) {
+        res.status(200).send('executing rollover check');
+        const year = moment().format('YYYY');
+        const allWaivers = await getWaivers(null, year);
+        const allVesselSelections = await getVesselSelections(year);
+        let statusDoc = null;
+        let statusesQuery = await masterDev.view(
+            'obs_web',
+            'all_doc_types',
+            {'key': 'fleet-rollover-statuses', reduce: false, include_docs: true} as any
+        )
+        if (statusesQuery.rows.length > 0) {
+            statusDoc = statusesQuery.rows[0].doc;
+            statusDoc.statuses = {};
+        } else {
+            statusDoc = {
+                type: 'fleet-rollover-statuses',
+                year,
+                statuses: {}
+            }
+        }
+        const startTime = moment().format();
+        var length = allVesselSelections.length;
+        for (const selection of allVesselSelections) {
+            console.log(allVesselSelections.indexOf(selection) + 1 + ' of ' + length)
+            const status = await getRolloverStatus(selection, allWaivers);
+            if (status) {
+                statusDoc.statuses[selection.VESSEL_DRVID + '-' + selection.FISHERY + '-' + moment(selection.PERIOD_END).format('MM-DD-YYYY')] = status;
+            }
+        }
+        statusDoc.lastRun = moment().format();
+        const endTime = moment().format();
+        statusDoc.executionTime = moment(endTime).diff(startTime, 'seconds');
+        await masterDev.bulk({docs: [statusDoc]});
+        console.log('done');
+    } else {
+        res.status(400).send('task authorization not found in request');
+    }
+}
+
 const updateBuyers = async (req, res) => {
     if (req.query.taskAuthorization === taskAuthorization) {
         request.get({
@@ -925,6 +1024,63 @@ const mongoDelete = async (req, res) => {
     }
 }
 
+const handleGetWaiversRequest = async (req: any, res: any) => {
+    const id = req.query.vesselId ? req.query.vesselId : '';
+    const year = req.query.year ? req.query.year : '';
+    const result = await getWaivers(id, year);
+    if (result) {
+      res.status(200).json(result);
+    } else {
+      res.status(400).send('query found no matches.');
+    }
+}
+
+const handleGetSelectionsRequest = async (req: any, res: any ) => {
+    const year = req.query.year ? req.query.year : '';
+    const selections = await getVesselSelections(year);
+    if (selections) {
+      res.status(200).json(selections);
+    } else {
+      res.status(400).send('query found no matches');
+    }
+}
+
+const handleGetOracleTripsRequest = async (req: any, res: any) => {
+    const vesselId = req.query.vesselId ? req.query.vesselId : '';
+    const startDate = req.query.startDate ? moment(req.query.startDate).format('DD-MMM-YY') : '';
+    const endDate = req.query.endDate ? moment(req.query.endDate).format('DD-MMM-YY') : '';
+
+    try {
+      const tripRows = await getOracleTrips(vesselId, startDate, endDate);
+      if (tripRows) {
+        res.status(200).send(tripRows)
+      } else {
+        res.status(400).send('query found no matches');
+      }
+    } catch (connErr) {
+      console.error(connErr.message);
+      res.status(400).send(connErr.message);
+    }
+}
+
+const handleGetVesselFishTicketsRequest = async (req: any, res: any) => {
+    const vesselId = req.query.vesselId ? req.query.vesselId : '';
+    const startDate = req.query.startDate ? moment(req.query.startDate).format('YYYY-MM-DD') : '';
+    const endDate = req.query.endDate ? moment(req.query.endDate).format('YYYY-MM-DD') : '';
+
+    try {
+      const rows = await getVesselFishTickets(vesselId, startDate, endDate);
+      if (rows) {
+        res.status(200).json(rows)
+      } else {
+        res.status(400).send('query found no matches');
+      }
+    } catch (connErr) {
+      console.error(connErr.message);
+      res.status(400).send(connErr.message);
+    }
+  }
+
 const API_VERSION = 'v1';
 
 router.get('/em-lookups', getLookups);
@@ -979,6 +1135,7 @@ router.use('/api/' + API_VERSION + '/email', validateJwtRequest);
 router.post('/api/' + API_VERSION + '/email', emailCoordinator);
 
 router.get('/api/' + API_VERSION + '/updateBuyers', updateBuyers);
+router.get('/api/' + API_VERSION + '/runRolloverCheck', rolloverCheck);
 // router.get('/api/' + API_VERSION + '/insertRow', insertObsprodRow);
 
 router.use('/api/' + API_VERSION + '/runTripChecks', getPubKey);
@@ -987,11 +1144,11 @@ router.post('/api/' + API_VERSION + '/runTripChecks', runTripErrorChecks);
 
 router.use('/api/' + API_VERSION + '/getSelections', getPubKey);
 router.use('/api/' + API_VERSION + '/getSelections', validateJwtRequest);
-router.get('/api/' + API_VERSION + '/getSelections', getVesselSelections);
+router.get('/api/' + API_VERSION + '/getSelections', handleGetSelectionsRequest);
 
 router.use('/api/' + API_VERSION + '/getWaivers', getPubKey);
 router.use('/api/' + API_VERSION + '/getWaivers', validateJwtRequest);
-router.get('/api/' + API_VERSION + '/getWaivers', getVesselWaivers);
+router.get('/api/' + API_VERSION + '/getWaivers', handleGetWaiversRequest);
 
 router.use('/api/' + API_VERSION + '/getFishTicket', getPubKey);
 router.use('/api/' + API_VERSION + '/getFishTicket', validateJwtRequest);
@@ -999,11 +1156,11 @@ router.get('/api/' + API_VERSION + '/getFishTicket', fishTicketQuery);
 
 router.use('/api/' + API_VERSION + '/getVesselFishTickets', getPubKey);
 router.use('/api/' + API_VERSION + '/getVesselFishTickets', validateJwtRequest);
-router.get('/api/' + API_VERSION + '/getVesselFishTickets', getVesselFishTickets);
+router.get('/api/' + API_VERSION + '/getVesselFishTickets', handleGetVesselFishTicketsRequest);
 
 router.use('/api/' + API_VERSION + '/getOracleTrips', getPubKey);
 router.use('/api/' + API_VERSION + '/getOracleTrips', validateJwtRequest);
-router.get('/api/' + API_VERSION + '/getOracleTrips', getOracleTrips);
+router.get('/api/' + API_VERSION + '/getOracleTrips', handleGetOracleTripsRequest);
 
 router.get('/api/' + API_VERSION + '/vmstest', vmsDBTest);
 
