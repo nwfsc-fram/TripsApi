@@ -337,6 +337,28 @@ export async function vmsDBTest(req: any, res: any) {
   }
 }
 
+export async function checkPasscode(req: any, res: any) {
+  try {
+    const vesselId = req.query.vesselId;
+    const passcode = req.query.passcode;
+    const pool = getVmsOraclePool();
+    const connection = await pool.getConnection();
+    const result = await connection.execute(
+      'SELECT * vTrack.NWD_VESSEL_INFORMATION WHERE VESSEL_DOC_NUMBER = :vesselId',
+      [vesselId]
+    )
+    if (result) {
+      console.log(passcode)
+      res.status(200).json(result);
+    } else {
+      res.status(400).send('did not receive a response');
+    }
+  } catch (err) {
+    res.status(400).send(err.message);
+    throw new Error(err.message);
+  }
+}
+
 function closeOracleConnection(connection: any) {
     console.log('Closing oracledb connection.');
     connection.close();
