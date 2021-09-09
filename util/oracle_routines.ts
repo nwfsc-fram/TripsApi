@@ -348,8 +348,11 @@ export async function checkPasscode(req: any, res: any) {
       [vesselId]
     )
     if (result) {
-      console.log(passcode)
-      res.status(200).json(result);
+      const resultPasscode = result.rows[0][0]
+      console.log(resultPasscode);
+      console.log(passcode);
+      console.log(resultPasscode === passcode);
+      res.status(200).json(resultPasscode + ' = ' + passcode + ' : ' + (resultPasscode === passcode));
     } else {
       res.status(400).send('did not receive a response');
     }
