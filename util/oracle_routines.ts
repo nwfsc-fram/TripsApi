@@ -344,7 +344,7 @@ export async function checkPasscode(req: any, res: any) {
     const pool = getVmsOraclePool();
     const connection = await pool.getConnection();
     const result = await connection.execute(
-      'SELECT * vTrack.NWD_VESSEL_INFORMATION WHERE VESSEL_DOC_NUMBER = :vesselId',
+      'SELECT * FROM vTrack.NWD_VESSEL_INFORMATION WHERE VESSEL_DOC_NUMBER = :vesselId',
       [vesselId]
     )
     if (result) {
