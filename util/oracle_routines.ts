@@ -324,7 +324,7 @@ export async function vmsDBTest(req: any, res: any) {
     const pool = getVmsOraclePool();
     const connection = await pool.getConnection();
     const result = await connection.execute(
-      'SELECT MAX(confirmation_number) FROM "Declarations Transaction Table"'
+      'SELECT MAX(CONFIRMATION_NUMBER) FROM "vTrack.NWD_VESSEL_TRANSACTIONS"'
     )
     if (result) {
       res.status(200).json(result);
