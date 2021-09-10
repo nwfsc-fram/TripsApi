@@ -3,8 +3,6 @@ import * as oracledb from 'oracledb';
 const moment = require('moment');
 import { masterDev } from './couchDB';
 
-const vmsOleConfig = require('../dbConfig.json').vmsOleConfig;
-
 export async function getFishTicket(ftid: string): Promise<string[]> {
     let fishTicketRows: any = [];
 
