@@ -345,12 +345,9 @@ export async function checkPasscode(req: any, res: any) {
       'SELECT VESSEL_PASSCODE FROM vTrack.NWD_VESSEL_INFORMATION WHERE VESSEL_DOC_NUMBER = :vesselId',
       [vesselId]
     )
-    if (result) {
+    if (result.rows > 0) {
       const resultPasscode = result.rows[0][0]
-      console.log('resultPasscode: ' + typeof resultPasscode);
-      console.log('passcode: ' + typeof passcode);
-      console.log(resultPasscode === passcode);
-      res.status(200).json(resultPasscode + ' = ' + passcode + ' : ' + (resultPasscode === passcode));
+      res.status(200).json(resultPasscode == passcode);
     } else {
       res.status(400).send('did not receive a response');
     }
