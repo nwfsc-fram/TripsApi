@@ -349,11 +349,10 @@ export async function checkPasscode(req: any, res: any) {
       const resultPasscode = result.rows[0][0]
       res.status(200).json(resultPasscode == passcode);
     } else {
-      res.status(400).send('did not receive a response');
+      res.status(200).send(false);
     }
   } catch (err) {
-    res.status(400).send(err.message);
-    throw new Error(err.message);
+    res.status(200).send(false);
   }
 }
 
