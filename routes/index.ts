@@ -26,7 +26,7 @@ const path = require('path');
 import { resolve } from 'path';
 
 import { validateJwtRequest } from '../get-user.middleware';
-import { getFishTicket, vmsDBTest, insertRow, getVesselSelections, getWaivers, fishTicketQuery, getVesselFishTickets, getOracleTrips, checkPasscode } from '../util/oracle_routines';
+import { getFishTicket, vmsDBTest, insertRow, getVesselSelections, getWaivers, fishTicketQuery, getVesselFishTickets, getOracleTrips, checkPasscode, getRecentDeclarations } from '../util/oracle_routines';
 import { catchEvaluator } from '../util/trip-functions';
 import { Catches, sourceType, EmReviewSelectionRate, EMHaulReviewSelection, EmHaulReviewSelectionTypeName } from '@boatnet/bn-models';
 import { set, cloneDeep, omit, pick, union, keys, reduce, isEqual, differenceBy, differenceWith, sampleSize, sortBy } from 'lodash';
@@ -1164,5 +1164,9 @@ router.get('/api/' + API_VERSION + '/getOracleTrips', handleGetOracleTripsReques
 
 router.get('/api/' + API_VERSION + '/vms/test', vmsDBTest);
 router.get('/api/' + API_VERSION + '/vms/check', checkPasscode);
+
+router.use('/api/' + API_VERSION + '/vms/getDeclarations', getPubKey);
+router.use('/api/' + API_VERSION + '/vms/getDeclarations', validateJwtRequest);
+router.get('/api/' + API_VERSION + '/vms/getDeclarations', getRecentDeclarations);
 
 module.exports = router;
