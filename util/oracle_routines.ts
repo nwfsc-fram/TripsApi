@@ -324,6 +324,7 @@ export async function vmsDBTest(req: any, res: any) {
     const result = await connection.execute(
       'SELECT MAX(CONFIRMATION_NUMBER) FROM vTrack.NWD_VESSEL_TRANSACTIONS'
     )
+    closeOracleConnection(connection);
     if (result) {
       res.status(200).json(result);
     } else {
@@ -345,6 +346,7 @@ export async function checkPasscode(req: any, res: any) {
       'SELECT VESSEL_PASSCODE FROM vTrack.NWD_VESSEL_INFORMATION WHERE VESSEL_DOC_NUMBER = :vesselId',
       [vesselId]
     )
+    closeOracleConnection(connection);
     if (result.rows > 0) {
       const resultPasscode = result.rows[0][0]
       res.status(200).json(resultPasscode == passcode);
@@ -353,6 +355,26 @@ export async function checkPasscode(req: any, res: any) {
     }
   } catch (err) {
     res.status(200).send(false);
+  }
+}
+
+export async function getRecentDeclarations(req: any, res: any) {
+  try {
+    const vesselId = req.query.vesselId;
+    const pool = getVmsOraclePool();
+    const connection = await pool.getConnection();
+    const result = await connection.execute(
+      'select transaction_date, transaction_code from (select * from vtrack.nwd_vessel_transactions where vessel_doc_number=:vesselId order by transaction_date desc) where rownum <= 10',
+      [vesselId]
+    )
+    closeOracleConnection(connection);
+    if (result.rows > 0) {
+      res.status(200).json(result.rows);
+    } else {
+      res.status(200).send('no declarations returned');
+    }
+  } catch (err) {
+    res.status(400).send(err);
   }
 }
 
