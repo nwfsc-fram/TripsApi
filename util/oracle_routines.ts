@@ -368,8 +368,8 @@ export async function getRecentDeclarations(req: any, res: any) {
       [vesselId]
     )
     closeOracleConnection(connection);
-    if (result.rows > 0) {
-      res.status(200).json(result.rows);
+    if (result !== 'no rows selected') {
+      res.status(200).json(result);
     } else {
       res.status(200).send('no declarations returned');
     }
