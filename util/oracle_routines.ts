@@ -364,7 +364,7 @@ export async function getRecentDeclarations(req: any, res: any) {
     const pool = getVmsOraclePool();
     const connection = await pool.getConnection();
     const result = await connection.execute(
-      'select transaction_date, transaction_code from (select * from vtrack.nwd_vessel_transactions where vessel_doc_number=:vesselId order by transaction_date desc) where rownum <= 10',
+      'select transaction_date, transaction_code, transaction_contact_name from (select * from vtrack.nwd_vessel_transactions where vessel_doc_number=:vesselId order by transaction_date desc) where rownum <= 10',
       [vesselId]
     )
     closeOracleConnection(connection);
