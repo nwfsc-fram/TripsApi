@@ -9,7 +9,7 @@ MongoHelper.connect();
 
 export async function findDocuments(database, collectionName, callback, query?, bodyQuery?, bodyOptions?) {
     try {
-        const db = MongoHelper.client.db(mongoDbName);
+        const db = MongoHelper.client.db(database);
         const collection = db.collection(collectionName);
 
         if (!bodyOptions) {
