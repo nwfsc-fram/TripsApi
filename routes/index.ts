@@ -1100,7 +1100,7 @@ const newVesselUser = async (req: any, res: any) => {
         // create user and add captain role
         console.log('creating user');
         const userCreated = await axios
-        .post(dbConfig.authServer + '/api/v1/addUser', {username, lastName, firstName, emailAddress: username, comment: 'placeholder comment'}).catch((err) => {
+        .post(dbConfig.authServer + 'api/v1/addUser', {username, lastName, firstName, emailAddress: username, comment: 'placeholder comment'}).catch((err) => {
             console.error(err);
             res.status(400).send(err);
         })
