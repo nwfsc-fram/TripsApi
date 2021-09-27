@@ -1081,6 +1081,88 @@ const handleGetVesselFishTicketsRequest = async (req: any, res: any) => {
     }
   }
 
+const newVesselUser = async (req: any, res: any) => {
+    console.log(req.body);
+    const vesselId = req.body.vesselId;
+    const passcode = req.body.passcode;
+    const username = req.body.emailAddress;
+    const firstName = req.body.firstName;
+    const lastName = req.body.lastName;
+    const appName = req.body.appName;
+    const appShortName = req.body.appShortName;
+    const resetURL = req.body.resetURL;
+    const usernamePage = req.body.usernamePage;
+
+    console.log('validating passcode');
+    const passcodeValid = await checkPasscode(vesselId, passcode);
+    if (passcodeValid) {
+        console.log('passcode valid');
+        // create user and add captain role
+        console.log('creating user');
+        const userCreated = await axios
+        .post(dbConfig.authServer + '/api/v1/addUser', {username, lastName, firstName, emailAddress: username, comment: 'placeholder comment'}).catch((err) => {
+            console.error(err);
+            res.status(400).send(err);
+        })
+        if (userCreated) {
+            console.log('user created');
+            console.log('sending password reset email');
+            // send password reset email
+            const resetEmailSent = await axios
+            .put(dbConfig.authServer + '/api/v1/send-email', {username, comments: '', appName, appShortName, resetURL, newResetUrl: usernamePage, result: ''}).catch((err) => {
+                console.error(err);
+                res.status(400).send(err);
+            })
+            if (resetEmailSent) {
+                // create person
+                console.log('creating person doc');
+                const newPerson = {
+                    type: 'person',
+                    apexUserAdminUserName: username.split('@')[0],
+                    createdBy: username.split('@')[0],
+                    createdDate: moment().format(),
+                    firstName,
+                    lastName,
+                    workEmail: username
+                }
+                await masterDev.bulk({docs: [newPerson]}).then( async (result) => {
+                    console.log(result);
+                    // assign vessel to person
+                    console.log('getting vesselPermissions doc');
+                    let vesselPermissions = await masterDev.view(
+                        'obs_web',
+                        'all_doc_types',
+                        {key: 'vessel-permissions', reduce: false, include_docs: true}
+                    )
+                    vesselPermissions = vesselPermissions.rows[0].doc;
+                    const existingRow = vesselPermissions.vesselAuthorizations.find( (row: any) => { row.vesselIdNum = vesselId} );
+                    if (existingRow) {
+                        console.log('adding to existing authorizedPeople row');
+                        existingRow.authorizedPeople.push(result._id);
+                    } else {
+                        console.log('adding new authorizedPeople row');
+                        vesselPermissions.vesselAuthorizations.push(
+                            {
+                                vesselIdNum: vesselId,
+                                authorizedPeople: [result._id]
+                            }
+                        );
+                    }
+                    const done = await masterDev.bulk({docs: [vesselPermissions]});
+                    console.log('updated vesselPermissions doc saved');
+                    if (done) {
+                        res.status(200).send('Success! Account created + associated with vessel');
+                    }
+                })
+            }
+        } else {
+            res.status(400).send('Unable to create user');
+        }
+    } else {
+        res.status(400).send('Unable to validate passcode');
+    }
+}
+
 const API_VERSION = 'v1';
 
 router.get('/em-lookups', getLookups);
@@ -1163,7 +1245,7 @@ router.use('/api/' + API_VERSION + '/getOracleTrips', validateJwtRequest);
 router.get('/api/' + API_VERSION + '/getOracleTrips', handleGetOracleTripsRequest);
 
 router.get('/api/' + API_VERSION + '/vms/test', vmsDBTest);
-router.get('/api/' + API_VERSION + '/vms/check', checkPasscode);
+router.post('/api' + API_VERSION + '/newVesselUser', newVesselUser);
 
 router.use('/api/' + API_VERSION + '/vms/getDeclarations', getPubKey);
 router.use('/api/' + API_VERSION + '/vms/getDeclarations', validateJwtRequest);
