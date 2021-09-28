@@ -1,15 +1,18 @@
 import { cloneDeep } from 'lodash';
-import { MongoHelper } from './mongoClient';
 const ObjectId = require('mongodb').ObjectID;
 
 const mongoUri = require('../dbConfig.json').mongoUri;
 const mongoDbName = 'lookupsdb';
+const { MongoClient } = require('mongodb');
 
-MongoHelper.connect();
+//TODO remove this file, just having it here for reference for now. Will delete
 
 export async function findDocuments(database, collectionName, callback, query?, bodyQuery?, bodyOptions?) {
     try {
-        const db = MongoHelper.client.db(database);
+        const mongoClient = new MongoClient(mongoUri);
+        await mongoClient.connect()
+        const db = mongoClient.db(database)
+
         const collection = db.collection(collectionName);
 
         if (!bodyOptions) {
@@ -20,6 +23,7 @@ export async function findDocuments(database, collectionName, callback, query?, 
             await collection.find(bodyQuery, bodyOptions).toArray(function(err, docs) {
                 callback(docs)
             });
+            await mongoClient.close();
         } else {
             let formattedQuery = cloneDeep(query);
             for (const queryKey of Object.keys(formattedQuery) ) {
@@ -34,6 +38,7 @@ export async function findDocuments(database, collectionName, callback, query?, 
             await collection.find(formattedQuery).toArray(function(err, docs) {
                 callback(docs)
             });
+            await mongoClient.close();
         }
     } catch(err) {
         console.error(err);
@@ -42,7 +47,9 @@ export async function findDocuments(database, collectionName, callback, query?, 
 
 export async function aggregate(database, collectionName, callback, pipeline) {
     try {
-        const db = MongoHelper.client.db(database);
+        const mongoClient = new MongoClient(mongoUri);
+        await mongoClient.connect()
+        const db = mongoClient.db(database)
         const collection = db.collection(collectionName);
 
         await collection.aggregate(pipeline).toArray(function(err, docs) {
@@ -55,7 +62,9 @@ export async function aggregate(database, collectionName, callback, pipeline) {
 
 export async function getDocById(database, collectionName, callback, id) {
     try {
-        const db = MongoHelper.client.db(database);
+        const mongoClient = new MongoClient(mongoUri);
+        await mongoClient.connect()
+        const db = mongoClient.db(database)
         const collection = db.collection(collectionName);
 
         const queryId = new ObjectId(id)
@@ -69,7 +78,9 @@ export async function getDocById(database, collectionName, callback, id) {
 
 export async function getDocsById(database, collectionName, callback, ids) {
     try {
-        const db = MongoHelper.client.db(database);
+        const mongoClient = new MongoClient(mongoUri);
+        await mongoClient.connect()
+        const db = mongoClient.db(database)
         const collection = db.collection(collectionName);
 
         let queryIds = [];
@@ -88,7 +99,9 @@ export async function getDocsById(database, collectionName, callback, ids) {
 
 export async function writeDocuments(collectionName, documents, callback) {
     try {
-        const db = MongoHelper.client.db(mongoDbName);
+        const mongoClient = new MongoClient(mongoUri);
+        await mongoClient.connect()
+        const db = mongoClient.db(mongoDbName)
         const collection = db.collection(collectionName);
 
         // Insert some documents
@@ -103,7 +116,9 @@ export async function writeDocuments(collectionName, documents, callback) {
 
 export async function updateDocument(collectionName, document) {
     try {
-        const db = MongoHelper.client.db(mongoDbName);
+        const mongoClient = new MongoClient(mongoUri);
+        await mongoClient.connect()
+        const db = mongoClient.db(mongoDbName)
         const collection = db.collection(collectionName);
 
         const result = await collection.findOneAndUpdate(
@@ -123,7 +138,9 @@ export async function updateDocument(collectionName, document) {
 
 export async function deleteDocument(collectionName, document) {
     try {
-        const db = MongoHelper.client.db(mongoDbName);
+        const mongoClient = new MongoClient(mongoUri);
+        await mongoClient.connect()
+        const db = mongoClient.db(mongoDbName)
         const collection = db.collection(collectionName);
 
         const result = await collection.deleteOne(
