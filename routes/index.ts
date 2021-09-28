@@ -26,7 +26,7 @@ const path = require('path');
 import { resolve } from 'path';
 
 import { validateJwtRequest } from '../get-user.middleware';
-import { getFishTicket, vmsDBTest, insertRow, getVesselSelections, getWaivers, fishTicketQuery, getVesselFishTickets, getOracleTrips, checkPasscode, getRecentDeclarations } from '../util/oracle_routines';
+import { getFishTicket, vmsDBTest, insertRow, getVesselSelections, fishTicketQuery, getVesselFishTickets, getOracleTrips, checkPasscode, getRecentDeclarations } from '../util/oracle_routines';
 import { catchEvaluator } from '../util/trip-functions';
 import { Catches, sourceType, EmReviewSelectionRate, EMHaulReviewSelection, EmHaulReviewSelectionTypeName } from '@boatnet/bn-models';
 import { set, cloneDeep, omit, pick, union, keys, reduce, isEqual, differenceBy, differenceWith, sampleSize, sortBy } from 'lodash';
@@ -44,6 +44,12 @@ import { mongo } from '../util/mongoClient';
 let token = '';
 export let key = '';
 const jp = require('jsonpath');
+
+export enum databaseClient {
+    Couch = "couch",
+    Mongo = "mongo",
+    Oracle = "oracle"
+}
 
 const login = async (req, res) => {
     let username = req.body.username || '';
@@ -701,7 +707,8 @@ const rolloverCheck = async (req, res) => {
     if (req.query.taskAuthorization === taskAuthorization) {
         res.status(200).send('executing rollover check');
         const year = moment().format('YYYY');
-        const allWaivers = await getWaivers(null, year);
+        const waivers = new Waivers();
+        const allWaivers = await waivers.getByIdAndYear(null, year, databaseClient.Oracle);
         const allVesselSelections = await getVesselSelections(year);
         let statusDoc = null;
         let statusesQuery = await masterDev.view(
@@ -1024,14 +1031,12 @@ const mongoDelete = async (req, res) => {
 }
 
 const handleGetWaiversRequest = async (req: any, res: any) => {
-    const id = req.query.vesselId ? req.query.vesselId : '';
-    const year = req.query.year ? req.query.year : '';
-    const type = req.query.type ? req.query.type : '';
+    const id: string = req.query.vesselId ? req.query.vesselId : '';
+    const year: number = req.query.year ? req.query.year : '';
+    const databaseClient: databaseClient = req.query.databaseClient ? req.query.databaseClient : '';
 
     const waivers = new Waivers();
-
-    //const result = await getWaivers(id, year);
-    const result = await waivers.getByIdAndYear(id, year, type);
+    const result = await waivers.getByIdAndYear(id, year, databaseClient);
     if (result) {
       res.status(200).json(result);
     } else {

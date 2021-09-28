@@ -1,14 +1,15 @@
 import { mongo } from '../util/mongoClient';
 import { obsProdPool } from '../util/oracleClient';
+import { databaseClient } from '../routes/index';
 
 export class Waivers {
     getById() {
 
     }
 
-    async getByIdAndYear(id: string, year: number, type: string) {
-        const waivers = [];
-        if (type === 'oracle') {
+    async getByIdAndYear(id: string, year: number, dbClient: string) {
+        let waivers = [];
+        if (dbClient === databaseClient.Oracle) {
             const connection = await obsProdPool.getConnection();
             let result = null;
             if (id) {
@@ -43,11 +44,11 @@ export class Waivers {
             if (id) {
                 queryParams = {
                     $or: [{ "vessel.stateRegulationNumber": id}, { "vessel.coastGuardNumber": id}],
-                    createdDate: { $gt: year + '-01-01', $lt: year + '-12-31' }
+                    issueDate: { $gt: year + '-01-01', $lt: year + '-12-31' }
                 }
             } else {
                 queryParams = {
-                    createdDate: { $gt: year + '-01-01', $lt: year + '-12-31' }
+                    issueDate: { $gt: year + '-01-01', $lt: year + '-12-31' }
                 }
             }
             await mongo.findDocuments('boatnetdb', 'waivers', async (documents) => {
