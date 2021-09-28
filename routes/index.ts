@@ -1099,8 +1099,13 @@ const newVesselUser = async (req: any, res: any) => {
         console.log('passcode valid');
         // create user and add captain role
         console.log('creating user');
-        const userCreated = await axios
-        .post(dbConfig.authServer + 'api/v1/addUser', {username, lastName, firstName, emailAddress: username, comment: 'placeholder comment'}).catch((err) => {
+        const userCreated = await request
+        .post({
+                url: dbConfig.authServer + 'api/v1/addUser',
+                json: true,
+                rejectUnauthorized: false,
+                body: {username, lastName, firstName, emailAddress: username, comment: 'placeholder comment'}
+        }).catch((err) => {
             console.error(err);
             res.status(400).send(err);
         })
@@ -1108,8 +1113,13 @@ const newVesselUser = async (req: any, res: any) => {
             console.log('user created');
             console.log('sending password reset email');
             // send password reset email
-            const resetEmailSent = await axios
-            .put(dbConfig.authServer + '/api/v1/send-email', {username, comments: '', appName, appShortName, resetURL, newResetUrl: usernamePage, result: ''}).catch((err) => {
+            const resetEmailSent = await request
+            .put({
+                url: dbConfig.authServer + '/api/v1/send-email',
+                json: true,
+                rejectUnauthorized: false,
+                body: {username, comments: '', appName, appShortName, resetURL, newResetUrl: usernamePage, result: ''}
+            }).catch((err) => {
                 console.error(err);
                 res.status(400).send(err);
             })
