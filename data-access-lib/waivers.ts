@@ -1,7 +1,7 @@
 import { mongo } from '../util/mongoClient';
 import { obsProdPool } from '../util/oracleClient';
 import { databaseClient } from '../routes/index';
-
+import { masterDev, dbConfig } from '../util/couchDB';
 export class Waivers {
     getById() {
 
@@ -37,6 +37,27 @@ export class Waivers {
             } else {
                 return null;
             }
+        } else if (dbClient === databaseClient.Couch) {
+            const moment = require('moment');
+            const waiversQuery = await masterDev.view(
+                'obs_web', 
+                'waiverId',
+                {"reduce": false, "descending": true, include_docs: true}
+            );
+            waivers = waiversQuery.rows
+                .filter((row: any) => {
+                    const curr = row.doc;
+                    let status = false;
+                    if (curr.issueDate) {
+                        status = moment(curr.createdDate).format('YYYY') === year;
+                    }
+                    if (status && id && curr.vessel) {
+                        status = (curr.vessel.stateRegulationNumber === id || curr.vessel.coastGuardNumber === id);
+                    }
+                    return status;
+                })
+                .map( (row: any) => row.doc);
+            return waivers;
         } else {
             let queryParams: any;
             const bodyQuery = '';
@@ -51,7 +72,7 @@ export class Waivers {
                     issueDate: { $gt: year + '-01-01', $lt: year + '-12-31' }
                 }
             }
-            await mongo.findDocuments('boatnetdb', 'waivers', async (documents) => {
+            const s = await mongo.findDocuments('boatnetdb', 'waivers', (documents) => {
                 waivers.push.apply(waivers, documents);
             }, queryParams, bodyQuery, bodyOptions);
             return waivers;
