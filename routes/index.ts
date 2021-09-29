@@ -981,15 +981,18 @@ const mongoWrite = async (req, res) => {
         documents = req.body;
     }
 
-    await writeDocuments(database, collection, documents, (result) => {
+    try {
+        await writeDocuments(database, collection, documents, (result) => {
         console.log(result)
         response = result;
+        if (response) {
+            res.status(200).send(response);
+        } else {
+            res.status(400).send('unable to write docs');
+        }
     })
-
-    if (response) {
-        res.status(200).send(response);
-    } else {
-        res.status(400).send('unable to write docs');
+    } catch (err) {
+        res.status(400).send(err);
     }
 }
 
