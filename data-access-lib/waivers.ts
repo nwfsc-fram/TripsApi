@@ -1,7 +1,8 @@
 import { mongo } from '../util/mongoClient';
 import { obsProdPool } from '../util/oracleClient';
 import { databaseClient } from '../routes/index';
-import { masterDev, dbConfig } from '../util/couchDB';
+import { masterDev } from '../util/couchDB';
+
 export class Waivers {
     getById() {
 
@@ -28,9 +29,20 @@ export class Waivers {
             if (result.rows.length > 0) {
                 for (const row of result.rows) {
                     const selection = {};
-                    for (const [i, column] of result.metaData.entries()) {
-                    selection[column.name] = row[i]
-                    }
+                    selection['waiverId'] = row[0];
+                    selection['startDate'] = row[12];
+                    selection['endDate'] = row[13];
+                    selection['vesselName'] = row[3];
+                    selection['vesselId'] = row[4];
+                    selection['fishery'] = row[8];
+                    selection['permit'] = row[10];
+                    selection['contract'] = row[9];
+                    selection['issuer'] = databaseClient.Oracle;
+                    selection['issueDate'] = row[11];
+                    selection['type'] = row[5];
+                    selection['reason'] = row[6];
+                    selection['notes'] = row[19];
+                    selection['source'] = databaseClient.Oracle;
                     waivers.push(selection);
                 }
                 return waivers;
@@ -56,7 +68,10 @@ export class Waivers {
                     }
                     return status;
                 })
-                .map( (row: any) => row.doc);
+                .map( (row: any) => {
+                    const doc = row.doc;
+                    return this.formatDoc(doc);
+                });
             return waivers;
         } else {
             let queryParams: any;
@@ -73,9 +88,31 @@ export class Waivers {
                 }
             }
             const s = await mongo.findDocuments('boatnetdb', 'waivers', (documents) => {
-                waivers.push.apply(waivers, documents);
+                for (const document of documents) {
+                    waivers.push(this.formatDoc(document));
+                }
+               
             }, queryParams, bodyQuery, bodyOptions);
             return waivers;
+        }
+    }
+
+    formatDoc(doc: any) {
+        return {
+            waiverId: doc.waiverId,
+            startDate: doc.startDate,
+            endDate: doc.endDate,
+            vesselName: doc.vessel ? doc.vessel.vesselName : '',
+            vesselId: doc.vessel ? (doc.vessel.stateRegulationNumber ? doc.vessel.stateRegulationNumber : doc.vessel.coastGuardNumber) : '',
+            fishery: doc.fishery ? doc.fishery.description : '',
+            permit: doc.certificateNumber ? doc.certificateNumber.permitNumber : '',
+            contract: doc.contract ? doc.contract.firstName + ' ' + doc.contract.lastName : '',
+            issuer: doc.createdBy,
+            issueDate: doc.issueDate,
+            type: doc.waiverType ? doc.waiverType.description : '',
+            reason: doc.reason ? doc.reason.description : '',
+            notes: doc.notes,
+            source: 'BOATNET'
         }
     }
 
