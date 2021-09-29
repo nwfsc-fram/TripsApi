@@ -971,6 +971,8 @@ const aggregatePipeline = async (req, res) => {
 }
 
 const mongoWrite = async (req, res) => {
+    let database = req.params.database;
+    let collection = req.params.collection;
     let response = '';
     let documents = [];
 
@@ -979,7 +981,7 @@ const mongoWrite = async (req, res) => {
         documents = req.body;
     }
 
-    await writeDocuments('documents', documents, (result) => {
+    await writeDocuments(database, collection, documents, (result) => {
         console.log(result)
         response = result;
     })
@@ -1222,7 +1224,7 @@ router.post('/api/' + API_VERSION + '/mongo/:database/:collection', mongoRead);
 router.get('/api/' + API_VERSION + '/mongo/get/:database/:collection/:id', mongoGet);
 router.post('/api/' + API_VERSION + '/mongo/getMany/:database/:collection/', mongoGetMany);
 router.post('/api/' + API_VERSION + '/mongo/aggregate/:database/:collection/', aggregatePipeline);
-router.post('/api/' + API_VERSION + '/mongo', mongoWrite);
+router.post('/api/' + API_VERSION + '/mongo/:database/:colleciton', mongoWrite);
 router.put('/api/' + API_VERSION + '/mongo', mongoUpdate);
 router.delete('/api/' + API_VERSION + '/mongo', mongoDelete);
 
