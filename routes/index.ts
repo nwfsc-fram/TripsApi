@@ -1214,7 +1214,7 @@ router.post('/api/' + API_VERSION + '/mongo/:database/:collection', mongoRead);
 router.get('/api/' + API_VERSION + '/mongo/get/:database/:collection/:id', mongoGet);
 router.post('/api/' + API_VERSION + '/mongo/getMany/:database/:collection/', mongoGetMany);
 router.post('/api/' + API_VERSION + '/mongo/aggregate/:database/:collection/', aggregatePipeline);
-router.post('/api/' + API_VERSION + '/mongo/write/:database/:colleciton', mongoWrite);
+router.post('/api/' + API_VERSION + '/mongo/write/:database/:collection', mongoWrite);
 router.put('/api/' + API_VERSION + '/mongo', mongoUpdate);
 router.delete('/api/' + API_VERSION + '/mongo', mongoDelete);
 
