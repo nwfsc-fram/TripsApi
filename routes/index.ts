@@ -1115,7 +1115,7 @@ const newVesselUser = async (req: any, res: any) => {
                 console.log('sending password reset email');
                 // send password reset email
                 request.put({
-                    url: dbConfig.authServer + '/api/v1/send-email',
+                    url: dbConfig.authServer + 'api/v1/send-email',
                     json: true,
                     rejectUnauthorized: false,
                     body: {username, comments: '', appName, appShortName, resetURL, newResetUrl: usernamePage, result: ''}
