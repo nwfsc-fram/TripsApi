@@ -1101,83 +1101,73 @@ const newVesselUser = async (req: any, res: any) => {
         console.log('passcode valid');
         // create user and add captain role
         console.log('creating user');
-        const userCreated = await request
-        .post({
+        request.post({
                 url: dbConfig.authServer + 'api/v1/addUser',
                 json: true,
                 rejectUnauthorized: false,
                 body: {username, lastName, firstName, emailAddress: username, comment: 'placeholder comment'}
         }, (err: any, response: any, body: any) => {
             if (!err && response.statusCode === 200) {
-                resolve(body);
+                console.log('user created');
+                console.log('sending password reset email');
+                // send password reset email
+                request.put({
+                    url: dbConfig.authServer + '/api/v1/send-email',
+                    json: true,
+                    rejectUnauthorized: false,
+                    body: {username, comments: '', appName, appShortName, resetURL, newResetUrl: usernamePage, result: ''}
+                }, async (err: any, response: any, body: any) => {
+                    if (!err && response.statusCode === 200) {
+                        // create person
+                        console.log('creating person doc');
+                        const newPerson = {
+                            type: 'person',
+                            apexUserAdminUserName: username.split('@')[0],
+                            createdBy: username.split('@')[0],
+                            createdDate: moment().format(),
+                            firstName,
+                            lastName,
+                            workEmail: username
+                        }
+                        await masterDev.bulk({docs: [newPerson]}).then( async (result) => {
+                            console.log(result);
+                            // assign vessel to person
+                            console.log('getting vesselPermissions doc');
+                            let vesselPermissions = await masterDev.view(
+                                'obs_web',
+                                'all_doc_types',
+                                {key: 'vessel-permissions', reduce: false, include_docs: true}
+                            )
+                            vesselPermissions = vesselPermissions.rows[0].doc;
+                            const existingRow = vesselPermissions.vesselAuthorizations.find( (row: any) => { row.vesselIdNum = vesselId} );
+                            if (existingRow) {
+                                console.log('adding to existing authorizedPeople row');
+                                existingRow.authorizedPeople.push(result._id);
+                            } else {
+                                console.log('adding new authorizedPeople row');
+                                vesselPermissions.vesselAuthorizations.push(
+                                    {
+                                        vesselIdNum: vesselId,
+                                        authorizedPeople: [result._id]
+                                    }
+                                );
+                            }
+                            const done = await masterDev.bulk({docs: [vesselPermissions]});
+                            console.log('updated vesselPermissions doc saved');
+                            if (done) {
+                                res.status(200).send('Success! Account created + associated with vessel');
+                            }
+                        })
+                    } else {
+                        console.error(err);
+                        res.status(400).send(err);
+                    }
+                });
             } else {
                 console.error(err);
                 res.status(400).send(err);
             }
         });
-        if (userCreated) {
-            console.log('user created');
-            console.log('sending password reset email');
-            // send password reset email
-            const resetEmailSent = await request
-            .put({
-                url: dbConfig.authServer + '/api/v1/send-email',
-                json: true,
-                rejectUnauthorized: false,
-                body: {username, comments: '', appName, appShortName, resetURL, newResetUrl: usernamePage, result: ''}
-            }, (err: any, response: any, body: any) => {
-                if (!err && response.statusCode === 200) {
-                    resolve(body);
-                } else {
-                    console.error(err);
-                    res.status(400).send(err);
-                }
-            });
-            if (resetEmailSent) {
-                // create person
-                console.log('creating person doc');
-                const newPerson = {
-                    type: 'person',
-                    apexUserAdminUserName: username.split('@')[0],
-                    createdBy: username.split('@')[0],
-                    createdDate: moment().format(),
-                    firstName,
-                    lastName,
-                    workEmail: username
-                }
-                await masterDev.bulk({docs: [newPerson]}).then( async (result) => {
-                    console.log(result);
-                    // assign vessel to person
-                    console.log('getting vesselPermissions doc');
-                    let vesselPermissions = await masterDev.view(
-                        'obs_web',
-                        'all_doc_types',
-                        {key: 'vessel-permissions', reduce: false, include_docs: true}
-                    )
-                    vesselPermissions = vesselPermissions.rows[0].doc;
-                    const existingRow = vesselPermissions.vesselAuthorizations.find( (row: any) => { row.vesselIdNum = vesselId} );
-                    if (existingRow) {
-                        console.log('adding to existing authorizedPeople row');
-                        existingRow.authorizedPeople.push(result._id);
-                    } else {
-                        console.log('adding new authorizedPeople row');
-                        vesselPermissions.vesselAuthorizations.push(
-                            {
-                                vesselIdNum: vesselId,
-                                authorizedPeople: [result._id]
-                            }
-                        );
-                    }
-                    const done = await masterDev.bulk({docs: [vesselPermissions]});
-                    console.log('updated vesselPermissions doc saved');
-                    if (done) {
-                        res.status(200).send('Success! Account created + associated with vessel');
-                    }
-                })
-            }
-        } else {
-            res.status(400).send('Unable to create user');
-        }
     } else {
         res.status(400).send('Unable to validate passcode');
     }
