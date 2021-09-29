@@ -1105,10 +1105,14 @@ const newVesselUser = async (req: any, res: any) => {
                 json: true,
                 rejectUnauthorized: false,
                 body: {username, lastName, firstName, emailAddress: username, comment: 'placeholder comment'}
-        }).catch((err) => {
-            console.error(err);
-            res.status(400).send(err);
-        })
+        }, (err: any, response: any, body: any) => {
+            if (!err && response.statusCode === 200) {
+                resolve(body);
+            } else {
+                console.error(err);
+                res.status(400).send(err);
+            }
+        });
         if (userCreated) {
             console.log('user created');
             console.log('sending password reset email');
@@ -1119,10 +1123,14 @@ const newVesselUser = async (req: any, res: any) => {
                 json: true,
                 rejectUnauthorized: false,
                 body: {username, comments: '', appName, appShortName, resetURL, newResetUrl: usernamePage, result: ''}
-            }).catch((err) => {
-                console.error(err);
-                res.status(400).send(err);
-            })
+            }, (err: any, response: any, body: any) => {
+                if (!err && response.statusCode === 200) {
+                    resolve(body);
+                } else {
+                    console.error(err);
+                    res.status(400).send(err);
+                }
+            });
             if (resetEmailSent) {
                 // create person
                 console.log('creating person doc');
