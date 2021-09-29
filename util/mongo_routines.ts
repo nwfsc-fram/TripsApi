@@ -86,9 +86,9 @@ export async function getDocsById(database, collectionName, callback, ids) {
     }
 }
 
-export async function writeDocuments(collectionName, documents, callback) {
+export async function writeDocuments(database, collectionName, documents, callback) {
     try {
-        const db = MongoHelper.client.db(mongoDbName);
+        const db = MongoHelper.client.db(database);
         const collection = db.collection(collectionName);
 
         // Insert some documents
