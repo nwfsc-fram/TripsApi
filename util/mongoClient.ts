@@ -16,7 +16,7 @@ class MongoHelper {
         await this.client.connect();
     }
 
-    async findDocuments(database, collectionName, callback, query?, bodyQuery?, bodyOptions?) {
+    async findDocuments(database, collectionName, query?, bodyQuery?, bodyOptions?) {
         try {
             const db = this.client.db(database)
             const collection = db.collection(collectionName);
@@ -25,9 +25,7 @@ class MongoHelper {
                 bodyOptions = {};
             }
             if (bodyQuery) {
-                await collection.find(bodyQuery, bodyOptions).toArray(function(err, docs) {
-                    callback(docs)
-                });
+                return await collection.find(bodyQuery, bodyOptions).toArray();
             } else {
                 let formattedQuery = cloneDeep(query);
                 for (const queryKey of Object.keys(formattedQuery) ) {
@@ -38,12 +36,7 @@ class MongoHelper {
                         formattedQuery[queryKey] = parseInt(formattedQuery[queryKey], 10);
                     }
                 }
-    
-                await collection.find(formattedQuery).toArray(function(err, docs) {
-                    callback(docs)
-                });
-                await this.client.close(); //TODO remove this linke. Currently it's just here because an empty array is returned if it's not.
-                                           // but need to find a better way to do this.
+                return await collection.find(formattedQuery).toArray();
             }
         } catch(err) {
             console.error(err);

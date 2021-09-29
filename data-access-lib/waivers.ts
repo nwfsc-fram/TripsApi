@@ -1,15 +1,26 @@
 import { mongo } from '../util/mongoClient';
 import { obsProdPool } from '../util/oracleClient';
 import { databaseClient } from '../routes/index';
-import { masterDev } from '../util/couchDB';
+import { dbConfig, masterDev } from '../util/couchDB';
 
 export class Waivers {
-    getById() {
-
+    async getById(id: string, dbClient: string) {
+        let response: any;
+        if (dbConfig === databaseClient.Oracle) {
+            // oracle doesn't seem to have ids so leaving this blank
+        } else if (dbClient === databaseClient.Couch) {
+            response = await masterDev.get(id);
+            response = this.formatDoc(response);
+        } else {
+            await mongo.getDocById('boatnetdb', 'waivers', (document) => {
+                response = (this.formatDoc(document));
+            }, id)
+        }
+        return response;
     }
 
     async getByIdAndYear(id: string, year: number, dbClient: string) {
-        let waivers = [];
+        let waivers: any[] = [];
         if (dbClient === databaseClient.Oracle) {
             const connection = await obsProdPool.getConnection();
             let result = null;
@@ -87,12 +98,7 @@ export class Waivers {
                     issueDate: { $gt: year + '-01-01', $lt: year + '-12-31' }
                 }
             }
-            const s = await mongo.findDocuments('boatnetdb', 'waivers', (documents) => {
-                for (const document of documents) {
-                    waivers.push(this.formatDoc(document));
-                }
-               
-            }, queryParams, bodyQuery, bodyOptions);
+            waivers = await mongo.findDocuments('boatnetdb', 'waivers', queryParams, bodyQuery, bodyOptions);
             return waivers;
         }
     }
@@ -116,7 +122,6 @@ export class Waivers {
         }
     }
 
-    save() {
-
+    async save(doc: any, dbClient: string) {
     }
 }

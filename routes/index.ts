@@ -912,9 +912,8 @@ const mongoRead = async (req, res) => {
     let collection = req.params.collection;
     let database = req.params.database;
 
-    await mongo.findDocuments(database, collection, (documents) => {
-        response.push.apply(response, documents);
-    }, req.query, req.body.query, req.body.options)
+    response = await mongo.findDocuments(database, collection,
+        req.query, req.body.query, req.body.options);
 
     if (response.length > 0) {
         res.status(200).send(response);
@@ -1031,12 +1030,19 @@ const mongoDelete = async (req, res) => {
 }
 
 const handleGetWaiversRequest = async (req: any, res: any) => {
-    const id: string = req.query.vesselId ? req.query.vesselId : '';
+    let result: any = {};
+    const docId: string = req.query.id;
+    const vesselId: string = req.query.vesselId ? req.query.vesselId : '';
     const year: number = req.query.year ? req.query.year : '';
     const databaseClient: databaseClient = req.query.databaseClient ? req.query.databaseClient : '';
-
     const waivers = new Waivers();
-    const result = await waivers.getByIdAndYear(id, year, databaseClient);
+
+    if (docId) {
+        result = await waivers.getById(docId, databaseClient);
+
+    } else {
+        result = await waivers.getByIdAndYear(vesselId, year, databaseClient);
+    }
     if (result) {
       res.status(200).json(result);
     } else {
