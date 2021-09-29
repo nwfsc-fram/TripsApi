@@ -38,7 +38,7 @@ import { stringParser } from '../util/string-parser';
 import { validateCatch, validateApiTrip } from '../util/validator';
 import { runTripErrorChecks } from '../util/tripChecks';
 import { selectHaulsForReview } from '../util/haulSelection';
-import { Waivers } from '../data-access-lib/waivers';
+import { waivers } from '../data-access-lib/waivers';
 import { mongo } from '../util/mongoClient';
 
 let token = '';
@@ -707,7 +707,6 @@ const rolloverCheck = async (req, res) => {
     if (req.query.taskAuthorization === taskAuthorization) {
         res.status(200).send('executing rollover check');
         const year = moment().format('YYYY');
-        const waivers = new Waivers();
         const allWaivers = await waivers.getByIdAndYear(null, year, databaseClient.Oracle);
         const allVesselSelections = await getVesselSelections(year);
         let statusDoc = null;
@@ -1035,7 +1034,6 @@ const handleGetWaiversRequest = async (req: any, res: any) => {
     const vesselId: string = req.query.vesselId ? req.query.vesselId : '';
     const year: number = req.query.year ? req.query.year : '';
     const databaseClient: databaseClient = req.query.databaseClient ? req.query.databaseClient : '';
-    const waivers = new Waivers();
 
     if (docId) {
         result = await waivers.getById(docId, databaseClient);

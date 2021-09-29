@@ -125,3 +125,4 @@ export class Waivers {
     async save(doc: any, dbClient: string) {
     }
 }
+export const waivers = new Waivers();
