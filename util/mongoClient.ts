@@ -89,9 +89,9 @@ class MongoHelper {
         }
     }
     
-    async writeDocuments(collectionName, documents, callback) {
+    async writeDocuments(database, collectionName, documents, callback) {
         try {
-            const db = this.client.db(mongoDbName);
+            const db = this.client.db(database);
             const collection = db.collection(collectionName);
     
             // Insert some documents

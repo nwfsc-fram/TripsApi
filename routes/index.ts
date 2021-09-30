@@ -975,6 +975,8 @@ const aggregatePipeline = async (req, res) => {
 }
 
 const mongoWrite = async (req, res) => {
+    let database = req.params.database;
+    let collection = req.params.collection;
     let response = '';
     let documents = [];
 
@@ -983,15 +985,18 @@ const mongoWrite = async (req, res) => {
         documents = req.body;
     }
 
-    await mongo.writeDocuments('documents', documents, (result) => {
+    try {
+        await mongo.writeDocuments(database, collection, documents, (result) => {
         console.log(result)
         response = result;
+        if (response) {
+            res.status(200).send(response);
+        } else {
+            res.status(400).send('unable to write docs');
+        }
     })
-
-    if (response) {
-        res.status(200).send(response);
-    } else {
-        res.status(400).send('unable to write docs');
+    } catch (err) {
+        res.status(400).send(err);
     }
 }
 
@@ -1112,65 +1117,75 @@ const newVesselUser = async (req: any, res: any) => {
         console.log('passcode valid');
         // create user and add captain role
         console.log('creating user');
-        const userCreated = await axios
-        .post(dbConfig.authServer + 'api/v1/addUser', {username, lastName, firstName, emailAddress: username, comment: 'placeholder comment'}).catch((err) => {
-            console.error(err);
-            res.status(400).send(err);
-        })
-        if (userCreated) {
-            console.log('user created');
-            console.log('sending password reset email');
-            // send password reset email
-            const resetEmailSent = await axios
-            .put(dbConfig.authServer + '/api/v1/send-email', {username, comments: '', appName, appShortName, resetURL, newResetUrl: usernamePage, result: ''}).catch((err) => {
+        request.post({
+                url: dbConfig.authServer + 'api/v1/addUser',
+                json: true,
+                rejectUnauthorized: false,
+                body: {username, lastName, firstName, emailAddress: username, comment: 'placeholder comment'}
+        }, (err: any, response: any, body: any) => {
+            if (!err && response.statusCode === 200) {
+                console.log('user created');
+                console.log('sending password reset email');
+                // send password reset email
+                console.log('doing PUT to ' + dbConfig.authServer + 'api/v1/send-email');
+                request.put({
+                    url: dbConfig.authServer + 'api/v1/send-email',
+                    json: true,
+                    rejectUnauthorized: false,
+                    body: {username, comments: '', appName, appShortName, resetURL, newResetUrl: usernamePage, result: ''}
+                }, async (err: any, response: any, body: any) => {
+                    console.log('send email response: ' + response)
+                    if (!err && response.statusCode === 200) {
+                        // create person
+                        console.log('creating person doc');
+                        const newPerson = {
+                            type: 'person',
+                            apexUserAdminUserName: username.split('@')[0],
+                            createdBy: username.split('@')[0],
+                            createdDate: moment().format(),
+                            firstName,
+                            lastName,
+                            workEmail: username
+                        }
+                        await masterDev.bulk({docs: [newPerson]}).then( async (result) => {
+                            console.log(result);
+                            // assign vessel to person
+                            console.log('getting vesselPermissions doc');
+                            let vesselPermissions = await masterDev.view(
+                                'obs_web',
+                                'all_doc_types',
+                                {key: 'vessel-permissions', reduce: false, include_docs: true}
+                            )
+                            vesselPermissions = vesselPermissions.rows[0].doc;
+                            const existingRow = vesselPermissions.vesselAuthorizations.find( (row: any) => { row.vesselIdNum = vesselId} );
+                            if (existingRow) {
+                                console.log('adding to existing authorizedPeople row');
+                                existingRow.authorizedPeople.push(result._id);
+                            } else {
+                                console.log('adding new authorizedPeople row');
+                                vesselPermissions.vesselAuthorizations.push(
+                                    {
+                                        vesselIdNum: vesselId,
+                                        authorizedPeople: [result._id]
+                                    }
+                                );
+                            }
+                            const done = await masterDev.bulk({docs: [vesselPermissions]});
+                            console.log('updated vesselPermissions doc saved');
+                            if (done) {
+                                res.status(200).send('Success! Account created + associated with vessel');
+                            }
+                        })
+                    } else {
+                        console.error(err);
+                        res.status(400).send(err);
+                    }
+                });
+            } else {
                 console.error(err);
                 res.status(400).send(err);
-            })
-            if (resetEmailSent) {
-                // create person
-                console.log('creating person doc');
-                const newPerson = {
-                    type: 'person',
-                    apexUserAdminUserName: username.split('@')[0],
-                    createdBy: username.split('@')[0],
-                    createdDate: moment().format(),
-                    firstName,
-                    lastName,
-                    workEmail: username
-                }
-                await masterDev.bulk({docs: [newPerson]}).then( async (result) => {
-                    console.log(result);
-                    // assign vessel to person
-                    console.log('getting vesselPermissions doc');
-                    let vesselPermissions = await masterDev.view(
-                        'obs_web',
-                        'all_doc_types',
-                        {key: 'vessel-permissions', reduce: false, include_docs: true}
-                    )
-                    vesselPermissions = vesselPermissions.rows[0].doc;
-                    const existingRow = vesselPermissions.vesselAuthorizations.find( (row: any) => { row.vesselIdNum = vesselId} );
-                    if (existingRow) {
-                        console.log('adding to existing authorizedPeople row');
-                        existingRow.authorizedPeople.push(result._id);
-                    } else {
-                        console.log('adding new authorizedPeople row');
-                        vesselPermissions.vesselAuthorizations.push(
-                            {
-                                vesselIdNum: vesselId,
-                                authorizedPeople: [result._id]
-                            }
-                        );
-                    }
-                    const done = await masterDev.bulk({docs: [vesselPermissions]});
-                    console.log('updated vesselPermissions doc saved');
-                    if (done) {
-                        res.status(200).send('Success! Account created + associated with vessel');
-                    }
-                })
             }
-        } else {
-            res.status(400).send('Unable to create user');
-        }
+        });
     } else {
         res.status(400).send('Unable to validate passcode');
     }
@@ -1217,7 +1232,7 @@ router.post('/api/' + API_VERSION + '/mongo/:database/:collection', mongoRead);
 router.get('/api/' + API_VERSION + '/mongo/get/:database/:collection/:id', mongoGet);
 router.post('/api/' + API_VERSION + '/mongo/getMany/:database/:collection/', mongoGetMany);
 router.post('/api/' + API_VERSION + '/mongo/aggregate/:database/:collection/', aggregatePipeline);
-router.post('/api/' + API_VERSION + '/mongo', mongoWrite);
+router.post('/api/' + API_VERSION + '/mongo/write/:database/:collection', mongoWrite);
 router.put('/api/' + API_VERSION + '/mongo', mongoUpdate);
 router.delete('/api/' + API_VERSION + '/mongo', mongoDelete);
 
