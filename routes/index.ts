@@ -26,7 +26,7 @@ const path = require('path');
 import { resolve } from 'path';
 
 import { validateJwtRequest } from '../get-user.middleware';
-import { getFishTicket, vmsDBTest, insertRow, getVesselSelections, getWaivers, fishTicketQuery, getVesselFishTickets, getOracleTrips, checkPasscode, getRecentDeclarations } from '../util/oracle_routines';
+import { getFishTicket, vmsDBTest, insertRow, getVesselSelections, fishTicketQuery, getVesselFishTickets, getOracleTrips, checkPasscode, getRecentDeclarations } from '../util/oracle_routines';
 import { catchEvaluator } from '../util/trip-functions';
 import { Catches, sourceType, EmReviewSelectionRate, EMHaulReviewSelection, EmHaulReviewSelectionTypeName } from '@boatnet/bn-models';
 import { set, cloneDeep, omit, pick, union, keys, reduce, isEqual, differenceBy, differenceWith, sampleSize, sortBy } from 'lodash';
@@ -38,11 +38,18 @@ import { stringParser } from '../util/string-parser';
 import { validateCatch, validateApiTrip } from '../util/validator';
 import { runTripErrorChecks } from '../util/tripChecks';
 import { selectHaulsForReview } from '../util/haulSelection';
-import { findDocuments, writeDocuments, updateDocument, deleteDocument, getDocById, getDocsById, aggregate } from '../util/mongo_routines';
+import { waivers } from '../data-access-lib/waivers';
+import { mongo } from '../util/mongoClient';
 
 let token = '';
 export let key = '';
 const jp = require('jsonpath');
+
+export enum databaseClient {
+    Couch = "couch",
+    Mongo = "mongo",
+    Oracle = "oracle"
+}
 
 const login = async (req, res) => {
     let username = req.body.username || '';
@@ -700,7 +707,7 @@ const rolloverCheck = async (req, res) => {
     if (req.query.taskAuthorization === taskAuthorization) {
         res.status(200).send('executing rollover check');
         const year = moment().format('YYYY');
-        const allWaivers = await getWaivers(null, year);
+        const allWaivers = await waivers.getByIdAndYear(null, year, databaseClient.Oracle);
         const allVesselSelections = await getVesselSelections(year);
         let statusDoc = null;
         let statusesQuery = await masterDev.view(
@@ -904,11 +911,8 @@ const mongoRead = async (req, res) => {
     let collection = req.params.collection;
     let database = req.params.database;
 
-    console.log(req);
-
-    await findDocuments(database, collection, (documents) => {
-        response.push.apply(response, documents);
-    }, req.query, req.body.query, req.body.options)
+    response = await mongo.findDocuments(database, collection,
+        req.query, req.body.query, req.body.options);
 
     if (response.length > 0) {
         res.status(200).send(response);
@@ -925,7 +929,7 @@ const mongoGet = async (req, res) => {
     let database = req.params.database;
     let id = req.params.id;
 
-    await getDocById(database, collection, (document) => {
+    await mongo.getDocById(database, collection, (document) => {
         response.push(document);
     }, id)
 
@@ -942,7 +946,7 @@ const mongoGetMany = async (req, res) => {
     let database = req.params.database;
     let ids = req.body.ids;
 
-    await getDocsById(database, collection, (document) => {
+    await mongo.getDocsById(database, collection, (document) => {
         response.push.apply(response, document);
     }, ids)
 
@@ -959,7 +963,7 @@ const aggregatePipeline = async (req, res) => {
     let database = req.params.database;
     let pipeline = req.body.pipeline;
 
-    await aggregate(database, collection, (document) => {
+    await mongo.aggregate(database, collection, (document) => {
         response.push(document);
     }, pipeline)
 
@@ -982,7 +986,7 @@ const mongoWrite = async (req, res) => {
     }
 
     try {
-        await writeDocuments(database, collection, documents, (result) => {
+        await mongo.writeDocuments(database, collection, documents, (result) => {
         console.log(result)
         response = result;
         if (response) {
@@ -1003,7 +1007,7 @@ const mongoUpdate = async (req, res) => {
     console.log(req.body);
     document = req.body;
 
-    response = await updateDocument('documents', document);
+    response = await mongo.updateDocument('documents', document);
 
     if (response) {
         res.status(200).send(response);
@@ -1019,7 +1023,7 @@ const mongoDelete = async (req, res) => {
     console.log(req.body);
     document = req.body;
 
-    response = await deleteDocument('documents', document);
+    response = await mongo.deleteDocument('documents', document);
     console.log(response);
 
     if (response) {
@@ -1030,9 +1034,18 @@ const mongoDelete = async (req, res) => {
 }
 
 const handleGetWaiversRequest = async (req: any, res: any) => {
-    const id = req.query.vesselId ? req.query.vesselId : '';
-    const year = req.query.year ? req.query.year : '';
-    const result = await getWaivers(id, year);
+    let result: any = {};
+    const docId: string = req.query.id;
+    const vesselId: string = req.query.vesselId ? req.query.vesselId : '';
+    const year: number = req.query.year ? req.query.year : '';
+    const databaseClient: databaseClient = req.query.databaseClient ? req.query.databaseClient : '';
+
+    if (docId) {
+        result = await waivers.getById(docId, databaseClient);
+
+    } else {
+        result = await waivers.getByIdAndYear(vesselId, year, databaseClient);
+    }
     if (result) {
       res.status(200).json(result);
     } else {
