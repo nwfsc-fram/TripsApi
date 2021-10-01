@@ -1134,7 +1134,8 @@ const newVesselUser = async (req: any, res: any) => {
                     rejectUnauthorized: false,
                     body: {username, comments: '', appName, appShortName, resetURL, newResetUrl: usernamePage, result: ''}
                 }, async (err: any, response: any, body: any) => {
-                    console.log('send email response: ' + response)
+                    console.log('send email response: ')
+                    console.log(response)
                     if (!err && response.statusCode === 200) {
                         // create person
                         console.log('creating person doc');
