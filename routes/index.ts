@@ -957,6 +957,19 @@ const mongoGetMany = async (req, res) => {
     }
 }
 
+const mongoGetCollections = async (req, res) => {
+    let response = [];
+    let database = req.params.database;
+
+    response = await mongo.getCollections(database)
+
+    if (response.length > 0) {
+        res.status(200).send(response);
+    } else {
+        res.status(400).send('no collections found');
+    }
+}
+
 const aggregatePipeline = async (req, res) => {
     let response = [];
     let collection = req.params.collection;
@@ -1231,6 +1244,7 @@ router.use('/api/' + API_VERSION + '/mongo', getPubKey);
 router.use('/api/' + API_VERSION + '/mongo', validateJwtRequest);
 router.post('/api/' + API_VERSION + '/mongo/:database/:collection', mongoRead);
 router.get('/api/' + API_VERSION + '/mongo/get/:database/:collection/:id', mongoGet);
+router.get('/api/' + API_VERSION + '/mongo/getCollections/:database', mongoGetCollections);
 router.post('/api/' + API_VERSION + '/mongo/getMany/:database/:collection/', mongoGetMany);
 router.post('/api/' + API_VERSION + '/mongo/aggregate/:database/:collection/', aggregatePipeline);
 router.post('/api/' + API_VERSION + '/mongo/write/:database/:collection', mongoWrite);

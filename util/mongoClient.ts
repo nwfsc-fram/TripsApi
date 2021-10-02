@@ -43,11 +43,22 @@ class MongoHelper {
         }
     }
 
+    async getCollections(database) {
+        try {
+            const db = this.client.db(database);
+            var collections = await db.listCollections().toArray();
+            collections = collections.map((row) => row.name);
+            return collections;
+        } catch(err) {
+            console.error(err);
+        }
+    }
+
     async aggregate(database, collectionName, callback, pipeline) {
         try {
             const db = this.client.db(database);
             const collection = db.collection(collectionName);
-    
+
             await collection.aggregate(pipeline).toArray(function(err, docs) {
                 callback(docs)
             });
