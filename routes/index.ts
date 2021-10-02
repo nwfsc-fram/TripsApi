@@ -962,8 +962,7 @@ const mongoGetCollections = async (req, res) => {
     let database = req.params.database;
 
     response = await mongo.getCollections(database)
-    console.log(response);
-    
+
     if (response.length > 0) {
         res.status(200).send(response);
     } else {
