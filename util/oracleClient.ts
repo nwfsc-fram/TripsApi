@@ -1,5 +1,10 @@
 import * as oracledb from 'oracledb';
 
+export enum database {
+  PACFIN = 'pacfin',
+  OBSPROD = 'obsProd',
+  VMS = 'vms'
+}
 export class OracleHelper {
     connection: any;
     poolAlias: string;
@@ -35,6 +40,18 @@ export class OracleHelper {
         );
         this.connection = await pool.getConnection();
         return this.connection;
+    }
+
+    async getData(query: string, params: any[]) {
+      let result;
+      try {
+        const connection = await this.getConnection();
+        result = await connection.execute(query, params);
+      } catch(error) {
+        console.log(error);
+      }
+      this.closeConnection();
+      return result;
     }
 
     closeConnection() {

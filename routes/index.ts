@@ -40,6 +40,7 @@ import { runTripErrorChecks } from '../util/tripChecks';
 import { selectHaulsForReview } from '../util/haulSelection';
 import { waivers } from '../data-access-lib/waivers';
 import { mongo } from '../util/mongoClient';
+import { pacfinPool, obsProdPool, vmsPool, database } from '../util/oracleClient';
 
 let token = '';
 export let key = '';
@@ -1112,6 +1113,27 @@ const handleGetVesselFishTicketsRequest = async (req: any, res: any) => {
     }
   }
 
+const getOracleData = async(req: any, res: any) => {
+    const query = req.body.query;
+    const params = req.body.params;
+    const sourceDB = req.body.database;
+    let result;
+
+    if (sourceDB === database.PACFIN) {
+        result = await pacfinPool.getData(query, params);
+    } else if (sourceDB === database.OBSPROD) {
+        result = await obsProdPool.getData(query, params);
+    } else {
+        result = await vmsPool.getData(query, params);
+    }
+
+    if (result) {
+        res.status(200).json(result);
+    } else {
+        res.status(400).send('query found no matches.');
+    }
+}
+
 const newVesselUser = async (req: any, res: any) => {
     console.log(req.body);
     const vesselId = req.body.vesselId;
@@ -1286,6 +1308,10 @@ router.get('/api/' + API_VERSION + '/getVesselFishTickets', handleGetVesselFishT
 router.use('/api/' + API_VERSION + '/getOracleTrips', getPubKey);
 router.use('/api/' + API_VERSION + '/getOracleTrips', validateJwtRequest);
 router.get('/api/' + API_VERSION + '/getOracleTrips', handleGetOracleTripsRequest);
+
+router.use('/api/' + API_VERSION + '/getOracleData', getPubKey);
+router.use('/api/' + API_VERSION + '/getOracleData', validateJwtRequest);
+router.get('/api/' + API_VERSION + '/getOracleData', getOracleData);
 
 router.get('/api/' + API_VERSION + '/vms/test', vmsDBTest);
 router.post('/api/' + API_VERSION + '/newVesselUser', newVesselUser);
