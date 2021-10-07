@@ -1311,7 +1311,7 @@ router.get('/api/' + API_VERSION + '/getOracleTrips', handleGetOracleTripsReques
 
 router.use('/api/' + API_VERSION + '/getOracleData', getPubKey);
 router.use('/api/' + API_VERSION + '/getOracleData', validateJwtRequest);
-router.get('/api/' + API_VERSION + '/getOracleData', getOracleData);
+router.post('/api/' + API_VERSION + '/getOracleData', getOracleData);
 
 router.get('/api/' + API_VERSION + '/vms/test', vmsDBTest);
 router.post('/api/' + API_VERSION + '/newVesselUser', newVesselUser);
