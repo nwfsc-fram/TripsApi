@@ -338,15 +338,22 @@ export async function getRecentDeclarations(req: any, res: any) {
 
 export async function saveDeclaration(req: any, res: any) {
   try {
-    const vesselId = req.body.declaration.vesselId;
     const connection = await vmsPool.getConnection();
-    let maxConfNum = await connection.execute(
+    const maxConfNum = await connection.execute(
       'SELECT max(CONFIRMATION_NUMBER) FROM vTrack.NWD_VESSEL_TRANSACTIONS'
     )
-    maxConfNum = maxConfNum.rows[0][0];
+    const newConfNum = parseInt(maxConfNum.rows[0][0], 10) + 1;
+    const newDeclarations = [];
+    for (const declaration of req.body.declarations) {
+      const newDeclaration = await connection.execute(
+        'INSERT INTO vTrack.NWD_VESSEL_TRANSACTIONS ( VESSEL_PASSCODE, VESSEL_DOC_NUMBER, TRANSACTION_TYPE, CONFIRMATION_NUMBER, TRANSACTION_DATE, TRANSACTION_TIME, TRANSACTION_CONTACT_NAME, VMS_TECH, COMMENTS, TRANSACTION_CODE) VALUES (:VESSEL_PASSCODE, :VESSEL_DOC_NUMBER, :TRANSACTION_TYPE, :CONFIRMATION_NUMBER, :TRANSACTION_DATE, :TRANSACTION_TIME, :TRANSACTION_CONTACT_NAME, :VMS_TECH, :COMMENTS, :TRANSACTION_CODE)', [declaration.VESSEL_PASSCODE, declaration.VESSEL_DOC_NUMBER, declaration.TRANSACTION_TYPE, newConfNum, declaration.TRANSACTION_DATE, declaration.TRANSACTION_TIME, declaration.TRANSACTION_CONTACT_NAME, declaration.VMS_TECH, declaration.COMMENTS, declaration.TRANSACTION_CODE]
+      )
+      newDeclarations.push(newDeclaration);
+    }
     let returnVal = {
-      declaration: req.body.declaration,
-      maxConfNum
+      declarations: req.body.declarations,
+      newConfNum,
+      newDeclarations
     }
     vmsPool.closeConnection();
     if (returnVal) {
