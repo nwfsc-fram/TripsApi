@@ -340,12 +340,17 @@ export async function saveDeclaration(req: any, res: any) {
   try {
     const vesselId = req.body.declaration.vesselId;
     const connection = await vmsPool.getConnection();
-    const maxConfNum = await connection.execute(
+    let maxConfNum = await connection.execute(
       'SELECT max(CONFIRMATION_NUMBER) FROM vTrack.NWD_VESSEL_TRANSACTIONS'
     )
+    maxConfNum = maxConfNum.rows[0][0];
+    let returnVal = {
+      declaration: req.body.declaration,
+      maxConfNum
+    }
     vmsPool.closeConnection();
-    if (maxConfNum) {
-      res.status(200).json(maxConfNum);
+    if (returnVal) {
+      res.status(200).json(returnVal);
     } else {
       res.status(200).send('max conf query succeeded but not as expected.');
     }
