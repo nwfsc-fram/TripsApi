@@ -8,11 +8,6 @@ import * as express from 'express';
 import * as https from 'https';
 import * as fs from 'fs';
 import { resolve } from 'path';
-import { getFishTicket } from './util/oracle_routines';
-
-const ODWdbConfig = require('./dbConfig.json').ODWdbConfig;
-const OBSPRODdbConfig = require('./dbConfig.json').OBSPRODdbConfig;
-const VMSConfig = require('./dbConfig.json').VMSConfig;
 
 const app = express();
 const port = 3000;
@@ -124,65 +119,3 @@ httpsServer.listen(PORT, () => {
     );
     console.log('Dist path: ' + publicPath);
 });
-
-createDWOraclePool();
-createObsprodOraclePool();
-createVMSOraclePool();
-
-function createDWOraclePool() {
-  console.log('Creating oracle connection pool to', ODWdbConfig.connectString);
-  const oracleCredentials = {
-    user: ODWdbConfig.user,
-    password: ODWdbConfig.password,
-    connectString: ODWdbConfig.connectString,
-    poolAlias: 'pacfin'
-  };
-  oracledb.fetchAsString = [ oracledb.CLOB ];
-
-  oracledb.createPool(oracleCredentials, function(err, pool) {
-    if (pool) {
-      console.log('Oracle connection pool created:', pool.poolAlias); // 'default'
-    } else {
-      console.log(err);
-    }
-  });
-};
-
-function createObsprodOraclePool() {
-  console.log('Creating oracle connection pool to', OBSPRODdbConfig.connectString);
-  const oracleCredentials = {
-    user: OBSPRODdbConfig.user,
-    password: OBSPRODdbConfig.password,
-    connectString: OBSPRODdbConfig.connectString,
-    poolAlias: 'obsprod'
-  };
-  oracledb.fetchAsString = [ oracledb.CLOB ];
-
-  oracledb.createPool(oracleCredentials, function(err, pool) {
-    if (pool) {
-      console.log('Oracle connection pool created:', pool.poolAlias); // 'default'
-    } else {
-      console.log(err);
-    }
-  });
-};
-
-function createVMSOraclePool() {
-  console.log('Creating oracle connection pool to', VMSConfig.connectString);
-  const oracleCredentials = {
-    user: VMSConfig.user,
-    password: VMSConfig.password,
-    connectString: VMSConfig.connectString,
-    poolAlias: 'vms'
-  };
-  oracledb.fetchAsString = [ oracledb.CLOB ];
-
-  oracledb.createPool(oracleCredentials, function(err, pool) {
-    if (pool) {
-      console.log('Oracle connection pool created:', pool.poolAlias); // 'default'
-    } else {
-      console.log(err);
-    }
-  });
-}
-

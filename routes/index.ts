@@ -26,7 +26,7 @@ const path = require('path');
 import { resolve } from 'path';
 
 import { validateJwtRequest } from '../get-user.middleware';
-import { getFishTicket, vmsDBTest, insertRow, getVesselSelections, getWaivers, fishTicketQuery, getVesselFishTickets, getOracleTrips, checkPasscode, getRecentDeclarations } from '../util/oracle_routines';
+import { getFishTicket, vmsDBTest, insertRow, getVesselSelections, fishTicketQuery, getVesselFishTickets, getOracleTrips, checkPasscode, getRecentDeclarations, saveDeclaration } from '../util/oracle_routines';
 import { catchEvaluator } from '../util/trip-functions';
 import { Catches, sourceType, EmReviewSelectionRate, EMHaulReviewSelection, EmHaulReviewSelectionTypeName } from '@boatnet/bn-models';
 import { set, cloneDeep, omit, pick, union, keys, reduce, isEqual, differenceBy, differenceWith, sampleSize, sortBy } from 'lodash';
@@ -38,11 +38,19 @@ import { stringParser } from '../util/string-parser';
 import { validateCatch, validateApiTrip } from '../util/validator';
 import { runTripErrorChecks } from '../util/tripChecks';
 import { selectHaulsForReview } from '../util/haulSelection';
-import { findDocuments, writeDocuments, updateDocument, deleteDocument, getDocById, getDocsById, aggregate } from '../util/mongo_routines';
+import { waivers } from '../data-access-lib/waivers';
+import { mongo } from '../util/mongoClient';
+import { pacfinPool, obsProdPool, vmsPool, database } from '../util/oracleClient';
 
 let token = '';
 export let key = '';
 const jp = require('jsonpath');
+
+export enum databaseClient {
+    Couch = "couch",
+    Mongo = "mongo",
+    Oracle = "oracle"
+}
 
 const login = async (req, res) => {
     let username = req.body.username || '';
@@ -700,7 +708,7 @@ const rolloverCheck = async (req, res) => {
     if (req.query.taskAuthorization === taskAuthorization) {
         res.status(200).send('executing rollover check');
         const year = moment().format('YYYY');
-        const allWaivers = await getWaivers(null, year);
+        const allWaivers = await waivers.getByIdAndYear(null, year, databaseClient.Oracle);
         const allVesselSelections = await getVesselSelections(year);
         let statusDoc = null;
         let statusesQuery = await masterDev.view(
@@ -904,11 +912,8 @@ const mongoRead = async (req, res) => {
     let collection = req.params.collection;
     let database = req.params.database;
 
-    console.log(req);
-
-    await findDocuments(database, collection, (documents) => {
-        response.push.apply(response, documents);
-    }, req.query, req.body.query, req.body.options)
+    response = await mongo.findDocuments(database, collection,
+        req.query, req.body.query, req.body.options);
 
     if (response.length > 0) {
         res.status(200).send(response);
@@ -925,7 +930,7 @@ const mongoGet = async (req, res) => {
     let database = req.params.database;
     let id = req.params.id;
 
-    await getDocById(database, collection, (document) => {
+    await mongo.getDocById(database, collection, (document) => {
         response.push(document);
     }, id)
 
@@ -942,7 +947,7 @@ const mongoGetMany = async (req, res) => {
     let database = req.params.database;
     let ids = req.body.ids;
 
-    await getDocsById(database, collection, (document) => {
+    await mongo.getDocsById(database, collection, (document) => {
         response.push.apply(response, document);
     }, ids)
 
@@ -953,13 +958,26 @@ const mongoGetMany = async (req, res) => {
     }
 }
 
+const mongoGetCollections = async (req, res) => {
+    let response = [];
+    let database = req.params.database;
+
+    response = await mongo.getCollections(database)
+
+    if (response.length > 0) {
+        res.status(200).send(response);
+    } else {
+        res.status(400).send('no collections found');
+    }
+}
+
 const aggregatePipeline = async (req, res) => {
     let response = [];
     let collection = req.params.collection;
     let database = req.params.database;
     let pipeline = req.body.pipeline;
 
-    await aggregate(database, collection, (document) => {
+    await mongo.aggregate(database, collection, (document) => {
         response.push(document);
     }, pipeline)
 
@@ -982,7 +1000,7 @@ const mongoWrite = async (req, res) => {
     }
 
     try {
-        await writeDocuments(database, collection, documents, (result) => {
+        await mongo.writeDocuments(database, collection, documents, (result) => {
         console.log(result)
         response = result;
         if (response) {
@@ -1003,7 +1021,7 @@ const mongoUpdate = async (req, res) => {
     console.log(req.body);
     document = req.body;
 
-    response = await updateDocument('documents', document);
+    response = await mongo.updateDocument('documents', document);
 
     if (response) {
         res.status(200).send(response);
@@ -1019,7 +1037,7 @@ const mongoDelete = async (req, res) => {
     console.log(req.body);
     document = req.body;
 
-    response = await deleteDocument('documents', document);
+    response = await mongo.deleteDocument('documents', document);
     console.log(response);
 
     if (response) {
@@ -1030,9 +1048,18 @@ const mongoDelete = async (req, res) => {
 }
 
 const handleGetWaiversRequest = async (req: any, res: any) => {
-    const id = req.query.vesselId ? req.query.vesselId : '';
-    const year = req.query.year ? req.query.year : '';
-    const result = await getWaivers(id, year);
+    let result: any = {};
+    const docId: string = req.query.id;
+    const vesselId: string = req.query.vesselId ? req.query.vesselId : '';
+    const year: number = req.query.year ? req.query.year : '';
+    const databaseClient: databaseClient = req.query.databaseClient ? req.query.databaseClient : '';
+
+    if (docId) {
+        result = await waivers.getById(docId, databaseClient);
+
+    } else {
+        result = await waivers.getByIdAndYear(vesselId, year, databaseClient);
+    }
     if (result) {
       res.status(200).json(result);
     } else {
@@ -1086,6 +1113,27 @@ const handleGetVesselFishTicketsRequest = async (req: any, res: any) => {
     }
   }
 
+const getOracleData = async(req: any, res: any) => {
+    const query = req.body.query;
+    const params = req.body.params;
+    const sourceDB = req.body.database;
+    let result;
+
+    if (sourceDB === database.PACFIN) {
+        result = await pacfinPool.getData(query, params);
+    } else if (sourceDB === database.OBSPROD) {
+        result = await obsProdPool.getData(query, params);
+    } else {
+        result = await vmsPool.getData(query, params);
+    }
+
+    if (result) {
+        res.status(200).json(result);
+    } else {
+        res.status(400).send('query found no matches.');
+    }
+}
+
 const newVesselUser = async (req: any, res: any) => {
     console.log(req.body);
     const vesselId = req.body.vesselId;
@@ -1114,12 +1162,15 @@ const newVesselUser = async (req: any, res: any) => {
                 console.log('user created');
                 console.log('sending password reset email');
                 // send password reset email
+                console.log('doing PUT to ' + dbConfig.authServer + 'api/v1/send-email');
                 request.put({
                     url: dbConfig.authServer + 'api/v1/send-email',
                     json: true,
                     rejectUnauthorized: false,
                     body: {username, comments: '', appName, appShortName, resetURL, newResetUrl: usernamePage, result: ''}
                 }, async (err: any, response: any, body: any) => {
+                    console.log('send email response: ')
+                    console.log(response)
                     if (!err && response.statusCode === 200) {
                         // create person
                         console.log('creating person doc');
@@ -1215,6 +1266,7 @@ router.use('/api/' + API_VERSION + '/mongo', getPubKey);
 router.use('/api/' + API_VERSION + '/mongo', validateJwtRequest);
 router.post('/api/' + API_VERSION + '/mongo/:database/:collection', mongoRead);
 router.get('/api/' + API_VERSION + '/mongo/get/:database/:collection/:id', mongoGet);
+router.get('/api/' + API_VERSION + '/mongo/getCollections/:database', mongoGetCollections);
 router.post('/api/' + API_VERSION + '/mongo/getMany/:database/:collection/', mongoGetMany);
 router.post('/api/' + API_VERSION + '/mongo/aggregate/:database/:collection/', aggregatePipeline);
 router.post('/api/' + API_VERSION + '/mongo/write/:database/:collection', mongoWrite);
@@ -1257,11 +1309,16 @@ router.use('/api/' + API_VERSION + '/getOracleTrips', getPubKey);
 router.use('/api/' + API_VERSION + '/getOracleTrips', validateJwtRequest);
 router.get('/api/' + API_VERSION + '/getOracleTrips', handleGetOracleTripsRequest);
 
+router.use('/api/' + API_VERSION + '/getOracleData', getPubKey);
+router.use('/api/' + API_VERSION + '/getOracleData', validateJwtRequest);
+router.post('/api/' + API_VERSION + '/getOracleData', getOracleData);
+
 router.get('/api/' + API_VERSION + '/vms/test', vmsDBTest);
 router.post('/api/' + API_VERSION + '/newVesselUser', newVesselUser);
 
 router.use('/api/' + API_VERSION + '/vms/getDeclarations', getPubKey);
 router.use('/api/' + API_VERSION + '/vms/getDeclarations', validateJwtRequest);
 router.get('/api/' + API_VERSION + '/vms/getDeclarations', getRecentDeclarations);
+router.post('/api/' + API_VERSION + '/vms/saveDeclaration', saveDeclaration);
 
 module.exports = router;
