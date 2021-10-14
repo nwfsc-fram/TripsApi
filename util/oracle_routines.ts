@@ -335,3 +335,21 @@ export async function getRecentDeclarations(req: any, res: any) {
     res.status(400).send(err);
   }
 }
+
+export async function saveDeclaration(req: any, res: any) {
+  try {
+    const vesselId = req.body.declaration.vesselId;
+    const connection = await vmsPool.getConnection();
+    const maxConfNum = await connection.execute(
+      'SELECT max(CONFIRMATION_NUMBER) FROM vTrack.NWD_VESSEL_TRANSACTIONS'
+    )
+    vmsPool.closeConnection();
+    if (maxConfNum) {
+      res.status(200).json(maxConfNum);
+    } else {
+      res.status(200).send('max conf query succeeded but not as expected.');
+    }
+  } catch (err) {
+    res.status(400).send(err);
+  }
+}
