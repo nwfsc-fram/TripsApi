@@ -336,8 +336,6 @@ export async function getRecentDeclarations(req: any, res: any) {
   }
 }
 
-TO_DATE(:endDate, 'YYYY-MM-DD')
-
 export async function saveDeclaration(req: any, res: any) {
   try {
     const connection = await vmsPool.getConnection();
