@@ -348,9 +348,7 @@ export async function saveDeclaration(req: any, res: any) {
       "INSERT INTO vTrack.NWD_VESSEL_TRANSACTIONS ( VESSEL_PASSCODE, VESSEL_DOC_NUMBER, TRANSACTION_TYPE, CONFIRMATION_NUMBER, TRANSACTION_DATE, TRANSACTION_TIME, TRANSACTION_CONTACT_NAME, VMS_TECH, COMMENTS, TRANSACTION_CODE) VALUES (:VESSEL_PASSCODE, :VESSEL_DOC_NUMBER, :TRANSACTION_TYPE, :CONFIRMATION_NUMBER, TO_DATE(:TRANSACTION_DATE, 'DD-Month-YY'), TO_DATE(:TRANSACTION_TIME, 'DD-Month-YY HH:MI'), :TRANSACTION_CONTACT_NAME, :VMS_TECH, :COMMENTS, :TRANSACTION_CODE)", [declaration.VESSEL_PASSCODE, declaration.VESSEL_DOC_NUMBER, declaration.TRANSACTION_TYPE, newConfNum.toString(), moment(declaration.TRANSACTION_DATE).format('DD-MMMM-YY'), moment(declaration.TRANSACTION_TIME).format('DD-MMMM-YY HH:mm'), declaration.TRANSACTION_CONTACT_NAME, declaration.VMS_TECH, declaration.COMMENTS, declaration.TRANSACTION_CODE]
     )
     let returnVal = {
-      declarations: req.body.declarations,
-      newConfNum,
-      newDeclaration
+      confirmationNumber: newConfNum
     }
     vmsPool.closeConnection();
     if (returnVal) {
