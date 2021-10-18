@@ -338,14 +338,21 @@ export async function getRecentDeclarations(req: any, res: any) {
 
 export async function saveDeclaration(req: any, res: any) {
   try {
-    const vesselId = req.body.declaration.vesselId;
     const connection = await vmsPool.getConnection();
     const maxConfNum = await connection.execute(
       'SELECT max(CONFIRMATION_NUMBER) FROM vTrack.NWD_VESSEL_TRANSACTIONS'
     )
+    const newConfNum = parseInt(maxConfNum.rows[0][0], 10) + 1;
+    const declaration = req.body.declaration;
+    const newDeclaration = await connection.execute(
+      "INSERT INTO vTrack.NWD_VESSEL_TRANSACTIONS ( VESSEL_PASSCODE, VESSEL_DOC_NUMBER, TRANSACTION_TYPE, CONFIRMATION_NUMBER, TRANSACTION_DATE, TRANSACTION_TIME, TRANSACTION_CONTACT_NAME, VMS_TECH, COMMENTS, TRANSACTION_CODE) VALUES (:VESSEL_PASSCODE, :VESSEL_DOC_NUMBER, :TRANSACTION_TYPE, :CONFIRMATION_NUMBER, TO_DATE(:TRANSACTION_DATE, 'DD-Month-YY'), TO_DATE(:TRANSACTION_TIME, 'DD-Month-YY HH:MI'), :TRANSACTION_CONTACT_NAME, :VMS_TECH, :COMMENTS, :TRANSACTION_CODE)", [declaration.VESSEL_PASSCODE, declaration.VESSEL_DOC_NUMBER, declaration.TRANSACTION_TYPE, newConfNum.toString(), moment(declaration.TRANSACTION_DATE).format('DD-MMMM-YY'), moment(declaration.TRANSACTION_TIME).format('DD-MMMM-YY HH:mm'), declaration.TRANSACTION_CONTACT_NAME, declaration.VMS_TECH, declaration.COMMENTS, declaration.TRANSACTION_CODE]
+    )
+    let returnVal = {
+      confirmationNumber: newConfNum
+    }
     vmsPool.closeConnection();
-    if (maxConfNum) {
-      res.status(200).json(maxConfNum);
+    if (returnVal) {
+      res.status(200).json(returnVal);
     } else {
       res.status(200).send('max conf query succeeded but not as expected.');
     }
@@ -353,3 +360,20 @@ export async function saveDeclaration(req: any, res: any) {
     res.status(400).send(err);
   }
 }
+
+export async function getVesselInfo(req: any, res: any) {
+  try {
+    const VESSEL_DOC_NUMBER = req.query.vessel_doc_number.toString();
+    const connection = await vmsPool.getConnection();
+    const vmsVesselInfo = connection.execute("SELECT * FROM vTrack.NWD_VESSEL_INFORMATION WHERE VESSEL_DOC_NUMBER = :vesselId", [VESSEL_DOC_NUMBER]);
+    const returnVal = vmsVesselInfo
+    vmsPool.closeConnection();
+    if (returnVal) {
+      res.status(200).json(returnVal);
+    } else {
+      res.status(200).send('get vessel info query succeeded but not as expected.');
+    }
+  } catch (err) {
+    res.status(400).send(err);
+  }
+};
