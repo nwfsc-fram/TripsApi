@@ -360,3 +360,20 @@ export async function saveDeclaration(req: any, res: any) {
     res.status(400).send(err);
   }
 }
+
+export async function getVesselInfo(req: any, res: any) {
+  try {
+    const VESSEL_DOC_NUMBER = req.query.vessel_doc_number.toString();
+    const connection = await vmsPool.getConnection();
+    const vmsVesselInfo = connection.execute("SELECT * FROM vTrack.NWD_VESSEL_INFORMATION WHERE VESSEL_DOC_NUMBER = :vesselId", [VESSEL_DOC_NUMBER]);
+    const returnVal = vmsVesselInfo
+    vmsPool.closeConnection();
+    if (returnVal) {
+      res.status(200).json(returnVal);
+    } else {
+      res.status(200).send('get vessel info query succeeded but not as expected.');
+    }
+  } catch (err) {
+    res.status(400).send(err);
+  }
+};
