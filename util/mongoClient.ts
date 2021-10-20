@@ -20,7 +20,7 @@ class MongoHelper {
         try {
             const db = this.client.db(database)
             const collection = db.collection(collectionName);
-    
+
             if (!bodyOptions) {
                 bodyOptions = {};
             }
@@ -71,11 +71,11 @@ class MongoHelper {
         try {
             const db = this.client.db(database);
             const collection = db.collection(collectionName);
-    
+
             const queryId = new ObjectId(id)
             const docs = await collection.findOne({_id: queryId});
             await callback(docs);
-    
+
         } catch(err) {
             console.error(err);
         }
@@ -85,7 +85,7 @@ class MongoHelper {
         try {
             const db = this.client.db(database);
             const collection = db.collection(collectionName);
-    
+
             let queryIds = [];
             for (const id of ids) {
                 const queryId = new ObjectId(id);
@@ -94,17 +94,17 @@ class MongoHelper {
             await collection.find({"$or": queryIds }).toArray(function(err, docs) {
                 callback(docs)
             });
-    
+
         } catch(err) {
             console.error(err);
         }
     }
-    
+
     async writeDocuments(database, collectionName, documents, callback) {
         try {
             const db = this.client.db(database);
             const collection = db.collection(collectionName);
-    
+
             // Insert some documents
             await collection.insertMany(documents, function(err, result) {
               console.log("Inserted document into the collection");
@@ -114,12 +114,12 @@ class MongoHelper {
             console.error(err);
         }
     }
-    
-    async updateDocument(collectionName, document) {
+
+    async updateDocument(database, collectionName, document) {
         try {
-            const db = this.client.db(mongoDbName);
+            const db = this.client.db(database);
             const collection = db.collection(collectionName);
-    
+
             const result = await collection.findOneAndUpdate(
                 {_id: document._id},
                 {
@@ -134,14 +134,16 @@ class MongoHelper {
             console.error(err);
         }
     }
-    
-    async deleteDocument(collectionName, document) {
+
+    async deleteDocument(database, collectionName, document) {
         try {
-            const db = this.client.db(mongoDbName);
+            const db = this.client.db(database);
             const collection = db.collection(collectionName);
-    
+
+            const queryId = new ObjectId(document._id);
+
             const result = await collection.deleteOne(
-                {_id: document._id}
+                {_id: queryId}
             );
             return result;
         } catch(err) {
