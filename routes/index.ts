@@ -1017,11 +1017,11 @@ const mongoWrite = async (req, res) => {
 const mongoUpdate = async (req, res) => {
     let response: any = '';
     let document = {};
+    const collection = req.params.collection;
+    const database = req.params.database;
 
-    console.log(req.body);
     document = req.body;
-
-    response = await mongo.updateDocument('documents', document);
+    response = await mongo.updateDocument(database, collection, document);
 
     if (response) {
         res.status(200).send(response);
@@ -1270,7 +1270,7 @@ router.get('/api/' + API_VERSION + '/mongo/getCollections/:database', mongoGetCo
 router.post('/api/' + API_VERSION + '/mongo/getMany/:database/:collection/', mongoGetMany);
 router.post('/api/' + API_VERSION + '/mongo/aggregate/:database/:collection/', aggregatePipeline);
 router.post('/api/' + API_VERSION + '/mongo/write/:database/:collection', mongoWrite);
-router.put('/api/' + API_VERSION + '/mongo', mongoUpdate);
+router.put('/api/' + API_VERSION + '/mongo/update/:database/:collection', mongoUpdate);
 router.delete('/api/' + API_VERSION + '/mongo', mongoDelete);
 
 router.use('/api/' + API_VERSION + '/screenshot/:tripNum', getPubKey);

@@ -115,13 +115,15 @@ class MongoHelper {
         }
     }
     
-    async updateDocument(collectionName, document) {
+    async updateDocument(database, collectionName, document) {
         try {
-            const db = this.client.db(mongoDbName);
+            const db = this.client.db(database);
             const collection = db.collection(collectionName);
+            const id = new ObjectId(document._id);
+            delete document._id
     
             const result = await collection.findOneAndUpdate(
-                {_id: document._id},
+                {_id: id},
                 {
                     $set: document
                 },
