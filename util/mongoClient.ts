@@ -119,9 +119,11 @@ class MongoHelper {
         try {
             const db = this.client.db(database);
             const collection = db.collection(collectionName);
+            const id = new ObjectId(document._id);
+            delete document._id;
 
             const result = await collection.findOneAndUpdate(
-                {_id: document._id},
+                {_id: id},
                 {
                     $set: document
                 },

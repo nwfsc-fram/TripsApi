@@ -365,7 +365,6 @@ export async function getVesselInfo(req: any, res: any) {
   try {
     const VESSEL_DOC_NUMBER = req.query.vessel_doc_number.toString();
     const connection = await vmsPool.getConnection();
-
     const vmsVesselInfo = await connection.execute("SELECT * FROM vTrack.NWD_VESSEL_INFORMATION WHERE VESSEL_DOC_NUMBER = :vesselId", [VESSEL_DOC_NUMBER]);
     vmsPool.closeConnection();
     if (vmsVesselInfo) {
@@ -375,7 +374,6 @@ export async function getVesselInfo(req: any, res: any) {
         returnVessel[column.name] = row[i];
       }
       res.status(200).json(returnVessel);
-
     } else {
       res.status(200).send('get vessel info query succeeded but not as expected.');
     }
