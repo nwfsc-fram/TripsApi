@@ -971,6 +971,108 @@ const mongoGetCollections = async (req, res) => {
     }
 }
 
+const newMongoRead = async (req, res) => {
+    let database = req.body.database;
+    let collection = req.body.collection;
+    let operation = req.body.operation;
+
+    let response = [];
+
+    try {
+        switch (operation) {
+            case 'find':
+                let query = req.body.payload.query;
+                let options = req.body.payload.options;
+                response = await mongo.findDocuments(database, collection,
+                    req.query, query, options);
+                sendResponse(res, response);
+                break;
+            case 'aggregation':
+                let pipeline = req.body.payload.pipeline;
+                console.log(pipeline);
+                await mongo.aggregate(database, collection, (document) => {
+                    console.log(document)
+                    response.push(document);
+                    sendResponse(res, response);
+                }, pipeline)
+                break;
+            case 'getOneById':
+                let id = req.body.payload.id;
+                await mongo.getDocById(database, collection, (document) => {
+                    response.push(document);
+                    sendResponse(res, response);
+                }, id)
+                break;
+            case 'getManyById':
+                let ids = req.body.payload.ids;
+                await mongo.getDocsById(database, collection, (document) => {
+                    response.push.apply(response, document);
+                    sendResponse(res, response);
+                }, ids)
+                break;
+            case 'collections':
+                response = await mongo.getCollections(database);
+                sendResponse(res, response);
+            break;
+        }
+    } catch (err) {
+        res.status(400).send(err);
+    }
+}
+
+const sendResponse = (res, response) => {
+    if (response.length > 0) {
+        res.status(200).send(response);
+    } else {
+        res.status(400).send('no matching results found');
+    }
+}
+
+const newMongoWrite = async (req, res) => {
+    let database = req.body.database;
+    let collection = req.body.collection;
+    let operation = req.body.operation;
+
+    let document = {};
+    let response = [];
+
+    try {
+        switch (operation) {
+            case 'insert':
+                let documents = req.body.payload.documents;
+                await mongo.writeDocuments(database, collection, documents, (result) => {
+                    response = result;
+                    console.log(result);
+                    sendWriteResponse(res, response);
+                })
+                break;
+            case 'update':
+                document = req.body.payload.document;
+                response = await mongo.updateDocument(database, collection, document);
+                sendWriteResponse(res, response);
+                break;
+            case 'delete':
+                document = req.body.payload.document;
+                response = await mongo.deleteDocument(database, collection, document);
+                sendWriteResponse(res, response);
+                break;
+            // TODO
+            // case 'findAndModify': (find all docs in a collection that match find operation and update all of them with the supplied value(s))
+            //     break;
+        }
+    } catch (err) {
+        res.status(400).send(err);
+    }
+}
+
+const sendWriteResponse = (res, response) => {
+    if (response) {
+        res.status(200).send(response);
+    } else {
+        res.status(400).send('Unable to write data to database');
+    }
+}
+
 const aggregatePipeline = async (req, res) => {
     let response = [];
     let collection = req.params.collection;
@@ -1015,10 +1117,10 @@ const mongoWrite = async (req, res) => {
 }
 
 const mongoUpdate = async (req, res) => {
+    let database = req.params.database;
+    let collection = req.params.collection;
     let response: any = '';
     let document = {};
-    const collection = req.params.collection;
-    const database = req.params.database;
 
     document = req.body;
     response = await mongo.updateDocument(database, collection, document);
@@ -1031,13 +1133,15 @@ const mongoUpdate = async (req, res) => {
 }
 
 const mongoDelete = async (req, res) => {
+    let database = req.params.database;
+    let collection = req.params.collection;
     let response: any = '';
     let document = {};
 
     console.log(req.body);
     document = req.body;
 
-    response = await mongo.deleteDocument('documents', document);
+    response = await mongo.deleteDocument(database, collection, document);
     console.log(response);
 
     if (response) {
@@ -1272,6 +1376,14 @@ router.post('/api/' + API_VERSION + '/mongo/aggregate/:database/:collection/', a
 router.post('/api/' + API_VERSION + '/mongo/write/:database/:collection', mongoWrite);
 router.put('/api/' + API_VERSION + '/mongo/update/:database/:collection', mongoUpdate);
 router.delete('/api/' + API_VERSION + '/mongo', mongoDelete);
+
+router.use('/api/' + API_VERSION + '/newMongoRead', getPubKey);
+router.use('/api/' + API_VERSION + '/newMongoRead', validateJwtRequest);
+router.post('/api/' + API_VERSION + '/newMongoRead', newMongoRead);
+
+router.use('/api/' + API_VERSION + '/newMongoWrite', getPubKey);
+router.use('/api/' + API_VERSION + '/newMongoWrite', validateJwtRequest);
+router.post('/api/' + API_VERSION + '/newMongoWrite', newMongoWrite);
 
 router.use('/api/' + API_VERSION + '/screenshot/:tripNum', getPubKey);
 router.use('/api/' + API_VERSION + '/screenshot/:tripNum', validateJwtRequest);
