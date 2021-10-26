@@ -16,7 +16,7 @@ class MongoHelper {
         await this.client.connect();
     }
 
-    async findDocuments(database, collectionName, query?, bodyQuery?, bodyOptions?) {
+    async findDocuments(database, collectionName, bodyQuery?, bodyOptions?) {
         try {
             const db = this.client.db(database)
             const collection = db.collection(collectionName);
@@ -24,20 +24,7 @@ class MongoHelper {
             if (!bodyOptions) {
                 bodyOptions = {};
             }
-            if (bodyQuery) {
-                return await collection.find(bodyQuery, bodyOptions).toArray();
-            } else {
-                let formattedQuery = cloneDeep(query);
-                for (const queryKey of Object.keys(formattedQuery) ) {
-                    if (formattedQuery[queryKey] === 'true') {
-                        formattedQuery[queryKey] = true;
-                    }
-                    if (typeof formattedQuery[queryKey] === 'number') {
-                        formattedQuery[queryKey] = parseInt(formattedQuery[queryKey], 10);
-                    }
-                }
-                return await collection.find(formattedQuery).toArray();
-            }
+            return await collection.find(bodyQuery, bodyOptions).toArray();
         } catch(err) {
             console.error(err);
         }
