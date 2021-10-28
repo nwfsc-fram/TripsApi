@@ -908,16 +908,22 @@ const mongoRead = async (req, res) => {
 
     let response = [];
 
+    let query = req.body.payload.query;
+    let options = req.body.payload.options;
+
+    let pipeline = req.body.payload.pipeline;
+    let id = req.body.payload.id;
+    let ids = req.body.payload.ids;
+    let field = req.body.payload.field;
+
     try {
         switch (operation) {
             case 'find':
-                let query = req.body.payload.query;
-                let options = req.body.payload.options;
-                response = await mongo.findDocuments(database, collection, query, options);
+                response = await mongo.findDocuments(database, collection,
+                    req.query, query, options);
                 sendResponse(res, response);
                 break;
             case 'aggregation':
-                let pipeline = req.body.payload.pipeline;
                 console.log(pipeline);
                 await mongo.aggregate(database, collection, (document) => {
                     console.log(document)
@@ -926,14 +932,12 @@ const mongoRead = async (req, res) => {
                 }, pipeline)
                 break;
             case 'getOneById':
-                let id = req.body.payload.id;
                 await mongo.getDocById(database, collection, (document) => {
                     response.push(document);
                     sendResponse(res, response);
                 }, id)
                 break;
             case 'getManyById':
-                let ids = req.body.payload.ids;
                 await mongo.getDocsById(database, collection, (document) => {
                     response.push.apply(response, document);
                     sendResponse(res, response);
@@ -942,7 +946,11 @@ const mongoRead = async (req, res) => {
             case 'collections':
                 response = await mongo.getCollections(database);
                 sendResponse(res, response);
-            break;
+                break;
+            case 'getDistinct':
+                response = await mongo.getDistinct(database, collection, field, query, options);
+                sendResponse(res, response);
+                break;
         }
     } catch (err) {
         res.status(400).send(err);

@@ -41,6 +41,22 @@ class MongoHelper {
         }
     }
 
+    async getDistinct(database, collectionName, field, query?, options?) {
+        try {
+            if (!query) {
+                const query = {};
+            }
+            if (!options) {
+                options = {};
+            }
+            const db = this.client.db(database);
+            const collection = db.collection(collectionName)
+            return await collection.distinct(field, query, options);
+        } catch(err) {
+            console.error(err);
+        }
+    }
+
     async aggregate(database, collectionName, callback, pipeline) {
         try {
             const db = this.client.db(database);
