@@ -920,7 +920,7 @@ const mongoRead = async (req, res) => {
         switch (operation) {
             case 'find':
                 response = await mongo.findDocuments(database, collection,
-                    req.query, query, options);
+                    query, options);
                 sendResponse(res, response);
                 break;
             case 'aggregation':
